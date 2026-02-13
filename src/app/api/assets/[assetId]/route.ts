@@ -22,6 +22,7 @@ export async function GET(
       where: { assetId },
       include: {
         positions: {
+          where: { status: "Active" },
           include: {
             deals: {
               where: { status: { in: OCCUPYING_STATUSES } },
