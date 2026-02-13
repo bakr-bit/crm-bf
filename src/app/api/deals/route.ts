@@ -18,6 +18,7 @@ export async function GET(request: Request) {
     const partnerId = searchParams.get("partnerId");
     const assetId = searchParams.get("assetId");
     const geo = searchParams.get("geo");
+    const search = searchParams.get("search");
 
     const where: Record<string, unknown> = {};
 
@@ -32,6 +33,13 @@ export async function GET(request: Request) {
     }
     if (geo) {
       where.geo = geo;
+    }
+    if (search) {
+      where.OR = [
+        { brand: { name: { contains: search, mode: "insensitive" } } },
+        { partner: { name: { contains: search, mode: "insensitive" } } },
+        { asset: { name: { contains: search, mode: "insensitive" } } },
+      ];
     }
 
     const deals = await prisma.deal.findMany({

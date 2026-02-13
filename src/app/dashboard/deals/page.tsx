@@ -27,7 +27,8 @@ import {
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { DealDialog } from "@/components/dashboard/DealDialog";
 import { DealReplacementDialog } from "@/components/dashboard/DealReplacementDialog";
-import { MoreHorizontal, Plus } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { MoreHorizontal, Plus, Search } from "lucide-react";
 import Link from "next/link";
 import { COUNTRIES } from "@/lib/countries";
 import { GeoFlag } from "@/components/dashboard/GeoFlag";
@@ -91,10 +92,18 @@ export default function DealsPage() {
   const [loading, setLoading] = useState(true);
 
   // Filter state
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [partnerFilter, setPartnerFilter] = useState("All");
   const [assetFilter, setAssetFilter] = useState("All");
   const [geoFilter, setGeoFilter] = useState("All");
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => setSearchQuery(searchInput), 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   // Filter data
   const [partners, setPartners] = useState<Partner[]>([]);
@@ -143,6 +152,7 @@ export default function DealsPage() {
   const fetchDeals = useCallback(async () => {
     try {
       const params = new URLSearchParams();
+      if (searchQuery.trim()) params.set("search", searchQuery.trim());
       if (statusFilter !== "All") params.set("status", statusFilter);
       if (partnerFilter !== "All") params.set("partnerId", partnerFilter);
       if (assetFilter !== "All") params.set("assetId", assetFilter);
@@ -161,7 +171,7 @@ export default function DealsPage() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, partnerFilter, assetFilter, geoFilter]);
+  }, [searchQuery, statusFilter, partnerFilter, assetFilter, geoFilter]);
 
   useEffect(() => {
     setLoading(true);
@@ -244,6 +254,15 @@ export default function DealsPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-4">
+        <div className="relative w-64">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search brand, partner, asset..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="pl-9"
+          />
+        </div>
         <div className="w-48">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-full">
