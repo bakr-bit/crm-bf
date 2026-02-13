@@ -139,6 +139,7 @@ interface PartnerDetail {
   hasBanking: boolean;
   sopNotes: string | null;
   ownerUserId: string;
+  owner: { id: string; name: string } | null;
   createdAt: string;
   updatedAt: string;
   brands: Brand[];
@@ -437,9 +438,9 @@ export default function PartnerDetailPage() {
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-muted-foreground">
-                    Owner User ID
+                    Owner
                   </dt>
-                  <dd className="font-mono text-xs">{partner.ownerUserId}</dd>
+                  <dd className="text-sm">{partner.owner?.name ?? "Unknown"}</dd>
                 </div>
               </dl>
 

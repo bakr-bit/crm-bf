@@ -21,6 +21,7 @@ export async function GET(
     const partner = await prisma.partner.findUnique({
       where: { partnerId },
       include: {
+        owner: { select: { id: true, name: true } },
         brands: true,
         contacts: true,
         deals: {
