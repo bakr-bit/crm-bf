@@ -16,6 +16,7 @@ import { toast } from "sonner";
 interface Position {
   id: string;
   name: string;
+  path?: string;
   details?: string;
 }
 
@@ -37,15 +38,18 @@ export function PositionDialog({
   const isEdit = Boolean(position);
 
   const [name, setName] = useState("");
+  const [path, setPath] = useState("");
   const [details, setDetails] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (position) {
       setName(position.name ?? "");
+      setPath(position.path ?? "");
       setDetails(position.details ?? "");
     } else {
       setName("");
+      setPath("");
       setDetails("");
     }
   }, [position, open]);
@@ -60,6 +64,7 @@ export function PositionDialog({
 
     const body = {
       name: name.trim(),
+      path: path.trim() || undefined,
       details: details.trim() || undefined,
     };
 
@@ -110,6 +115,17 @@ export function PositionDialog({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Position name"
+            />
+          </div>
+
+          {/* Path */}
+          <div className="grid gap-2">
+            <Label htmlFor="position-path">Path</Label>
+            <Input
+              id="position-path"
+              value={path}
+              onChange={(e) => setPath(e.target.value)}
+              placeholder="/best-sites"
             />
           </div>
 

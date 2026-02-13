@@ -54,6 +54,7 @@ interface Position {
   positionId: string;
   assetId: string;
   name: string;
+  path: string | null;
   details: string | null;
   createdAt: string;
   updatedAt: string;
@@ -159,6 +160,7 @@ export default function AssetDetailPage() {
     return {
       id: p.positionId,
       name: p.name,
+      path: p.path ?? undefined,
       details: p.details ?? undefined,
     };
   }
@@ -258,6 +260,7 @@ export default function AssetDetailPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
+                <TableHead>Path</TableHead>
                 <TableHead>Details</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-12">Actions</TableHead>
@@ -267,7 +270,7 @@ export default function AssetDetailPage() {
               {asset.positions.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={4}
+                    colSpan={5}
                     className="text-center text-muted-foreground"
                   >
                     No positions yet.
@@ -282,6 +285,9 @@ export default function AssetDetailPage() {
                     <TableRow key={position.positionId}>
                       <TableCell className="font-medium">
                         {position.name}
+                      </TableCell>
+                      <TableCell className="font-mono text-sm text-muted-foreground">
+                        {position.path ?? "-"}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {position.details ?? "-"}

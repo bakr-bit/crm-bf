@@ -160,6 +160,7 @@ model Position {
   assetId    String
   asset      Asset          @relation(fields: [assetId], references: [assetId], onDelete: Cascade)
   name       String
+  path       String?
   details    String?
   status     PositionStatus @default(Active)
 
