@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions, isValidApiKey } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
-import { contactCreateSchema } from "@/lib/validations";
+import { credentialCreateSchema } from "@/lib/validations";
 
 export async function GET(
   request: Request,
@@ -28,19 +28,28 @@ export async function GET(
       );
     }
 
-    const contacts = await prisma.contact.findMany({
+    const credentials = await prisma.credential.findMany({
       where: { partnerId },
-      include: {
-        brand: { select: { brandId: true, name: true } },
-      },
       orderBy: { createdAt: "desc" },
+      select: {
+        credentialId: true,
+        partnerId: true,
+        label: true,
+        loginUrl: true,
+        username: true,
+        softwareType: true,
+        notes: true,
+        createdAt: true,
+        updatedAt: true,
+        // password is intentionally omitted
+      },
     });
 
-    return NextResponse.json(contacts);
+    return NextResponse.json(credentials);
   } catch (error) {
-    console.error("Partner contacts list error:", error);
+    console.error("Credentials list error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch contacts" },
+      { error: "Failed to fetch credentials" },
       { status: 500 }
     );
   }
@@ -59,7 +68,7 @@ export async function POST(
     const userId = session!.user.id;
     const { partnerId } = await params;
     const body = await request.json();
-    const parsed = contactCreateSchema.safeParse(body);
+    const parsed = credentialCreateSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -81,67 +90,59 @@ export async function POST(
 
     const data = parsed.data;
 
-    // Check unique email per partner
-    const existingContact = await prisma.contact.findUnique({
+    // Check unique label per partner
+    const existing = await prisma.credential.findUnique({
       where: {
-        partnerId_email: {
+        partnerId_label: {
           partnerId,
-          email: data.email,
+          label: data.label,
         },
       },
     });
 
-    if (existingContact) {
+    if (existing) {
       return NextResponse.json(
-        { error: "A contact with this email already exists for this partner" },
+        { error: "A credential with this label already exists for this partner" },
         { status: 409 }
       );
     }
 
-    // Validate brandId belongs to partner if provided
-    if (data.brandId) {
-      const brand = await prisma.brand.findFirst({
-        where: { brandId: data.brandId, partnerId },
-      });
-      if (!brand) {
-        return NextResponse.json(
-          { error: "Brand not found for this partner" },
-          { status: 400 }
-        );
-      }
-    }
-
-    const contact = await prisma.contact.create({
+    const credential = await prisma.credential.create({
       data: {
         partnerId,
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-        role: data.role,
-        telegram: data.telegram,
-        whatsapp: data.whatsapp,
-        preferredContact: data.preferredContact,
-        brandId: data.brandId,
-        geo: data.geo,
+        label: data.label,
+        loginUrl: data.loginUrl,
+        username: data.username,
+        password: data.password,
+        softwareType: data.softwareType,
+        notes: data.notes,
       },
-      include: {
-        brand: { select: { brandId: true, name: true } },
+      select: {
+        credentialId: true,
+        partnerId: true,
+        label: true,
+        loginUrl: true,
+        username: true,
+        softwareType: true,
+        notes: true,
+        createdAt: true,
+        updatedAt: true,
       },
     });
 
     await logAudit({
       userId,
-      entity: "Contact",
-      entityId: contact.contactId,
+      entity: "Credential",
+      entityId: credential.credentialId,
       action: "CREATE",
-      details: { name: contact.name, email: contact.email, partnerId },
+      details: { label: credential.label, partnerId },
     });
 
-    return NextResponse.json(contact, { status: 201 });
+    return NextResponse.json(credential, { status: 201 });
   } catch (error) {
-    console.error("Contact create error:", error);
+    console.error("Credential create error:", error);
     return NextResponse.json(
-      { error: "Failed to create contact" },
+      { error: "Failed to create credential" },
       { status: 500 }
     );
   }

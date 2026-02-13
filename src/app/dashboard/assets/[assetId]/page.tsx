@@ -24,6 +24,8 @@ import { AssetDialog } from "@/components/dashboard/AssetDialog";
 import { PositionDialog } from "@/components/dashboard/PositionDialog";
 import { ArrowLeft, Pencil, Plus, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
+import { OCCUPYING_STATUSES } from "@/lib/deal-status";
+import type { DealStatusType } from "@/lib/deal-status";
 
 // ---------- types ----------
 
@@ -108,7 +110,7 @@ export default function AssetDetailPage() {
       const res = await fetch(`/api/deals/${dealId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "Ended" }),
+        body: JSON.stringify({ status: "Inactive" }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
@@ -142,9 +144,11 @@ export default function AssetDetailPage() {
     };
   }
 
-  // Determine the active deal for a position (the API filters for Active status)
+  // Determine the active deal for a position (the API filters for occupying statuses)
   function getActiveDeal(position: Position): PositionDeal | undefined {
-    return position.deals.find((d) => d.status === "Active");
+    return position.deals.find((d) =>
+      OCCUPYING_STATUSES.includes(d.status as DealStatusType)
+    );
   }
 
   if (loading) {

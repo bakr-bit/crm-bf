@@ -105,8 +105,8 @@ export async function PUT(
       updatedById: userId,
     };
 
-    // If status changed to "Ended", set endDate to now
-    if (parsed.data.status === "Ended" && existing.status !== "Ended") {
+    // If status changed to "Inactive", set endDate to now
+    if (parsed.data.status === "Inactive" && existing.status !== "Inactive") {
       updateData.endDate = new Date();
     }
 
@@ -133,8 +133,8 @@ export async function PUT(
       },
     });
 
-    // Notify if deal was ended — position is now available
-    if (parsed.data.status === "Ended" && existing.status !== "Ended") {
+    // Notify if deal was set to Inactive — position is now available
+    if (parsed.data.status === "Inactive" && existing.status !== "Inactive") {
       createNotificationForAllUsers({
         type: "POSITION_AVAILABLE",
         title: "Position Available",

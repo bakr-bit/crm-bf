@@ -24,6 +24,8 @@ import { DealReplacementDialog } from "@/components/dashboard/DealReplacementDia
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { GeoFlag } from "@/components/dashboard/GeoFlag";
+import { OCCUPYING_STATUSES, DEAL_STATUS_LABELS } from "@/lib/deal-status";
+import type { DealStatusType } from "@/lib/deal-status";
 
 // ---------- types ----------
 
@@ -53,6 +55,14 @@ interface DealDetail {
   startDate: string;
   endDate: string | null;
   notes: string | null;
+  payoutModel: string | null;
+  payoutValue: string | null;
+  currency: string | null;
+  baseline: string | null;
+  conversionFlow: string | null;
+  cap: string | null;
+  holdPeriod: string | null;
+  hasLocalLicense: boolean;
   createdAt: string;
   updatedAt: string;
   partner: { partnerId: string; name: string };
@@ -154,7 +164,7 @@ export default function DealDetailPage() {
       const res = await fetch(`/api/deals/${dealId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "Ended" }),
+        body: JSON.stringify({ status: "Inactive" }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
@@ -258,7 +268,7 @@ export default function DealDetailPage() {
           </h1>
           <StatusBadge status={deal.status} variant="deal" />
         </div>
-        {deal.status === "Active" && (
+        {OCCUPYING_STATUSES.includes(deal.status as DealStatusType) && (
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -397,6 +407,63 @@ export default function DealDetailPage() {
                   <dd className="text-sm">{formatTimestamp(deal.updatedAt)}</dd>
                 </div>
               </dl>
+
+              {/* Deal Terms */}
+              <div className="mt-6 border-t pt-4">
+                <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+                  Deal Terms
+                </h3>
+                <dl className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <dt className="text-sm font-medium text-muted-foreground">
+                      Payout Model
+                    </dt>
+                    <dd className="text-sm">{deal.payoutModel ?? "-"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-muted-foreground">
+                      Payout Value
+                    </dt>
+                    <dd className="text-sm">{deal.payoutValue ?? "-"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-muted-foreground">
+                      Currency
+                    </dt>
+                    <dd className="text-sm">{deal.currency ?? "-"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-muted-foreground">
+                      Baseline
+                    </dt>
+                    <dd className="text-sm">{deal.baseline ?? "-"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-muted-foreground">
+                      Conversion Flow
+                    </dt>
+                    <dd className="text-sm">{deal.conversionFlow ?? "-"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-muted-foreground">
+                      Cap
+                    </dt>
+                    <dd className="text-sm">{deal.cap ?? "-"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-muted-foreground">
+                      Hold Period
+                    </dt>
+                    <dd className="text-sm">{deal.holdPeriod ?? "-"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-muted-foreground">
+                      Local License
+                    </dt>
+                    <dd className="text-sm">{deal.hasLocalLicense ? "Yes" : "No"}</dd>
+                  </div>
+                </dl>
+              </div>
 
               {/* Notes */}
               <div className="mt-6 border-t pt-4">

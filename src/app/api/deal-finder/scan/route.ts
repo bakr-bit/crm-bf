@@ -102,7 +102,7 @@ export async function POST(request: Request) {
     const activeDeals = await prisma.deal.findMany({
       where: {
         assetId,
-        status: "Active",
+        status: "Live",
       },
       select: {
         dealId: true,

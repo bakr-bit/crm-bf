@@ -4,6 +4,7 @@ import { authOptions, isValidApiKey } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { assetUpdateSchema } from "@/lib/validations";
+import { OCCUPYING_STATUSES } from "@/lib/deal-status";
 
 export async function GET(
   request: Request,
@@ -23,7 +24,7 @@ export async function GET(
         positions: {
           include: {
             deals: {
-              where: { status: "Active" },
+              where: { status: { in: OCCUPYING_STATUSES } },
               include: {
                 partner: true,
                 brand: true,
@@ -153,7 +154,7 @@ export async function DELETE(
     const activeDeals = await prisma.deal.count({
       where: {
         assetId,
-        status: "Active",
+        status: { in: OCCUPYING_STATUSES },
       },
     });
 

@@ -10,6 +10,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 
 interface Contact {
@@ -19,6 +26,10 @@ interface Contact {
   phone?: string;
   role?: string;
   telegram?: string;
+  whatsapp?: string;
+  preferredContact?: string;
+  brandId?: string;
+  geo?: string;
 }
 
 interface ContactDialogProps {
@@ -27,6 +38,7 @@ interface ContactDialogProps {
   partnerId: string;
   contact?: Contact;
   onSuccess: () => void;
+  brands?: { brandId: string; name: string }[];
 }
 
 export function ContactDialog({
@@ -35,6 +47,7 @@ export function ContactDialog({
   partnerId,
   contact,
   onSuccess,
+  brands,
 }: ContactDialogProps) {
   const isEdit = Boolean(contact);
 
@@ -43,6 +56,10 @@ export function ContactDialog({
   const [phone, setPhone] = useState("");
   const [role, setRole] = useState("");
   const [telegram, setTelegram] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [preferredContact, setPreferredContact] = useState("");
+  const [brandId, setBrandId] = useState("");
+  const [geo, setGeo] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -52,12 +69,20 @@ export function ContactDialog({
       setPhone(contact.phone ?? "");
       setRole(contact.role ?? "");
       setTelegram(contact.telegram ?? "");
+      setWhatsapp(contact.whatsapp ?? "");
+      setPreferredContact(contact.preferredContact ?? "");
+      setBrandId(contact.brandId ?? "");
+      setGeo(contact.geo ?? "");
     } else {
       setName("");
       setEmail("");
       setPhone("");
       setRole("");
       setTelegram("");
+      setWhatsapp("");
+      setPreferredContact("");
+      setBrandId("");
+      setGeo("");
     }
   }, [contact, open]);
 
@@ -79,6 +104,10 @@ export function ContactDialog({
       phone: phone.trim() || undefined,
       role: role.trim() || undefined,
       telegram: telegram.trim() || undefined,
+      whatsapp: whatsapp.trim() || undefined,
+      preferredContact: preferredContact || undefined,
+      brandId: brandId && brandId !== "__none" ? brandId : undefined,
+      geo: geo.trim().toUpperCase() || undefined,
     };
 
     try {
@@ -174,6 +203,65 @@ export function ContactDialog({
               value={telegram}
               onChange={(e) => setTelegram(e.target.value)}
               placeholder="@username"
+            />
+          </div>
+
+          {/* WhatsApp */}
+          <div className="grid gap-2">
+            <Label htmlFor="contact-whatsapp">WhatsApp</Label>
+            <Input
+              id="contact-whatsapp"
+              value={whatsapp}
+              onChange={(e) => setWhatsapp(e.target.value)}
+              placeholder="+1 (555) 123-4567"
+            />
+          </div>
+
+          {/* Preferred Contact Method */}
+          <div className="grid gap-2">
+            <Label>Preferred Contact</Label>
+            <Select value={preferredContact} onValueChange={setPreferredContact}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select preferred method" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Email">Email</SelectItem>
+                <SelectItem value="Telegram">Telegram</SelectItem>
+                <SelectItem value="WhatsApp">WhatsApp</SelectItem>
+                <SelectItem value="Phone">Phone</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Brand Scope */}
+          {brands && brands.length > 0 && (
+            <div className="grid gap-2">
+              <Label>Brand Scope</Label>
+              <Select value={brandId} onValueChange={setBrandId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="All brands (no scope)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">All brands (no scope)</SelectItem>
+                  {brands.map((b) => (
+                    <SelectItem key={b.brandId} value={b.brandId}>
+                      {b.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Geo Scope */}
+          <div className="grid gap-2">
+            <Label htmlFor="contact-geo">Geo Scope</Label>
+            <Input
+              id="contact-geo"
+              value={geo}
+              onChange={(e) => setGeo(e.target.value)}
+              placeholder="e.g. US, GB (2-letter code)"
+              maxLength={2}
             />
           </div>
         </div>

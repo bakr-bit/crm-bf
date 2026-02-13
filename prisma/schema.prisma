@@ -20,10 +20,13 @@ enum BrandStatus {
 }
 
 enum DealStatus {
-  Active
-  PendingValidation
-  Ended
-  Expired
+  Unsure
+  InContact
+  Approved
+  AwaitingPostback
+  FullyImplemented
+  Live
+  Inactive
 }
 
 enum AssetStatus {
@@ -86,6 +89,7 @@ model Partner {
   brands        Brand[]
   contacts      Contact[]
   deals         Deal[]
+  credentials   Credential[]
 }
 
 model Brand {
@@ -107,18 +111,24 @@ model Brand {
   updatedAt        DateTime         @updatedAt
 
   deals            Deal[]
+  contacts         Contact[]
   scanItems        ScanResultItem[]
 }
 
 model Contact {
-  contactId String   @id @default(cuid())
-  partnerId String
-  partner   Partner  @relation(fields: [partnerId], references: [partnerId], onDelete: Cascade)
-  name      String
-  email     String
-  phone     String?
-  role      String?
-  telegram  String?
+  contactId        String   @id @default(cuid())
+  partnerId        String
+  partner          Partner  @relation(fields: [partnerId], references: [partnerId], onDelete: Cascade)
+  name             String
+  email            String
+  phone            String?
+  role             String?
+  telegram         String?
+  whatsapp         String?
+  preferredContact String?
+  brandId          String?
+  brand            Brand?   @relation(fields: [brandId], references: [brandId])
+  geo              String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -171,10 +181,20 @@ model Deal {
   affiliateLink  String?
   startDate      DateTime   @default(now())
   endDate        DateTime?
-  status         DealStatus @default(Active)
+  status         DealStatus @default(Live)
   isDirect       Boolean    @default(false)
   geo            String     @default("")
   notes          String?
+
+  // Financial fields
+  payoutModel      String?
+  payoutValue      String?
+  currency         String?
+  baseline         String?
+  conversionFlow   String?
+  cap              String?
+  holdPeriod       String?
+  hasLocalLicense  Boolean    @default(false)
 
   // Replacement chain
   replacedDealId String?    @unique
@@ -235,6 +255,22 @@ model ScanResultItem {
   confidence     Float?
   notes          String?
   createdAt      DateTime       @default(now())
+}
+
+model Credential {
+  credentialId  String   @id @default(cuid())
+  partnerId     String
+  partner       Partner  @relation(fields: [partnerId], references: [partnerId], onDelete: Cascade)
+  label         String
+  loginUrl      String?
+  username      String
+  password      String
+  softwareType  String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([partnerId, label])
 }
 
 model AuditLog {

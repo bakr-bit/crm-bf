@@ -9,9 +9,9 @@ import Link from "next/link";
 
 interface DashboardStats {
   totalPartners: number;
-  activeDeals: number;
+  liveDeals: number;
   totalAssets: number;
-  pendingValidationDeals: number;
+  pipelineDeals: number;
 }
 
 interface AuditLogEntry {
@@ -146,8 +146,8 @@ export default function DashboardPage() {
       icon: <Users className="size-5 text-muted-foreground" />,
     },
     {
-      label: "Active Deals",
-      value: stats?.activeDeals ?? 0,
+      label: "Live Deals",
+      value: stats?.liveDeals ?? 0,
       icon: <Handshake className="size-5 text-muted-foreground" />,
     },
     {
@@ -156,8 +156,8 @@ export default function DashboardPage() {
       icon: <Globe className="size-5 text-muted-foreground" />,
     },
     {
-      label: "Pending Validation",
-      value: stats?.pendingValidationDeals ?? 0,
+      label: "In Pipeline",
+      value: stats?.pipelineDeals ?? 0,
       icon: <AlertCircle className="size-5 text-muted-foreground" />,
     },
   ];

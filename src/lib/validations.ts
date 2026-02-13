@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { normalizeDomain } from "./utils";
+import { DEAL_STATUSES } from "./deal-status";
 
 const domainTransform = z.string().optional().transform((val) => {
   if (!val || val.trim() === "") return undefined;
@@ -41,6 +42,10 @@ export const contactCreateSchema = z.object({
   phone: z.string().optional(),
   role: z.string().optional(),
   telegram: z.string().optional(),
+  whatsapp: z.string().optional(),
+  preferredContact: z.enum(["Email", "Telegram", "WhatsApp", "Phone"]).optional(),
+  brandId: z.string().optional(),
+  geo: z.string().optional(),
 });
 
 export const contactUpdateSchema = contactCreateSchema.partial();
@@ -60,6 +65,18 @@ export const positionCreateSchema = z.object({
 
 export const positionUpdateSchema = positionCreateSchema.partial();
 
+// Deal financial fields shared shape
+const dealFinancialFields = {
+  payoutModel: z.string().optional(),
+  payoutValue: z.string().optional(),
+  currency: z.string().optional(),
+  baseline: z.string().optional(),
+  conversionFlow: z.string().optional(),
+  cap: z.string().optional(),
+  holdPeriod: z.string().optional(),
+  hasLocalLicense: z.boolean().default(false),
+};
+
 export const dealCreateSchema = z.object({
   partnerId: z.string().min(1, "Partner is required"),
   brandId: z.string().min(1, "Brand is required"),
@@ -70,14 +87,16 @@ export const dealCreateSchema = z.object({
   startDate: z.string().optional().transform((val) => val ? new Date(val) : new Date()),
   endDate: z.string().optional().transform((val) => val ? new Date(val) : undefined),
   notes: z.string().optional(),
+  ...dealFinancialFields,
 });
 
 export const dealUpdateSchema = z.object({
   affiliateLink: z.string().optional(),
   geo: z.string().length(2).toUpperCase().optional(),
   endDate: z.string().optional().transform((val) => val ? new Date(val) : undefined),
-  status: z.enum(["Active", "PendingValidation", "Ended", "Expired"]).optional(),
+  status: z.enum(DEAL_STATUSES).optional(),
   notes: z.string().optional(),
+  ...dealFinancialFields,
 });
 
 export const dealReplaceSchema = z.object({
@@ -87,6 +106,7 @@ export const dealReplaceSchema = z.object({
   geo: z.string().length(2).toUpperCase().optional(),
   affiliateLink: z.string().optional(),
   notes: z.string().optional(),
+  ...dealFinancialFields,
 });
 
 export const scanAssetSchema = z.object({
@@ -100,3 +120,15 @@ export const confirmScanItemSchema = z.object({
   brandId: z.string().optional(),
   positionId: z.string().optional(),
 });
+
+// Credential schemas
+export const credentialCreateSchema = z.object({
+  label: z.string().min(1, "Label is required"),
+  loginUrl: z.string().optional(),
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(1, "Password is required"),
+  softwareType: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+export const credentialUpdateSchema = credentialCreateSchema.partial();

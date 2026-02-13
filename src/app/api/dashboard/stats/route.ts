@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions, isValidApiKey } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { PIPELINE_STATUSES } from "@/lib/deal-status";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -10,12 +11,12 @@ export async function GET(request: Request) {
   }
 
   try {
-    const [totalPartners, activeDeals, totalAssets, pendingValidationDeals, recentAuditLogs] =
+    const [totalPartners, liveDeals, totalAssets, pipelineDeals, recentAuditLogs] =
       await Promise.all([
         prisma.partner.count(),
-        prisma.deal.count({ where: { status: "Active" } }),
+        prisma.deal.count({ where: { status: "Live" } }),
         prisma.asset.count(),
-        prisma.deal.count({ where: { status: "PendingValidation" } }),
+        prisma.deal.count({ where: { status: { in: PIPELINE_STATUSES } } }),
         prisma.auditLog.findMany({
           where: {
             action: {
@@ -27,6 +28,7 @@ export async function GET(request: Request) {
                 "ENDED_BY_REPLACEMENT",
                 "ENDED_BY_SCAN",
                 "CREATE_FROM_SCAN",
+                "CREDENTIAL_ACCESS",
               ],
             },
           },
@@ -43,9 +45,9 @@ export async function GET(request: Request) {
     return NextResponse.json({
       stats: {
         totalPartners,
-        activeDeals,
+        liveDeals,
         totalAssets,
-        pendingValidationDeals,
+        pipelineDeals,
       },
       recentAuditLogs,
     });

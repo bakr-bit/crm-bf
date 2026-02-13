@@ -4,6 +4,7 @@ import { authOptions, isValidApiKey } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { dealReplaceSchema } from "@/lib/validations";
 import { createNotificationForAllUsers } from "@/lib/notifications";
+import { OCCUPYING_STATUSES } from "@/lib/deal-status";
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -35,7 +36,7 @@ export async function POST(request: Request) {
         throw new Error("DEAL_NOT_FOUND");
       }
 
-      if (existingDeal.status !== "Active") {
+      if (!OCCUPYING_STATUSES.includes(existingDeal.status as typeof OCCUPYING_STATUSES[number])) {
         throw new Error("DEAL_NOT_ACTIVE");
       }
 
@@ -56,7 +57,7 @@ export async function POST(request: Request) {
       const endedDeal = await tx.deal.update({
         where: { dealId: data.existingDealId },
         data: {
-          status: "Ended",
+          status: "Inactive",
           endDate: new Date(),
           updatedById: userId,
         },
@@ -71,13 +72,13 @@ export async function POST(request: Request) {
         throw new Error("PARTNER_NOT_FOUND");
       }
 
-      let dealStatus: "Active" | "PendingValidation" = "Active";
+      let dealStatus: "Live" | "Approved" = "Live";
 
       if (
         newPartner.isDirect &&
         !(newPartner.hasContract && newPartner.hasLicense && newPartner.hasBanking)
       ) {
-        dealStatus = "PendingValidation";
+        dealStatus = "Approved";
       }
 
       // Create new deal on same asset/position with new partner/brand
@@ -95,6 +96,14 @@ export async function POST(request: Request) {
           isDirect: newPartner.isDirect,
           replacedDealId: existingDeal.dealId,
           createdById: userId,
+          payoutModel: data.payoutModel ?? (existingDeal as Record<string, unknown>).payoutModel as string | undefined,
+          payoutValue: data.payoutValue ?? (existingDeal as Record<string, unknown>).payoutValue as string | undefined,
+          currency: data.currency ?? (existingDeal as Record<string, unknown>).currency as string | undefined,
+          baseline: data.baseline ?? (existingDeal as Record<string, unknown>).baseline as string | undefined,
+          conversionFlow: data.conversionFlow ?? (existingDeal as Record<string, unknown>).conversionFlow as string | undefined,
+          cap: data.cap ?? (existingDeal as Record<string, unknown>).cap as string | undefined,
+          holdPeriod: data.holdPeriod ?? (existingDeal as Record<string, unknown>).holdPeriod as string | undefined,
+          hasLocalLicense: data.hasLocalLicense ?? (existingDeal as Record<string, unknown>).hasLocalLicense as boolean | undefined,
         },
         include: {
           partner: true,

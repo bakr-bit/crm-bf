@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { DEAL_STATUS_LABELS } from "@/lib/deal-status";
 
 type StatusVariant = "partner" | "brand" | "deal";
 
@@ -22,20 +23,22 @@ const colorMap: Record<StatusVariant, Record<string, string>> = {
     Archived: "bg-gray-100 text-gray-800",
   },
   deal: {
-    Active: "bg-green-100 text-green-800",
-    PendingValidation: "bg-yellow-100 text-yellow-800",
-    Ended: "bg-red-100 text-red-800",
-    Expired: "bg-gray-100 text-gray-800",
+    Unsure: "bg-gray-100 text-gray-800",
+    InContact: "bg-blue-100 text-blue-800",
+    Approved: "bg-yellow-100 text-yellow-800",
+    AwaitingPostback: "bg-orange-100 text-orange-800",
+    FullyImplemented: "bg-purple-100 text-purple-800",
+    Live: "bg-green-100 text-green-800",
+    Inactive: "bg-red-100 text-red-800",
   },
-};
-
-const displayLabels: Record<string, string> = {
-  PendingValidation: "Pending Validation",
 };
 
 export function StatusBadge({ status, variant = "partner" }: StatusBadgeProps) {
   const colors = colorMap[variant]?.[status] ?? "bg-gray-100 text-gray-800";
-  const label = displayLabels[status] ?? status;
+  const label =
+    variant === "deal"
+      ? DEAL_STATUS_LABELS[status as keyof typeof DEAL_STATUS_LABELS] ?? status
+      : status;
 
   return (
     <Badge variant="outline" className={`border-transparent ${colors}`}>

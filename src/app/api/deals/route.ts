@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { dealCreateSchema } from "@/lib/validations";
 import { createNotificationForAllUsers } from "@/lib/notifications";
+import { OCCUPYING_STATUSES } from "@/lib/deal-status";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -19,11 +20,18 @@ export async function GET(request: Request) {
     const assetId = searchParams.get("assetId");
     const geo = searchParams.get("geo");
     const search = searchParams.get("search");
+    const ownerUserId = searchParams.get("ownerUserId");
+    const hasLicense = searchParams.get("hasLicense");
+    const isDirect = searchParams.get("isDirect");
+    const includeInactive = searchParams.get("includeInactive") === "true";
 
     const where: Record<string, unknown> = {};
 
     if (status) {
       where.status = status;
+    } else if (!includeInactive) {
+      // By default exclude Inactive deals unless a specific status or includeInactive is set
+      where.status = { not: "Inactive" };
     }
     if (partnerId) {
       where.partnerId = partnerId;
@@ -33,6 +41,19 @@ export async function GET(request: Request) {
     }
     if (geo) {
       where.geo = geo;
+    }
+    if (ownerUserId) {
+      where.partner = { ...(where.partner as Record<string, unknown> ?? {}), ownerUserId };
+    }
+    if (hasLicense === "yes") {
+      where.brand = { ...(where.brand as Record<string, unknown> ?? {}), licenseInfo: { not: null } };
+    } else if (hasLicense === "no") {
+      where.brand = { ...(where.brand as Record<string, unknown> ?? {}), licenseInfo: null };
+    }
+    if (isDirect === "yes") {
+      where.isDirect = true;
+    } else if (isDirect === "no") {
+      where.isDirect = false;
     }
     if (search) {
       where.OR = [
@@ -46,7 +67,11 @@ export async function GET(request: Request) {
       where,
       orderBy: { createdAt: "desc" },
       include: {
-        partner: true,
+        partner: {
+          include: {
+            owner: { select: { id: true, name: true, email: true } },
+          },
+        },
         brand: true,
         asset: true,
         position: true,
@@ -97,11 +122,11 @@ export async function POST(request: Request) {
         throw new Error("BRAND_PARTNER_MISMATCH");
       }
 
-      // 2. Check position not occupied by active deal
+      // 2. Check position not occupied by an occupying deal
       const existingActiveDeal = await tx.deal.findFirst({
         where: {
           positionId: data.positionId,
-          status: "Active",
+          status: { in: OCCUPYING_STATUSES },
         },
       });
 
@@ -118,13 +143,13 @@ export async function POST(request: Request) {
         throw new Error("PARTNER_NOT_FOUND");
       }
 
-      let dealStatus: "Active" | "PendingValidation" = "Active";
+      let dealStatus: "Live" | "Approved" = "Live";
 
       if (
         partner.isDirect &&
         !(partner.hasContract && partner.hasLicense && partner.hasBanking)
       ) {
-        dealStatus = "PendingValidation";
+        dealStatus = "Approved";
       }
 
       // 4. Create deal
@@ -142,6 +167,14 @@ export async function POST(request: Request) {
           status: dealStatus,
           isDirect: partner.isDirect,
           createdById: userId,
+          payoutModel: data.payoutModel,
+          payoutValue: data.payoutValue,
+          currency: data.currency,
+          baseline: data.baseline,
+          conversionFlow: data.conversionFlow,
+          cap: data.cap,
+          holdPeriod: data.holdPeriod,
+          hasLocalLicense: data.hasLocalLicense,
         },
         include: {
           partner: true,

@@ -95,6 +95,16 @@ export function DealDialog({
   const [endDate, setEndDate] = useState("");
   const [notes, setNotes] = useState("");
 
+  // Financial fields
+  const [payoutModel, setPayoutModel] = useState("");
+  const [payoutValue, setPayoutValue] = useState("");
+  const [currency, setCurrency] = useState("");
+  const [baseline, setBaseline] = useState("");
+  const [conversionFlow, setConversionFlow] = useState("");
+  const [cap, setCap] = useState("");
+  const [holdPeriod, setHoldPeriod] = useState("");
+  const [hasLocalLicense, setHasLocalLicense] = useState(false);
+
   const [loading, setLoading] = useState(false);
 
   const isPrefilled = Boolean(prefill?.assetId);
@@ -145,6 +155,14 @@ export function DealDialog({
       setStartDate("");
       setEndDate("");
       setNotes("");
+      setPayoutModel("");
+      setPayoutValue("");
+      setCurrency("");
+      setBaseline("");
+      setConversionFlow("");
+      setCap("");
+      setHoldPeriod("");
+      setHasLocalLicense(false);
     }
   }, [open, prefill]);
 
@@ -260,6 +278,14 @@ export function DealDialog({
       startDate,
       endDate: endDate || undefined,
       notes: notes.trim() || undefined,
+      payoutModel: payoutModel.trim() || undefined,
+      payoutValue: payoutValue.trim() || undefined,
+      currency: currency.trim() || undefined,
+      baseline: baseline.trim() || undefined,
+      conversionFlow: conversionFlow.trim() || undefined,
+      cap: cap.trim() || undefined,
+      holdPeriod: holdPeriod.trim() || undefined,
+      hasLocalLicense,
     };
 
     try {
@@ -297,8 +323,8 @@ export function DealDialog({
           {/* SOP Warning */}
           {showSopWarning && (
             <div className="rounded-md border border-yellow-300 bg-yellow-50 p-3 text-sm text-yellow-800">
-              This partner has incomplete SOP. Deal will be set to Pending
-              Validation.
+              This partner has incomplete SOP. Deal will be set to Approved
+              status (pending full implementation).
             </div>
           )}
 
@@ -460,6 +486,97 @@ export function DealDialog({
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
               />
+            </div>
+          </div>
+
+          {/* Deal Terms Section */}
+          <div className="border-t pt-4 mt-2">
+            <h3 className="text-sm font-semibold mb-3">Deal Terms</h3>
+            <div className="grid gap-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="deal-payout-model">Payout Model</Label>
+                  <Select value={payoutModel} onValueChange={setPayoutModel}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="CPA">CPA</SelectItem>
+                      <SelectItem value="RevShare">RevShare</SelectItem>
+                      <SelectItem value="Hybrid">Hybrid</SelectItem>
+                      <SelectItem value="Flat Fee">Flat Fee</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="deal-payout-value">Payout Value</Label>
+                  <Input
+                    id="deal-payout-value"
+                    value={payoutValue}
+                    onChange={(e) => setPayoutValue(e.target.value)}
+                    placeholder="e.g. $50 or 30%"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="deal-currency">Currency</Label>
+                  <Input
+                    id="deal-currency"
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value)}
+                    placeholder="e.g. USD, EUR"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="deal-baseline">Baseline</Label>
+                  <Input
+                    id="deal-baseline"
+                    value={baseline}
+                    onChange={(e) => setBaseline(e.target.value)}
+                    placeholder="e.g. $20 min deposit"
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="deal-conversion-flow">Conversion Flow</Label>
+                <Input
+                  id="deal-conversion-flow"
+                  value={conversionFlow}
+                  onChange={(e) => setConversionFlow(e.target.value)}
+                  placeholder="e.g. Registration + FTD"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="deal-cap">Cap</Label>
+                  <Input
+                    id="deal-cap"
+                    value={cap}
+                    onChange={(e) => setCap(e.target.value)}
+                    placeholder="e.g. 100/month"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="deal-hold-period">Hold Period</Label>
+                  <Input
+                    id="deal-hold-period"
+                    value={holdPeriod}
+                    onChange={(e) => setHoldPeriod(e.target.value)}
+                    placeholder="e.g. 30 days"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="deal-local-license"
+                  checked={hasLocalLicense}
+                  onChange={(e) => setHasLocalLicense(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <Label htmlFor="deal-local-license">Has Local License</Label>
+              </div>
             </div>
           </div>
 

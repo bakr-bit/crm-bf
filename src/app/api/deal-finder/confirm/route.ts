@@ -66,7 +66,7 @@ export async function POST(request: Request) {
         await tx.deal.update({
           where: { dealId: item.matchedDealId! },
           data: {
-            status: "Ended",
+            status: "Inactive",
             endDate: new Date(),
             updatedById: userId,
           },
@@ -114,7 +114,7 @@ export async function POST(request: Request) {
 
         // Check position not occupied
         const existingDeal = await tx.deal.findFirst({
-          where: { positionId, status: "Active" },
+          where: { positionId, status: { in: ["Unsure", "InContact", "Approved", "AwaitingPostback", "FullyImplemented", "Live"] } },
         });
         if (existingDeal) {
           throw new Error("POSITION_OCCUPIED");
@@ -126,12 +126,12 @@ export async function POST(request: Request) {
         });
         if (!partner) throw new Error("PARTNER_NOT_FOUND");
 
-        let dealStatus: "Active" | "PendingValidation" = "Active";
+        let dealStatus: "Live" | "Approved" = "Live";
         if (
           partner.isDirect &&
           !(partner.hasContract && partner.hasLicense && partner.hasBanking)
         ) {
-          dealStatus = "PendingValidation";
+          dealStatus = "Approved";
         }
 
         const newDeal = await tx.deal.create({

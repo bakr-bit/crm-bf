@@ -29,6 +29,7 @@ import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { PartnerDialog } from "@/components/dashboard/PartnerDialog";
 import { BrandDialog } from "@/components/dashboard/BrandDialog";
 import { ContactDialog } from "@/components/dashboard/ContactDialog";
+import { CredentialDialog } from "@/components/dashboard/CredentialDialog";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft,
@@ -37,6 +38,10 @@ import {
   MoreHorizontal,
   Plus,
   Pencil,
+  Eye,
+  EyeOff,
+  Copy,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { GeoFlag } from "@/components/dashboard/GeoFlag";
@@ -68,6 +73,23 @@ interface Contact {
   phone: string | null;
   role: string | null;
   telegram: string | null;
+  whatsapp: string | null;
+  preferredContact: string | null;
+  brandId: string | null;
+  brand: { brandId: string; name: string } | null;
+  geo: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface Credential {
+  credentialId: string;
+  partnerId: string;
+  label: string;
+  loginUrl: string | null;
+  username: string;
+  softwareType: string | null;
+  notes: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -124,6 +146,7 @@ interface PartnerDetail {
   brands: Brand[];
   contacts: Contact[];
   deals: Deal[];
+  credentials: Credential[];
 }
 
 // ---------- component ----------
@@ -145,6 +168,13 @@ export default function PartnerDetailPage() {
   const [editingContact, setEditingContact] = useState<Contact | undefined>(
     undefined
   );
+  const [credentialDialogOpen, setCredentialDialogOpen] = useState(false);
+  const [editingCredential, setEditingCredential] = useState<Credential | undefined>(
+    undefined
+  );
+
+  // Password reveal state
+  const [revealedPasswords, setRevealedPasswords] = useState<Record<string, string>>({});
 
   const fetchPartner = useCallback(async () => {
     try {
@@ -185,6 +215,82 @@ export default function PartnerDetailPage() {
     }
   }
 
+  // Delete credential
+  async function handleDeleteCredential(credentialId: string) {
+    try {
+      const res = await fetch(
+        `/api/partners/${partnerId}/credentials/${credentialId}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Failed to delete credential.");
+      }
+      toast.success("Credential deleted.");
+      setRevealedPasswords((prev) => {
+        const next = { ...prev };
+        delete next[credentialId];
+        return next;
+      });
+      fetchPartner();
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "An unexpected error occurred.";
+      toast.error(message);
+    }
+  }
+
+  // Reveal password
+  async function handleRevealPassword(credentialId: string) {
+    if (revealedPasswords[credentialId]) {
+      // Toggle off
+      setRevealedPasswords((prev) => {
+        const next = { ...prev };
+        delete next[credentialId];
+        return next;
+      });
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        `/api/partners/${partnerId}/credentials/${credentialId}/reveal`,
+        { method: "POST" }
+      );
+      if (!res.ok) throw new Error("Failed to reveal password");
+      const data = await res.json();
+      setRevealedPasswords((prev) => ({
+        ...prev,
+        [credentialId]: data.password,
+      }));
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "An unexpected error occurred.";
+      toast.error(message);
+    }
+  }
+
+  // Copy password
+  async function handleCopyPassword(credentialId: string) {
+    let password = revealedPasswords[credentialId];
+    if (!password) {
+      try {
+        const res = await fetch(
+          `/api/partners/${partnerId}/credentials/${credentialId}/reveal`,
+          { method: "POST" }
+        );
+        if (!res.ok) throw new Error("Failed to reveal password");
+        const data = await res.json();
+        password = data.password;
+      } catch {
+        toast.error("Failed to copy password.");
+        return;
+      }
+    }
+    await navigator.clipboard.writeText(password);
+    toast.success("Password copied to clipboard.");
+  }
+
   // Dialog helpers
   function toPartnerDialogShape(p: PartnerDetail) {
     return {
@@ -223,6 +329,21 @@ export default function PartnerDetailPage() {
       phone: c.phone ?? undefined,
       role: c.role ?? undefined,
       telegram: c.telegram ?? undefined,
+      whatsapp: c.whatsapp ?? undefined,
+      preferredContact: c.preferredContact ?? undefined,
+      brandId: c.brandId ?? undefined,
+      geo: c.geo ?? undefined,
+    };
+  }
+
+  function toCredentialDialogShape(c: Credential) {
+    return {
+      id: c.credentialId,
+      label: c.label,
+      loginUrl: c.loginUrl ?? undefined,
+      username: c.username,
+      softwareType: c.softwareType ?? undefined,
+      notes: c.notes ?? undefined,
     };
   }
 
@@ -277,6 +398,7 @@ export default function PartnerDetailPage() {
           <TabsTrigger value="info">Company Info</TabsTrigger>
           <TabsTrigger value="brands">Brands</TabsTrigger>
           <TabsTrigger value="contacts">Contacts</TabsTrigger>
+          <TabsTrigger value="credentials">Credentials</TabsTrigger>
           <TabsTrigger value="deals">Deals</TabsTrigger>
         </TabsList>
 
@@ -507,8 +629,10 @@ export default function PartnerDetailPage() {
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Phone</TableHead>
+                    <TableHead>WhatsApp</TableHead>
+                    <TableHead>Preferred</TableHead>
                     <TableHead>Role</TableHead>
-                    <TableHead>Telegram</TableHead>
+                    <TableHead>Scope</TableHead>
                     <TableHead className="w-12">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -516,7 +640,7 @@ export default function PartnerDetailPage() {
                   {partner.contacts.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={6}
+                        colSpan={8}
                         className="text-center text-muted-foreground"
                       >
                         No contacts yet.
@@ -535,10 +659,30 @@ export default function PartnerDetailPage() {
                           {contact.phone ?? "-"}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {contact.role ?? "-"}
+                          {contact.whatsapp ?? "-"}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {contact.telegram ?? "-"}
+                          {contact.preferredContact ?? "-"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {contact.role ?? "-"}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {contact.brand && (
+                              <Badge variant="outline" className="text-xs">
+                                {contact.brand.name}
+                              </Badge>
+                            )}
+                            {contact.geo && (
+                              <Badge variant="outline" className="text-xs">
+                                {contact.geo}
+                              </Badge>
+                            )}
+                            {!contact.brand && !contact.geo && (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <Button
@@ -552,6 +696,146 @@ export default function PartnerDetailPage() {
                           >
                             <Pencil className="size-4" />
                           </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* ---- Credentials Tab ---- */}
+        <TabsContent value="credentials">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Credentials</h2>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setEditingCredential(undefined);
+                  setCredentialDialogOpen(true);
+                }}
+              >
+                <Plus className="mr-2 size-4" />
+                Add Credential
+              </Button>
+            </div>
+
+            <div className="rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Label</TableHead>
+                    <TableHead>Software Type</TableHead>
+                    <TableHead>Login URL</TableHead>
+                    <TableHead>Username</TableHead>
+                    <TableHead>Password</TableHead>
+                    <TableHead className="w-12">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {partner.credentials.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={6}
+                        className="text-center text-muted-foreground"
+                      >
+                        No credentials yet.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    partner.credentials.map((cred) => (
+                      <TableRow key={cred.credentialId}>
+                        <TableCell className="font-medium">
+                          {cred.label}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {cred.softwareType ?? "-"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {cred.loginUrl ? (
+                            <a
+                              href={cred.loginUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline"
+                            >
+                              {cred.loginUrl}
+                            </a>
+                          ) : (
+                            "-"
+                          )}
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {cred.username}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <span className="font-mono text-sm">
+                              {revealedPasswords[cred.credentialId]
+                                ? revealedPasswords[cred.credentialId]
+                                : "********"}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-7"
+                              onClick={() =>
+                                handleRevealPassword(cred.credentialId)
+                              }
+                            >
+                              {revealedPasswords[cred.credentialId] ? (
+                                <EyeOff className="size-3.5" />
+                              ) : (
+                                <Eye className="size-3.5" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-7"
+                              onClick={() =>
+                                handleCopyPassword(cred.credentialId)
+                              }
+                            >
+                              <Copy className="size-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-8"
+                              >
+                                <MoreHorizontal className="size-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setEditingCredential(cred);
+                                  setCredentialDialogOpen(true);
+                                }}
+                              >
+                                <Pencil className="mr-2 size-4" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                variant="destructive"
+                                onClick={() =>
+                                  handleDeleteCredential(cred.credentialId)
+                                }
+                              >
+                                <Trash2 className="mr-2 size-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     ))
@@ -642,6 +926,19 @@ export default function PartnerDetailPage() {
         partnerId={partnerId}
         contact={
           editingContact ? toContactDialogShape(editingContact) : undefined
+        }
+        brands={partner.brands.map((b) => ({ brandId: b.brandId, name: b.name }))}
+        onSuccess={fetchPartner}
+      />
+
+      <CredentialDialog
+        open={credentialDialogOpen}
+        onOpenChange={setCredentialDialogOpen}
+        partnerId={partnerId}
+        credential={
+          editingCredential
+            ? toCredentialDialogShape(editingCredential)
+            : undefined
         }
         onSuccess={fetchPartner}
       />

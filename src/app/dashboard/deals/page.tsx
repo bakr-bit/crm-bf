@@ -34,6 +34,10 @@ import { COUNTRIES } from "@/lib/countries";
 import { GeoFlag } from "@/components/dashboard/GeoFlag";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { DEAL_STATUSES, DEAL_STATUS_LABELS, OCCUPYING_STATUSES } from "@/lib/deal-status";
+import type { DealStatusType } from "@/lib/deal-status";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 // ---------- types ----------
 
@@ -53,6 +57,7 @@ interface Deal {
   updatedAt: string;
   partner: {
     name: string;
+    owner?: { id: string; name: string | null; email: string };
   };
   brand: {
     name: string;
@@ -73,6 +78,12 @@ interface Partner {
 interface Asset {
   assetId: string;
   name: string;
+}
+
+interface UserOption {
+  id: string;
+  name: string;
+  email: string;
 }
 
 interface ReplacementDealInfo {
@@ -98,6 +109,10 @@ export default function DealsPage() {
   const [partnerFilter, setPartnerFilter] = useState("All");
   const [assetFilter, setAssetFilter] = useState("All");
   const [geoFilter, setGeoFilter] = useState("All");
+  const [ownerFilter, setOwnerFilter] = useState("All");
+  const [licenseFilter, setLicenseFilter] = useState("All");
+  const [directFilter, setDirectFilter] = useState("All");
+  const [includeInactive, setIncludeInactive] = useState(false);
 
   // Debounce search
   useEffect(() => {
@@ -108,6 +123,7 @@ export default function DealsPage() {
   // Filter data
   const [partners, setPartners] = useState<Partner[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
+  const [users, setUsers] = useState<UserOption[]>([]);
 
   // Dialog state
   const [dealDialogOpen, setDealDialogOpen] = useState(false);
@@ -127,9 +143,10 @@ export default function DealsPage() {
   // ---------- fetch filter data ----------
   const fetchFilterData = useCallback(async () => {
     try {
-      const [partnersRes, assetsRes] = await Promise.all([
+      const [partnersRes, assetsRes, usersRes] = await Promise.all([
         fetch("/api/partners"),
         fetch("/api/assets"),
+        fetch("/api/users"),
       ]);
       if (partnersRes.ok) {
         const data: Partner[] = await partnersRes.json();
@@ -138,6 +155,10 @@ export default function DealsPage() {
       if (assetsRes.ok) {
         const data: Asset[] = await assetsRes.json();
         setAssets(data);
+      }
+      if (usersRes.ok) {
+        const data: UserOption[] = await usersRes.json();
+        setUsers(data);
       }
     } catch {
       console.error("Failed to load filter data");
@@ -157,6 +178,10 @@ export default function DealsPage() {
       if (partnerFilter !== "All") params.set("partnerId", partnerFilter);
       if (assetFilter !== "All") params.set("assetId", assetFilter);
       if (geoFilter !== "All") params.set("geo", geoFilter);
+      if (ownerFilter !== "All") params.set("ownerUserId", ownerFilter);
+      if (licenseFilter !== "All") params.set("hasLicense", licenseFilter);
+      if (directFilter !== "All") params.set("isDirect", directFilter);
+      if (includeInactive) params.set("includeInactive", "true");
 
       const qs = params.toString();
       const url = qs ? `/api/deals?${qs}` : "/api/deals";
@@ -171,7 +196,7 @@ export default function DealsPage() {
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, statusFilter, partnerFilter, assetFilter, geoFilter]);
+  }, [searchQuery, statusFilter, partnerFilter, assetFilter, geoFilter, ownerFilter, licenseFilter, directFilter, includeInactive]);
 
   useEffect(() => {
     setLoading(true);
@@ -199,7 +224,7 @@ export default function DealsPage() {
       const res = await fetch(`/api/deals/${dealId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "Ended" }),
+        body: JSON.stringify({ status: "Inactive" }),
       });
 
       if (!res.ok) {
@@ -270,10 +295,11 @@ export default function DealsPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="All">All Statuses</SelectItem>
-              <SelectItem value="Active">Active</SelectItem>
-              <SelectItem value="PendingValidation">Pending Validation</SelectItem>
-              <SelectItem value="Ended">Ended</SelectItem>
-              <SelectItem value="Expired">Expired</SelectItem>
+              {DEAL_STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {DEAL_STATUS_LABELS[s]}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -327,6 +353,59 @@ export default function DealsPage() {
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        <div className="w-48">
+          <Select value={ownerFilter} onValueChange={setOwnerFilter}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Filter by owner" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All">All Owners</SelectItem>
+              {users.map((u) => (
+                <SelectItem key={u.id} value={u.id}>
+                  {u.name || u.email}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="w-36">
+          <Select value={licenseFilter} onValueChange={setLicenseFilter}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="License" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All">License: All</SelectItem>
+              <SelectItem value="yes">Has License</SelectItem>
+              <SelectItem value="no">No License</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="w-36">
+          <Select value={directFilter} onValueChange={setDirectFilter}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Direct" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All">Direct: All</SelectItem>
+              <SelectItem value="yes">Direct Only</SelectItem>
+              <SelectItem value="no">Indirect Only</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="include-inactive"
+            checked={includeInactive}
+            onCheckedChange={(checked) => setIncludeInactive(checked === true)}
+          />
+          <Label htmlFor="include-inactive" className="text-sm cursor-pointer">
+            Include Inactive
+          </Label>
         </div>
       </div>
 
@@ -404,7 +483,7 @@ export default function DealsPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        {deal.status === "Active" && (
+                        {OCCUPYING_STATUSES.includes(deal.status as DealStatusType) && (
                           <>
                             <DropdownMenuItem
                               onClick={() => handleEndDeal(deal.dealId)}

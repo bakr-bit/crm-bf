@@ -4,6 +4,7 @@ import { authOptions, isValidApiKey } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { assetCreateSchema } from "@/lib/validations";
+import { OCCUPYING_STATUSES } from "@/lib/deal-status";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -42,7 +43,7 @@ export async function GET(request: Request) {
           select: {
             positionId: true,
             deals: {
-              where: { status: "Active" },
+              where: { status: { in: OCCUPYING_STATUSES } },
               select: { dealId: true },
             },
           },
