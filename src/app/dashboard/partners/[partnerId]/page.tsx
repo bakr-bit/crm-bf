@@ -50,6 +50,10 @@ interface Brand {
   brandDomain: string | null;
   trackingDomain: string | null;
   brandIdentifiers: unknown;
+  postbacks: string | null;
+  licenseInfo: string | null;
+  extraInfo: string | null;
+  affiliateSoftware: string | null;
   status: string;
   targetGeos: string[];
   createdAt: string;
@@ -63,6 +67,7 @@ interface Contact {
   email: string;
   phone: string | null;
   role: string | null;
+  telegram: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -201,6 +206,10 @@ export default function PartnerDetailPage() {
       name: b.name,
       brandDomain: b.brandDomain ?? undefined,
       trackingDomain: b.trackingDomain ?? undefined,
+      postbacks: b.postbacks ?? undefined,
+      licenseInfo: b.licenseInfo ?? undefined,
+      extraInfo: b.extraInfo ?? undefined,
+      affiliateSoftware: b.affiliateSoftware ?? undefined,
       status: b.status,
       targetGeos: b.targetGeos,
     };
@@ -213,6 +222,7 @@ export default function PartnerDetailPage() {
       email: c.email,
       phone: c.phone ?? undefined,
       role: c.role ?? undefined,
+      telegram: c.telegram ?? undefined,
     };
   }
 
@@ -498,6 +508,7 @@ export default function PartnerDetailPage() {
                     <TableHead>Email</TableHead>
                     <TableHead>Phone</TableHead>
                     <TableHead>Role</TableHead>
+                    <TableHead>Telegram</TableHead>
                     <TableHead className="w-12">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -505,7 +516,7 @@ export default function PartnerDetailPage() {
                   {partner.contacts.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={5}
+                        colSpan={6}
                         className="text-center text-muted-foreground"
                       >
                         No contacts yet.
@@ -525,6 +536,9 @@ export default function PartnerDetailPage() {
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {contact.role ?? "-"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {contact.telegram ?? "-"}
                         </TableCell>
                         <TableCell>
                           <Button

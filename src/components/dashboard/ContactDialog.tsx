@@ -18,6 +18,7 @@ interface Contact {
   email: string;
   phone?: string;
   role?: string;
+  telegram?: string;
 }
 
 interface ContactDialogProps {
@@ -41,6 +42,7 @@ export function ContactDialog({
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [role, setRole] = useState("");
+  const [telegram, setTelegram] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -49,11 +51,13 @@ export function ContactDialog({
       setEmail(contact.email ?? "");
       setPhone(contact.phone ?? "");
       setRole(contact.role ?? "");
+      setTelegram(contact.telegram ?? "");
     } else {
       setName("");
       setEmail("");
       setPhone("");
       setRole("");
+      setTelegram("");
     }
   }, [contact, open]);
 
@@ -74,6 +78,7 @@ export function ContactDialog({
       email: email.trim(),
       phone: phone.trim() || undefined,
       role: role.trim() || undefined,
+      telegram: telegram.trim() || undefined,
     };
 
     try {
@@ -158,6 +163,17 @@ export function ContactDialog({
               value={role}
               onChange={(e) => setRole(e.target.value)}
               placeholder="e.g. Account Manager"
+            />
+          </div>
+
+          {/* Telegram */}
+          <div className="grid gap-2">
+            <Label htmlFor="contact-telegram">Telegram</Label>
+            <Input
+              id="contact-telegram"
+              value={telegram}
+              onChange={(e) => setTelegram(e.target.value)}
+              placeholder="@username"
             />
           </div>
         </div>

@@ -102,6 +102,7 @@ export async function POST(
         email: data.email,
         phone: data.phone,
         role: data.role,
+        telegram: data.telegram,
       },
     });
 

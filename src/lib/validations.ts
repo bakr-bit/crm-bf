@@ -25,6 +25,10 @@ export const brandCreateSchema = z.object({
   brandDomain: domainTransform,
   trackingDomain: domainTransform,
   brandIdentifiers: z.any().optional(),
+  postbacks: z.string().optional(),
+  licenseInfo: z.string().optional(),
+  extraInfo: z.string().optional(),
+  affiliateSoftware: z.string().optional(),
   status: z.enum(["Active", "Inactive", "Archived"]).default("Active"),
   targetGeos: z.array(z.string().length(2).toUpperCase()).default([]),
 });
@@ -36,6 +40,7 @@ export const contactCreateSchema = z.object({
   email: z.string().email("Invalid email"),
   phone: z.string().optional(),
   role: z.string().optional(),
+  telegram: z.string().optional(),
 });
 
 export const contactUpdateSchema = contactCreateSchema.partial();

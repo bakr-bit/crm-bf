@@ -95,9 +95,13 @@ model Brand {
   name             String
   brandDomain      String?
   trackingDomain   String?
-  brandIdentifiers Json?
-  status           BrandStatus @default(Active)
-  targetGeos       String[]         @default([])
+  brandIdentifiers   Json?
+  postbacks          String?
+  licenseInfo        String?
+  extraInfo          String?
+  affiliateSoftware  String?
+  status             BrandStatus @default(Active)
+  targetGeos         String[]         @default([])
 
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
@@ -114,6 +118,7 @@ model Contact {
   email     String
   phone     String?
   role      String?
+  telegram  String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

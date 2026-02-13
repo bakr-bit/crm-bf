@@ -25,6 +25,10 @@ interface Brand {
   name: string;
   brandDomain?: string;
   trackingDomain?: string;
+  postbacks?: string;
+  licenseInfo?: string;
+  extraInfo?: string;
+  affiliateSoftware?: string;
   status?: string;
   targetGeos?: string[];
 }
@@ -49,6 +53,10 @@ export function BrandDialog({
   const [name, setName] = useState("");
   const [brandDomain, setBrandDomain] = useState("");
   const [trackingDomain, setTrackingDomain] = useState("");
+  const [postbacks, setPostbacks] = useState("");
+  const [licenseInfo, setLicenseInfo] = useState("");
+  const [extraInfo, setExtraInfo] = useState("");
+  const [affiliateSoftware, setAffiliateSoftware] = useState("");
   const [status, setStatus] = useState("Active");
   const [targetGeos, setTargetGeos] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -58,12 +66,20 @@ export function BrandDialog({
       setName(brand.name ?? "");
       setBrandDomain(brand.brandDomain ?? "");
       setTrackingDomain(brand.trackingDomain ?? "");
+      setPostbacks(brand.postbacks ?? "");
+      setLicenseInfo(brand.licenseInfo ?? "");
+      setExtraInfo(brand.extraInfo ?? "");
+      setAffiliateSoftware(brand.affiliateSoftware ?? "");
       setStatus(brand.status ?? "Active");
       setTargetGeos(brand.targetGeos ?? []);
     } else {
       setName("");
       setBrandDomain("");
       setTrackingDomain("");
+      setPostbacks("");
+      setLicenseInfo("");
+      setExtraInfo("");
+      setAffiliateSoftware("");
       setStatus("Active");
       setTargetGeos([]);
     }
@@ -81,6 +97,10 @@ export function BrandDialog({
       name: name.trim(),
       brandDomain: brandDomain.trim() || undefined,
       trackingDomain: trackingDomain.trim() || undefined,
+      postbacks: postbacks.trim() || undefined,
+      licenseInfo: licenseInfo.trim() || undefined,
+      extraInfo: extraInfo.trim() || undefined,
+      affiliateSoftware: affiliateSoftware.trim() || undefined,
       status,
       targetGeos,
     };
@@ -159,6 +179,50 @@ export function BrandDialog({
           <div className="grid gap-2">
             <Label>Target Geos</Label>
             <GeoMultiSelect value={targetGeos} onChange={setTargetGeos} />
+          </div>
+
+          {/* Postbacks */}
+          <div className="grid gap-2">
+            <Label htmlFor="brand-postbacks">Postbacks</Label>
+            <Input
+              id="brand-postbacks"
+              value={postbacks}
+              onChange={(e) => setPostbacks(e.target.value)}
+              placeholder="Postback URL or details"
+            />
+          </div>
+
+          {/* License Info */}
+          <div className="grid gap-2">
+            <Label htmlFor="brand-license-info">License Info</Label>
+            <Input
+              id="brand-license-info"
+              value={licenseInfo}
+              onChange={(e) => setLicenseInfo(e.target.value)}
+              placeholder="e.g. MGA, Curacao, UKGC"
+            />
+          </div>
+
+          {/* Affiliate Software */}
+          <div className="grid gap-2">
+            <Label htmlFor="brand-affiliate-software">Affiliate Software</Label>
+            <Input
+              id="brand-affiliate-software"
+              value={affiliateSoftware}
+              onChange={(e) => setAffiliateSoftware(e.target.value)}
+              placeholder="e.g. Income Access, NetRefer"
+            />
+          </div>
+
+          {/* Extra Info */}
+          <div className="grid gap-2">
+            <Label htmlFor="brand-extra-info">Extra Info</Label>
+            <Input
+              id="brand-extra-info"
+              value={extraInfo}
+              onChange={(e) => setExtraInfo(e.target.value)}
+              placeholder="Any additional notes"
+            />
           </div>
 
           {/* Status */}
