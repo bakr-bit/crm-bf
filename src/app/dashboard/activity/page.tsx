@@ -25,22 +25,24 @@ import { toast } from "sonner";
 // ---------- types ----------
 
 interface AuditLogEntry {
-  id: string;
+  logId: string;
   userId: string;
-  userName: string | null;
+  user: { id: string; name: string | null; email: string };
   entity: string;
   entityId: string;
   action: string;
   details: Record<string, unknown> | null;
-  createdAt: string;
+  timestamp: string;
 }
 
 interface AuditLogResponse {
   data: AuditLogEntry[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
 }
 
 // ---------- component ----------
@@ -75,7 +77,7 @@ export default function ActivityPage() {
       if (!res.ok) throw new Error("Failed to fetch audit log");
       const json: AuditLogResponse = await res.json();
       setEntries(json.data);
-      setTotalPages(json.totalPages);
+      setTotalPages(json.pagination.totalPages);
     } catch (err) {
       console.error("Audit log fetch error:", err);
       toast.error("Failed to load activity log.");
@@ -219,11 +221,11 @@ export default function ActivityPage() {
               </TableRow>
             ) : (
               entries.map((entry) => (
-                <TableRow key={entry.id}>
+                <TableRow key={entry.logId}>
                   <TableCell className="whitespace-nowrap text-sm">
-                    {formatTimestamp(entry.createdAt)}
+                    {formatTimestamp(entry.timestamp)}
                   </TableCell>
-                  <TableCell>{entry.userName ?? entry.userId}</TableCell>
+                  <TableCell>{entry.user?.name ?? entry.user?.email ?? entry.userId}</TableCell>
                   <TableCell>{entry.entity}</TableCell>
                   <TableCell className="font-mono text-xs">
                     {entry.entity === "Partner" ? (
