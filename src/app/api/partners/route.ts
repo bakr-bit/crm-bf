@@ -16,15 +16,30 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search");
+    const status = searchParams.get("status");
+    const isDirect = searchParams.get("isDirect");
+    const showArchived = searchParams.get("showArchived");
 
-    const where = search
-      ? {
-          OR: [
-            { name: { contains: search, mode: "insensitive" as const } },
-            { websiteDomain: { contains: search, mode: "insensitive" as const } },
-          ],
-        }
-      : {};
+    const where: Record<string, unknown> = {};
+
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: "insensitive" as const } },
+        { websiteDomain: { contains: search, mode: "insensitive" as const } },
+      ];
+    }
+
+    if (status) {
+      where.status = status;
+    } else if (showArchived !== "true") {
+      where.status = { not: "Archived" };
+    }
+
+    if (isDirect === "true") {
+      where.isDirect = true;
+    } else if (isDirect === "false") {
+      where.isDirect = false;
+    }
 
     const partners = await prisma.partner.findMany({
       where,

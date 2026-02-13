@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Upload, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 
@@ -37,6 +38,9 @@ interface Partner {
   hasContract?: boolean;
   hasLicense?: boolean;
   hasBanking?: boolean;
+  contractFileUrl?: string | null;
+  licenseFileUrl?: string | null;
+  bankingFileUrl?: string | null;
   sopNotes?: string;
 }
 
@@ -63,6 +67,13 @@ export function PartnerDialog({
   const [hasLicense, setHasLicense] = useState(false);
   const [hasBanking, setHasBanking] = useState(false);
   const [sopNotes, setSopNotes] = useState("");
+  const [contractFileUrl, setContractFileUrl] = useState<string | null>(null);
+  const [licenseFileUrl, setLicenseFileUrl] = useState<string | null>(null);
+  const [bankingFileUrl, setBankingFileUrl] = useState<string | null>(null);
+  const [sopUploading, setSopUploading] = useState<string | null>(null);
+  const contractInputRef = useRef<HTMLInputElement>(null);
+  const licenseInputRef = useRef<HTMLInputElement>(null);
+  const bankingInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [duplicates, setDuplicates] = useState<DuplicateMatch[]>([]);
 
@@ -75,6 +86,9 @@ export function PartnerDialog({
       setHasContract(partner.hasContract ?? false);
       setHasLicense(partner.hasLicense ?? false);
       setHasBanking(partner.hasBanking ?? false);
+      setContractFileUrl(partner.contractFileUrl ?? null);
+      setLicenseFileUrl(partner.licenseFileUrl ?? null);
+      setBankingFileUrl(partner.bankingFileUrl ?? null);
       setSopNotes(partner.sopNotes ?? "");
     } else {
       setName("");
@@ -84,10 +98,71 @@ export function PartnerDialog({
       setHasContract(false);
       setHasLicense(false);
       setHasBanking(false);
+      setContractFileUrl(null);
+      setLicenseFileUrl(null);
+      setBankingFileUrl(null);
       setSopNotes("");
     }
     setDuplicates([]);
   }, [partner, open]);
+
+  const fileUrlState: Record<string, { value: string | null; set: (v: string | null) => void }> = {
+    contract: { value: contractFileUrl, set: setContractFileUrl },
+    license: { value: licenseFileUrl, set: setLicenseFileUrl },
+    banking: { value: bankingFileUrl, set: setBankingFileUrl },
+  };
+
+  const fileInputRefs: Record<string, React.RefObject<HTMLInputElement | null>> = {
+    contract: contractInputRef,
+    license: licenseInputRef,
+    banking: bankingInputRef,
+  };
+
+  async function handleSopUpload(docType: string, file: File) {
+    if (!partner?.id) return;
+    setSopUploading(docType);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("docType", docType);
+      const res = await fetch(`/api/partners/${partner.id}/sop-documents`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Upload failed");
+      }
+      const { storagePath } = await res.json();
+      fileUrlState[docType].set(storagePath);
+      toast.success(`${docType} document uploaded.`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Upload failed";
+      toast.error(message);
+    } finally {
+      setSopUploading(null);
+    }
+  }
+
+  async function handleSopDelete(docType: string) {
+    if (!partner?.id) return;
+    try {
+      const res = await fetch(`/api/partners/${partner.id}/sop-documents`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ docType }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Delete failed");
+      }
+      fileUrlState[docType].set(null);
+      toast.success(`${docType} document removed.`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Delete failed";
+      toast.error(message);
+    }
+  }
 
   async function handleSubmit(force = false) {
     if (!name.trim()) {
@@ -210,38 +285,64 @@ export function PartnerDialog({
             <div className="grid gap-4 rounded-md border p-4">
               <p className="text-sm font-medium">SOP Details</p>
 
-              <div className="flex items-center gap-2">
-                <input
-                  id="partner-has-contract"
-                  type="checkbox"
-                  checked={hasContract}
-                  onChange={(e) => setHasContract(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300"
-                />
-                <Label htmlFor="partner-has-contract">Has Contract</Label>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  id="partner-has-license"
-                  type="checkbox"
-                  checked={hasLicense}
-                  onChange={(e) => setHasLicense(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300"
-                />
-                <Label htmlFor="partner-has-license">Has License</Label>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  id="partner-has-banking"
-                  type="checkbox"
-                  checked={hasBanking}
-                  onChange={(e) => setHasBanking(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300"
-                />
-                <Label htmlFor="partner-has-banking">Has Banking</Label>
-              </div>
+              {([
+                { key: "contract", id: "partner-has-contract", label: "Has Contract", checked: hasContract, setChecked: setHasContract },
+                { key: "license", id: "partner-has-license", label: "Has License", checked: hasLicense, setChecked: setHasLicense },
+                { key: "banking", id: "partner-has-banking", label: "Has Banking", checked: hasBanking, setChecked: setHasBanking },
+              ] as const).map((item) => (
+                <div key={item.key} className="flex items-center gap-2">
+                  <input
+                    id={item.id}
+                    type="checkbox"
+                    checked={item.checked}
+                    onChange={(e) => item.setChecked(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  <Label htmlFor={item.id} className="min-w-[100px]">{item.label}</Label>
+                  {isEdit && (
+                    fileUrlState[item.key].value ? (
+                      <div className="flex items-center gap-1 ml-auto">
+                        <span className="text-xs text-muted-foreground">File uploaded</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="size-7 text-destructive"
+                          title="Remove file"
+                          onClick={() => handleSopDelete(item.key)}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="ml-auto">
+                        <input
+                          ref={fileInputRefs[item.key]}
+                          type="file"
+                          accept=".pdf,.png,.jpg,.jpeg"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleSopUpload(item.key, file);
+                            e.target.value = "";
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs"
+                          disabled={sopUploading === item.key}
+                          onClick={() => fileInputRefs[item.key]?.current?.click()}
+                        >
+                          <Upload className="mr-1 size-3" />
+                          {sopUploading === item.key ? "Uploading…" : "Upload"}
+                        </Button>
+                      </div>
+                    )
+                  )}
+                </div>
+              ))}
 
               <div className="grid gap-2">
                 <Label htmlFor="partner-sop-notes">SOP Notes</Label>

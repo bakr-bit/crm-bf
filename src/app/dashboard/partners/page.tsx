@@ -20,6 +20,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { PartnerDialog } from "@/components/dashboard/PartnerDialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { MoreHorizontal, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 
@@ -51,6 +58,9 @@ export default function PartnersPage() {
   const [partners, setPartners] = useState<Partner[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [directFilter, setDirectFilter] = useState("all");
+  const [showArchived, setShowArchived] = useState(false);
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -60,9 +70,13 @@ export default function PartnersPage() {
 
   const fetchPartners = useCallback(async (query?: string) => {
     try {
-      const url = query
-        ? `/api/partners?search=${encodeURIComponent(query)}`
-        : "/api/partners";
+      const params = new URLSearchParams();
+      if (query) params.set("search", query);
+      if (statusFilter !== "all") params.set("status", statusFilter);
+      if (directFilter !== "all") params.set("isDirect", directFilter);
+      if (showArchived) params.set("showArchived", "true");
+      const qs = params.toString();
+      const url = `/api/partners${qs ? `?${qs}` : ""}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to fetch partners");
       const json: Partner[] = await res.json();
@@ -73,7 +87,7 @@ export default function PartnersPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [statusFilter, directFilter, showArchived]);
 
   useEffect(() => {
     fetchPartners();
@@ -156,15 +170,54 @@ export default function PartnersPage() {
         </Button>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Search partners..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
+      {/* Search + Filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search partners..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="Active">Active</SelectItem>
+            <SelectItem value="Pending">Pending</SelectItem>
+            <SelectItem value="Inactive">Inactive</SelectItem>
+            <SelectItem value="Archived">Archived</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={directFilter} onValueChange={setDirectFilter}>
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="true">Direct</SelectItem>
+            <SelectItem value="false">Non-Direct</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <div className="flex items-center gap-2">
+          <input
+            id="show-archived"
+            type="checkbox"
+            checked={showArchived}
+            onChange={(e) => setShowArchived(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300"
+          />
+          <label htmlFor="show-archived" className="text-sm text-muted-foreground">
+            Show archived
+          </label>
+        </div>
       </div>
 
       {/* Table */}
