@@ -136,6 +136,7 @@ export function PartnerDialog({
       const { storagePath } = await res.json();
       fileUrlState[docType].set(storagePath);
       toast.success(`${docType} document uploaded.`);
+      onSuccess();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Upload failed";
       toast.error(message);
@@ -158,6 +159,7 @@ export function PartnerDialog({
       }
       fileUrlState[docType].set(null);
       toast.success(`${docType} document removed.`);
+      onSuccess();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Delete failed";
       toast.error(message);

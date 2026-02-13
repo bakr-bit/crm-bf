@@ -229,7 +229,10 @@ export async function DELETE(
 
     const storagePath = partner[FILE_URL_FIELD[docType]];
     if (storagePath) {
-      await supabase.storage.from(SOP_BUCKET).remove([storagePath]);
+      const { error: storageError } = await supabase.storage.from(SOP_BUCKET).remove([storagePath]);
+      if (storageError) {
+        console.error("Storage delete error (non-blocking):", storageError);
+      }
     }
 
     await prisma.partner.update({
