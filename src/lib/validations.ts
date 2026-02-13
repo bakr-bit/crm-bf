@@ -158,6 +158,7 @@ export const intakeSubmissionCreateSchema = z.object({
   contactName: z.string().min(1, "Contact name is required"),
   contactEmail: z.string().email("Invalid email"),
   contactPhone: z.string().optional(),
+  contactTelegram: z.string().optional(),
   preferredContact: z.enum(["Email", "Telegram", "WhatsApp", "Phone"]).optional(),
   notes: z.string().optional(),
 });

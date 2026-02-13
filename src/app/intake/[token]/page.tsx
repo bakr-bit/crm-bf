@@ -40,6 +40,7 @@ export default function IntakePage() {
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
+  const [contactTelegram, setContactTelegram] = useState("");
   const [preferredContact, setPreferredContact] = useState("");
   const [notes, setNotes] = useState("");
 
@@ -79,6 +80,7 @@ export default function IntakePage() {
           contactName: contactName.trim(),
           contactEmail: contactEmail.trim(),
           contactPhone: contactPhone.trim() || undefined,
+          contactTelegram: contactTelegram.trim() || undefined,
           preferredContact: preferredContact || undefined,
           notes: notes.trim() || undefined,
         }),
@@ -273,6 +275,15 @@ export default function IntakePage() {
                     value={contactPhone}
                     onChange={(e) => setContactPhone(e.target.value)}
                     placeholder="+1 555 000 0000"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="contactTelegram">Telegram</Label>
+                  <Input
+                    id="contactTelegram"
+                    value={contactTelegram}
+                    onChange={(e) => setContactTelegram(e.target.value)}
+                    placeholder="@username"
                   />
                 </div>
                 <div className="space-y-2">

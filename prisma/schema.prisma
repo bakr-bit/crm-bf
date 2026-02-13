@@ -323,6 +323,7 @@ model IntakeSubmission {
   contactName        String
   contactEmail       String
   contactPhone       String?
+  contactTelegram    String?
   preferredContact   String?
   notes              String?
   status             IntakeSubmissionStatus  @default(Pending)

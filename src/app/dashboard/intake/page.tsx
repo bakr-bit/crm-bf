@@ -32,6 +32,7 @@ interface Submission {
   contactName: string;
   contactEmail: string;
   contactPhone: string | null;
+  contactTelegram: string | null;
   preferredContact: string | null;
   notes: string | null;
   status: string;

@@ -104,6 +104,7 @@ export async function POST(
           contactName: parsed.data.contactName,
           contactEmail: parsed.data.contactEmail,
           contactPhone: parsed.data.contactPhone,
+          contactTelegram: parsed.data.contactTelegram,
           preferredContact: parsed.data.preferredContact,
           notes: parsed.data.notes,
         },

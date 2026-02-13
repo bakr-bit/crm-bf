@@ -99,6 +99,7 @@ export async function POST(
           name: submission.contactName,
           email: submission.contactEmail,
           phone: submission.contactPhone,
+          telegram: submission.contactTelegram,
           preferredContact: submission.preferredContact,
         },
       });
