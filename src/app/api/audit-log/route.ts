@@ -16,6 +16,11 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "50", 10);
 
+    const entityId = searchParams.get("entityId");
+    const dateFrom = searchParams.get("dateFrom");
+    const dateTo = searchParams.get("dateTo");
+    const businessOnly = searchParams.get("businessOnly") !== "false";
+
     const where: Record<string, unknown> = {};
 
     if (entity) {
@@ -23,6 +28,36 @@ export async function GET(request: Request) {
     }
     if (action) {
       where.action = action;
+    }
+    if (entityId) {
+      where.entityId = entityId;
+    }
+
+    // Filter to business-relevant actions by default
+    if (businessOnly && !action) {
+      where.action = {
+        in: [
+          "CREATE",
+          "UPDATE",
+          "ARCHIVE",
+          "CREATE_REPLACEMENT",
+          "ENDED_BY_REPLACEMENT",
+          "ENDED_BY_SCAN",
+          "CREATE_FROM_SCAN",
+        ],
+      };
+    }
+
+    // Date range filters
+    if (dateFrom || dateTo) {
+      const timestampFilter: Record<string, Date> = {};
+      if (dateFrom) timestampFilter.gte = new Date(dateFrom);
+      if (dateTo) {
+        const end = new Date(dateTo);
+        end.setHours(23, 59, 59, 999);
+        timestampFilter.lte = end;
+      }
+      where.timestamp = timestampFilter;
     }
 
     const skip = (page - 1) * limit;
