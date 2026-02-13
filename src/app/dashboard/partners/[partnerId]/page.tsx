@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,8 @@ import {
   EyeOff,
   Copy,
   Trash2,
+  Download,
+  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 import { GeoFlag } from "@/components/dashboard/GeoFlag";
@@ -137,6 +139,9 @@ interface PartnerDetail {
   hasContract: boolean;
   hasLicense: boolean;
   hasBanking: boolean;
+  contractFileUrl: string | null;
+  licenseFileUrl: string | null;
+  bankingFileUrl: string | null;
   sopNotes: string | null;
   ownerUserId: string;
   owner: { id: string; name: string } | null;
@@ -345,6 +350,78 @@ export default function PartnerDetailPage() {
     };
   }
 
+  // SOP file upload/download/delete handlers
+  const contractInputRef = useRef<HTMLInputElement>(null);
+  const licenseInputRef = useRef<HTMLInputElement>(null);
+  const bankingInputRef = useRef<HTMLInputElement>(null);
+  const [sopUploading, setSopUploading] = useState<string | null>(null);
+
+  const fileInputRefs: Record<string, React.RefObject<HTMLInputElement | null>> = {
+    contract: contractInputRef,
+    license: licenseInputRef,
+    banking: bankingInputRef,
+  };
+
+  async function handleSopUpload(docType: string, file: File) {
+    setSopUploading(docType);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("docType", docType);
+      const res = await fetch(`/api/partners/${partnerId}/sop-documents`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Upload failed");
+      }
+      toast.success(`${docType} document uploaded.`);
+      fetchPartner();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Upload failed";
+      toast.error(message);
+    } finally {
+      setSopUploading(null);
+    }
+  }
+
+  async function handleSopDownload(docType: string) {
+    try {
+      const res = await fetch(
+        `/api/partners/${partnerId}/sop-documents?docType=${docType}`
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Download failed");
+      }
+      const { url } = await res.json();
+      window.open(url, "_blank");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Download failed";
+      toast.error(message);
+    }
+  }
+
+  async function handleSopDelete(docType: string) {
+    try {
+      const res = await fetch(`/api/partners/${partnerId}/sop-documents`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ docType }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Delete failed");
+      }
+      toast.success(`${docType} document removed.`);
+      fetchPartner();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Delete failed";
+      toast.error(message);
+    }
+  }
+
   if (loading) {
     return (
       <div className="space-y-4 p-6">
@@ -456,30 +533,66 @@ export default function PartnerDetailPage() {
                     )}
                   </h3>
                   <ul className="space-y-2 text-sm">
-                    <li className="flex items-center gap-2">
-                      {partner.hasContract ? (
-                        <Check className="size-4 text-green-600" />
-                      ) : (
-                        <X className="size-4 text-red-500" />
-                      )}
-                      Contract
-                    </li>
-                    <li className="flex items-center gap-2">
-                      {partner.hasLicense ? (
-                        <Check className="size-4 text-green-600" />
-                      ) : (
-                        <X className="size-4 text-red-500" />
-                      )}
-                      License
-                    </li>
-                    <li className="flex items-center gap-2">
-                      {partner.hasBanking ? (
-                        <Check className="size-4 text-green-600" />
-                      ) : (
-                        <X className="size-4 text-red-500" />
-                      )}
-                      Banking
-                    </li>
+                    {([
+                      { key: "contract" as const, label: "Contract", has: partner.hasContract, fileUrl: partner.contractFileUrl },
+                      { key: "license" as const, label: "License", has: partner.hasLicense, fileUrl: partner.licenseFileUrl },
+                      { key: "banking" as const, label: "Banking", has: partner.hasBanking, fileUrl: partner.bankingFileUrl },
+                    ]).map((item) => (
+                      <li key={item.key} className="flex items-center gap-2">
+                        {item.has ? (
+                          <Check className="size-4 text-green-600" />
+                        ) : (
+                          <X className="size-4 text-red-500" />
+                        )}
+                        <span className="min-w-[70px]">{item.label}</span>
+                        {item.fileUrl ? (
+                          <span className="flex items-center gap-1 ml-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-7"
+                              title={`Download ${item.label}`}
+                              onClick={() => handleSopDownload(item.key)}
+                            >
+                              <Download className="size-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-7 text-destructive"
+                              title={`Delete ${item.label} file`}
+                              onClick={() => handleSopDelete(item.key)}
+                            >
+                              <Trash2 className="size-3.5" />
+                            </Button>
+                          </span>
+                        ) : (
+                          <span className="ml-2">
+                            <input
+                              ref={fileInputRefs[item.key]}
+                              type="file"
+                              accept=".pdf,.png,.jpg,.jpeg"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleSopUpload(item.key, file);
+                                e.target.value = "";
+                              }}
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-xs"
+                              disabled={sopUploading === item.key}
+                              onClick={() => fileInputRefs[item.key]?.current?.click()}
+                            >
+                              <Upload className="mr-1 size-3" />
+                              {sopUploading === item.key ? "Uploading…" : "Upload"}
+                            </Button>
+                          </span>
+                        )}
+                      </li>
+                    ))}
                   </ul>
                   {partner.sopNotes && (
                     <p className="mt-3 text-sm text-muted-foreground">

@@ -79,6 +79,9 @@ model Partner {
   hasContract   Boolean   @default(false)
   hasLicense    Boolean   @default(false)
   hasBanking    Boolean   @default(false)
+  contractFileUrl String?
+  licenseFileUrl  String?
+  bankingFileUrl  String?
   sopNotes      String?
 
   ownerUserId   String
