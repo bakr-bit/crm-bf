@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -25,10 +24,8 @@ const navigation = [
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
-export function Sidebar() {
+export function Sidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
-  const { data: session } = useSession();
-  const isAdmin = session?.user?.isAdmin === true;
 
   const items = isAdmin
     ? [...navigation, { name: "Admin", href: "/dashboard/admin", icon: Shield }]

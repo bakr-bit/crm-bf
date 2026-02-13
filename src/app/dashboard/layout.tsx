@@ -18,7 +18,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex h-screen bg-zinc-100">
-      <Sidebar />
+      <Sidebar isAdmin={session.user?.isAdmin === true} />
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="flex h-16 items-center justify-between border-b bg-white px-6">
           <div />
