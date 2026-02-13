@@ -22,7 +22,7 @@ import {
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { AssetDialog } from "@/components/dashboard/AssetDialog";
 import { PositionDialog } from "@/components/dashboard/PositionDialog";
-import { ArrowLeft, Pencil, Plus, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, Pencil, Plus, MoreHorizontal, Download } from "lucide-react";
 import { toast } from "sonner";
 import { OCCUPYING_STATUSES } from "@/lib/deal-status";
 import type { DealStatusType } from "@/lib/deal-status";
@@ -45,6 +45,7 @@ interface PositionDeal {
   partner: DealPartner;
   brandId: string;
   brand: DealBrand;
+  geo: string;
   status: string;
   startDate: string;
   endDate: string | null;
@@ -172,6 +173,55 @@ export default function AssetDetailPage() {
     );
   }
 
+  function handleExportCsv() {
+    if (!asset) return;
+
+    const headers = [
+      "Position Name",
+      "Path",
+      "Details",
+      "Status",
+      "Brand",
+      "Partner",
+      "Geo",
+      "Deal Status",
+    ];
+
+    const rows = asset.positions.map((position) => {
+      const activeDeal = getActiveDeal(position);
+      return [
+        position.name,
+        position.path ?? "",
+        position.details ?? "",
+        activeDeal ? "Occupied" : "Available",
+        activeDeal?.brand.name ?? "",
+        activeDeal?.partner.name ?? "",
+        activeDeal?.geo ?? "",
+        activeDeal?.status ?? "",
+      ];
+    });
+
+    const escapeCsvField = (field: string) => {
+      if (field.includes(",") || field.includes('"') || field.includes("\n")) {
+        return `"${field.replace(/"/g, '""')}"`;
+      }
+      return field;
+    };
+
+    const csvContent = [
+      headers.map(escapeCsvField).join(","),
+      ...rows.map((row) => row.map(escapeCsvField).join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${asset.name.replace(/[^a-zA-Z0-9]/g, "_")}_positions.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   if (loading) {
     return (
       <div className="space-y-4 p-6">
@@ -243,16 +293,27 @@ export default function AssetDetailPage() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Positions</h2>
-          <Button
-            size="sm"
-            onClick={() => {
-              setEditingPosition(undefined);
-              setPositionDialogOpen(true);
-            }}
-          >
-            <Plus className="mr-2 size-4" />
-            Add Position
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleExportCsv}
+              disabled={!asset.positions.length}
+            >
+              <Download className="mr-2 size-4" />
+              Export CSV
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                setEditingPosition(undefined);
+                setPositionDialogOpen(true);
+              }}
+            >
+              <Plus className="mr-2 size-4" />
+              Add Position
+            </Button>
+          </div>
         </div>
 
         <div className="rounded-lg border">

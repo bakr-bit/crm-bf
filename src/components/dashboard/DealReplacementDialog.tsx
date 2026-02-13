@@ -63,6 +63,7 @@ export function DealReplacementDialog({
   const [loadingBrands, setLoadingBrands] = useState(false);
 
   // Other fields
+  const [replacementReason, setReplacementReason] = useState("");
   const [affiliateLink, setAffiliateLink] = useState("");
   const [notes, setNotes] = useState("");
 
@@ -87,6 +88,7 @@ export function DealReplacementDialog({
       setPartnerId("");
       setBrandId("");
       setBrands([]);
+      setReplacementReason("");
       setAffiliateLink("");
       setNotes("");
     }
@@ -134,6 +136,10 @@ export function DealReplacementDialog({
       toast.error("Please select a brand.");
       return;
     }
+    if (!replacementReason.trim()) {
+      toast.error("Please enter a reason for replacement.");
+      return;
+    }
 
     setLoading(true);
 
@@ -141,6 +147,7 @@ export function DealReplacementDialog({
       existingDealId: deal.dealId,
       partnerId,
       brandId,
+      replacementReason: replacementReason.trim(),
       affiliateLink: affiliateLink.trim() || undefined,
       notes: notes.trim() || undefined,
     };
@@ -246,6 +253,18 @@ export function DealReplacementDialog({
               value={affiliateLink}
               onChange={(e) => setAffiliateLink(e.target.value)}
               placeholder="https://..."
+            />
+          </div>
+
+          {/* Replacement Reason (required) */}
+          <div className="grid gap-2">
+            <Label htmlFor="replace-reason">Reason for Replacement *</Label>
+            <Textarea
+              id="replace-reason"
+              value={replacementReason}
+              onChange={(e) => setReplacementReason(e.target.value)}
+              placeholder="Why is this deal being replaced?"
+              rows={2}
             />
           </div>
 

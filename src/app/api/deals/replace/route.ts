@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions, isValidApiKey } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { dealReplaceSchema } from "@/lib/validations";
-import { createNotificationForAllUsers } from "@/lib/notifications";
+import { createNotification } from "@/lib/notifications";
 import { OCCUPYING_STATUSES } from "@/lib/deal-status";
 
 export async function POST(request: Request) {
@@ -30,6 +30,7 @@ export async function POST(request: Request) {
       // 1. Find existing deal and verify it's Active
       const existingDeal = await tx.deal.findUnique({
         where: { dealId: data.existingDealId },
+        include: { partner: true },
       });
 
       if (!existingDeal) {
@@ -92,6 +93,7 @@ export async function POST(request: Request) {
           affiliateLink: data.affiliateLink,
           startDate: new Date(),
           notes: data.notes,
+          replacementReason: data.replacementReason,
           status: dealStatus,
           isDirect: newPartner.isDirect,
           replacedDealId: existingDeal.dealId,
@@ -124,6 +126,7 @@ export async function POST(request: Request) {
             replacedByDealId: newDeal.dealId,
             newPartnerId: data.partnerId,
             newBrandId: data.brandId,
+            replacementReason: data.replacementReason,
           },
         },
       });
@@ -138,22 +141,39 @@ export async function POST(request: Request) {
             replacedDealId: existingDeal.dealId,
             previousPartnerId: existingDeal.partnerId,
             previousBrandId: existingDeal.brandId,
+            replacementReason: data.replacementReason,
             status: dealStatus,
           },
         },
       });
 
-      return { endedDeal, newDeal };
+      return { endedDeal: { ...endedDeal, partner: existingDeal.partner }, newDeal };
     });
 
-    // Fire-and-forget notification
-    createNotificationForAllUsers({
+    // Notify the old partner's owner (the one losing the position)
+    const oldPartnerOwnerUserId = result.endedDeal.partner.ownerUserId;
+    const notificationMessage = `Deal on ${result.newDeal.asset.name} — ${result.newDeal.position.name} replaced with ${result.newDeal.brand.name}. Reason: ${data.replacementReason}`;
+
+    createNotification({
+      userId: oldPartnerOwnerUserId,
       type: "DEAL_REPLACED",
       title: "Deal Replaced",
-      message: `Deal on ${result.newDeal.asset.name} — ${result.newDeal.position.name} replaced with ${result.newDeal.brand.name}`,
+      message: notificationMessage,
       entityType: "Deal",
       entityId: result.newDeal.dealId,
     }).catch(() => {});
+
+    // Also notify the current user if they're different from the owner
+    if (userId !== oldPartnerOwnerUserId) {
+      createNotification({
+        userId,
+        type: "DEAL_REPLACED",
+        title: "Deal Replaced",
+        message: notificationMessage,
+        entityType: "Deal",
+        entityId: result.newDeal.dealId,
+      }).catch(() => {});
+    }
 
     return NextResponse.json(result, { status: 201 });
   } catch (error) {

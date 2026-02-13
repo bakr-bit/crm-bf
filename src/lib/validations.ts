@@ -105,6 +105,7 @@ export const dealReplaceSchema = z.object({
   brandId: z.string().min(1, "Brand is required"),
   geo: z.string().length(2).toUpperCase().optional(),
   affiliateLink: z.string().optional(),
+  replacementReason: z.string().min(1, "Replacement reason is required"),
   notes: z.string().optional(),
   ...dealFinancialFields,
 });

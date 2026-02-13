@@ -190,6 +190,7 @@ model Deal {
   isDirect       Boolean    @default(false)
   geo            String     @default("")
   notes          String?
+  replacementReason String?
 
   // Financial fields
   payoutModel      String?
