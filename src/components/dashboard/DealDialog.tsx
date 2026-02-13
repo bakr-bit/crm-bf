@@ -1,0 +1,491 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
+import { COUNTRIES } from "@/lib/countries";
+
+// ---------- types ----------
+
+interface Partner {
+  partnerId: string;
+  name: string;
+  isDirect: boolean;
+  hasContract: boolean;
+  hasLicense: boolean;
+  hasBanking: boolean;
+}
+
+interface Brand {
+  brandId: string;
+  name: string;
+}
+
+interface Asset {
+  assetId: string;
+  name: string;
+}
+
+interface Position {
+  positionId: string;
+  name: string;
+  activeDealId: string | null;
+}
+
+interface DealDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess: () => void;
+  prefill?: {
+    assetId?: string;
+    positionId?: string;
+  };
+}
+
+// ---------- helpers ----------
+
+function isSopIncomplete(partner: Partner): boolean {
+  return partner.isDirect && (!partner.hasContract || !partner.hasLicense || !partner.hasBanking);
+}
+
+// ---------- component ----------
+
+export function DealDialog({
+  open,
+  onOpenChange,
+  onSuccess,
+  prefill,
+}: DealDialogProps) {
+  // Partner / Brand cascading state
+  const [partners, setPartners] = useState<Partner[]>([]);
+  const [partnerId, setPartnerId] = useState("");
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [brandId, setBrandId] = useState("");
+  const [loadingBrands, setLoadingBrands] = useState(false);
+
+  // Asset / Position cascading state
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [assetId, setAssetId] = useState("");
+  const [positions, setPositions] = useState<Position[]>([]);
+  const [positionId, setPositionId] = useState("");
+  const [loadingPositions, setLoadingPositions] = useState(false);
+
+  // Geo
+  const [geo, setGeo] = useState("");
+
+  // Other fields
+  const [affiliateLink, setAffiliateLink] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [notes, setNotes] = useState("");
+
+  const [loading, setLoading] = useState(false);
+
+  const isPrefilled = Boolean(prefill?.assetId);
+
+  // ---------- fetch partners on mount ----------
+  const fetchPartners = useCallback(async () => {
+    try {
+      const res = await fetch("/api/partners");
+      if (!res.ok) throw new Error("Failed to fetch partners");
+      const json: Partner[] = await res.json();
+      setPartners(json);
+    } catch {
+      console.error("Failed to load partners");
+    }
+  }, []);
+
+  // ---------- fetch assets on mount ----------
+  const fetchAssets = useCallback(async () => {
+    try {
+      const res = await fetch("/api/assets");
+      if (!res.ok) throw new Error("Failed to fetch assets");
+      const json: Asset[] = await res.json();
+      setAssets(json);
+    } catch {
+      console.error("Failed to load assets");
+    }
+  }, []);
+
+  // Initial data load
+  useEffect(() => {
+    if (open) {
+      fetchPartners();
+      fetchAssets();
+    }
+  }, [open, fetchPartners, fetchAssets]);
+
+  // Reset form when dialog opens/closes
+  useEffect(() => {
+    if (open) {
+      setPartnerId("");
+      setBrandId("");
+      setBrands([]);
+      setGeo("");
+      setAssetId(prefill?.assetId ?? "");
+      setPositionId(prefill?.positionId ?? "");
+      setPositions([]);
+      setAffiliateLink("");
+      setStartDate("");
+      setEndDate("");
+      setNotes("");
+    }
+  }, [open, prefill]);
+
+  // ---------- fetch brands when partner changes ----------
+  useEffect(() => {
+    if (!partnerId) {
+      setBrands([]);
+      setBrandId("");
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingBrands(true);
+    setBrandId("");
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/partners/${partnerId}/brands`);
+        if (!res.ok) throw new Error("Failed to fetch brands");
+        const json: Brand[] = await res.json();
+        if (!cancelled) setBrands(json);
+      } catch {
+        if (!cancelled) setBrands([]);
+      } finally {
+        if (!cancelled) setLoadingBrands(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [partnerId]);
+
+  // ---------- fetch positions when asset changes ----------
+  useEffect(() => {
+    if (!assetId) {
+      setPositions([]);
+      setPositionId(prefill?.positionId ?? "");
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingPositions(true);
+    if (!prefill?.positionId) {
+      setPositionId("");
+    }
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/assets/${assetId}/positions`);
+        if (!res.ok) throw new Error("Failed to fetch positions");
+        const json: Position[] = await res.json();
+        if (!cancelled) setPositions(json);
+      } catch {
+        if (!cancelled) setPositions([]);
+      } finally {
+        if (!cancelled) setLoadingPositions(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [assetId, prefill?.positionId]);
+
+  // ---------- prefill: auto-load positions for prefilled asset ----------
+  useEffect(() => {
+    if (open && prefill?.assetId) {
+      setAssetId(prefill.assetId);
+    }
+  }, [open, prefill?.assetId]);
+
+  // ---------- SOP warning ----------
+  const selectedPartner = partners.find((p) => p.partnerId === partnerId);
+  const showSopWarning = selectedPartner ? isSopIncomplete(selectedPartner) : false;
+
+  // ---------- submit ----------
+  async function handleSubmit() {
+    if (!partnerId) {
+      toast.error("Please select a partner.");
+      return;
+    }
+    if (!brandId) {
+      toast.error("Please select a brand.");
+      return;
+    }
+    if (!geo) {
+      toast.error("Please select a country.");
+      return;
+    }
+    if (!assetId) {
+      toast.error("Please select an asset.");
+      return;
+    }
+    if (!positionId) {
+      toast.error("Please select a position.");
+      return;
+    }
+    if (!startDate) {
+      toast.error("Please enter a start date.");
+      return;
+    }
+
+    setLoading(true);
+
+    const body = {
+      partnerId,
+      brandId,
+      geo,
+      assetId,
+      positionId,
+      affiliateLink: affiliateLink.trim() || undefined,
+      startDate,
+      endDate: endDate || undefined,
+      notes: notes.trim() || undefined,
+    };
+
+    try {
+      const res = await fetch("/api/deals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Failed to create deal.");
+      }
+
+      toast.success("Deal created.");
+      onOpenChange(false);
+      onSuccess();
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "An unexpected error occurred.";
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Create Deal</DialogTitle>
+        </DialogHeader>
+
+        <div className="grid gap-4 py-2">
+          {/* SOP Warning */}
+          {showSopWarning && (
+            <div className="rounded-md border border-yellow-300 bg-yellow-50 p-3 text-sm text-yellow-800">
+              This partner has incomplete SOP. Deal will be set to Pending
+              Validation.
+            </div>
+          )}
+
+          {/* Partner */}
+          <div className="grid gap-2">
+            <Label>Partner *</Label>
+            <Select value={partnerId} onValueChange={setPartnerId}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a partner" />
+              </SelectTrigger>
+              <SelectContent>
+                {partners.map((p) => (
+                  <SelectItem key={p.partnerId} value={p.partnerId}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Brand */}
+          <div className="grid gap-2">
+            <Label>Brand *</Label>
+            <Select
+              value={brandId}
+              onValueChange={setBrandId}
+              disabled={!partnerId || loadingBrands}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue
+                  placeholder={
+                    !partnerId
+                      ? "Select a partner first"
+                      : loadingBrands
+                        ? "Loading brands..."
+                        : "Select a brand"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {brands.map((b) => (
+                  <SelectItem key={b.brandId} value={b.brandId}>
+                    {b.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Country (Geo) */}
+          <div className="grid gap-2">
+            <Label>Country *</Label>
+            <Select value={geo} onValueChange={setGeo}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a country" />
+              </SelectTrigger>
+              <SelectContent>
+                {COUNTRIES.map((c) => (
+                  <SelectItem key={c.code} value={c.code}>
+                    {c.name} ({c.code})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Asset */}
+          <div className="grid gap-2">
+            <Label>Asset *</Label>
+            <Select
+              value={assetId}
+              onValueChange={setAssetId}
+              disabled={isPrefilled}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select an asset" />
+              </SelectTrigger>
+              <SelectContent>
+                {assets.map((a) => (
+                  <SelectItem key={a.assetId} value={a.assetId}>
+                    {a.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Position */}
+          <div className="grid gap-2">
+            <Label>Position *</Label>
+            <Select
+              value={positionId}
+              onValueChange={setPositionId}
+              disabled={!assetId || loadingPositions || (isPrefilled && Boolean(prefill?.positionId))}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue
+                  placeholder={
+                    !assetId
+                      ? "Select an asset first"
+                      : loadingPositions
+                        ? "Loading positions..."
+                        : "Select a position"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {positions.map((p) => (
+                  <SelectItem key={p.positionId} value={p.positionId}>
+                    <span className="flex items-center gap-2">
+                      <span
+                        className={`inline-block h-2 w-2 rounded-full ${
+                          p.activeDealId ? "bg-red-500" : "bg-green-500"
+                        }`}
+                      />
+                      {p.name}
+                      {p.activeDealId && (
+                        <span className="text-xs text-muted-foreground">
+                          (occupied)
+                        </span>
+                      )}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Affiliate Link */}
+          <div className="grid gap-2">
+            <Label htmlFor="deal-affiliate-link">Affiliate Link</Label>
+            <Input
+              id="deal-affiliate-link"
+              value={affiliateLink}
+              onChange={(e) => setAffiliateLink(e.target.value)}
+              placeholder="https://..."
+            />
+          </div>
+
+          {/* Dates */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="deal-start-date">Start Date *</Label>
+              <Input
+                id="deal-start-date"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="deal-end-date">End Date</Label>
+              <Input
+                id="deal-end-date"
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div className="grid gap-2">
+            <Label htmlFor="deal-notes">Notes</Label>
+            <Textarea
+              id="deal-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Additional notes..."
+              rows={3}
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={loading}
+          >
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={loading}>
+            {loading ? "Creating..." : "Create Deal"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

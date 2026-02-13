@@ -1,0 +1,636 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { useParams } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { StatusBadge } from "@/components/dashboard/StatusBadge";
+import { PartnerDialog } from "@/components/dashboard/PartnerDialog";
+import { BrandDialog } from "@/components/dashboard/BrandDialog";
+import { ContactDialog } from "@/components/dashboard/ContactDialog";
+import { Badge } from "@/components/ui/badge";
+import {
+  ArrowLeft,
+  Check,
+  X,
+  MoreHorizontal,
+  Plus,
+  Pencil,
+} from "lucide-react";
+import { toast } from "sonner";
+import { COUNTRY_MAP } from "@/lib/countries";
+
+// ---------- types ----------
+
+interface Brand {
+  brandId: string;
+  partnerId: string;
+  name: string;
+  brandDomain: string | null;
+  trackingDomain: string | null;
+  brandIdentifiers: unknown;
+  status: string;
+  targetGeos: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface Contact {
+  contactId: string;
+  partnerId: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  role: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface DealPosition {
+  positionId: string;
+  name: string;
+  details: string | null;
+}
+
+interface DealAsset {
+  assetId: string;
+  name: string;
+  assetDomain: string | null;
+}
+
+interface DealBrand {
+  brandId: string;
+  name: string;
+}
+
+interface Deal {
+  dealId: string;
+  partnerId: string;
+  brandId: string;
+  brand: DealBrand;
+  assetId: string;
+  asset: DealAsset;
+  positionId: string;
+  position: DealPosition;
+  affiliateLink: string | null;
+  startDate: string;
+  endDate: string | null;
+  status: string;
+  isDirect: boolean;
+  geo: string;
+  notes: string | null;
+  createdAt: string;
+}
+
+interface PartnerDetail {
+  partnerId: string;
+  name: string;
+  websiteDomain: string | null;
+  isDirect: boolean;
+  status: string;
+  hasContract: boolean;
+  hasLicense: boolean;
+  hasBanking: boolean;
+  sopNotes: string | null;
+  ownerUserId: string;
+  createdAt: string;
+  updatedAt: string;
+  brands: Brand[];
+  contacts: Contact[];
+  deals: Deal[];
+}
+
+// ---------- component ----------
+
+export default function PartnerDetailPage() {
+  const params = useParams<{ partnerId: string }>();
+  const partnerId = params.partnerId;
+
+  const [partner, setPartner] = useState<PartnerDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Dialogs
+  const [partnerDialogOpen, setPartnerDialogOpen] = useState(false);
+  const [brandDialogOpen, setBrandDialogOpen] = useState(false);
+  const [editingBrand, setEditingBrand] = useState<Brand | undefined>(
+    undefined
+  );
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [editingContact, setEditingContact] = useState<Contact | undefined>(
+    undefined
+  );
+
+  const fetchPartner = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/partners/${partnerId}`);
+      if (!res.ok) throw new Error("Failed to fetch partner");
+      const json: PartnerDetail = await res.json();
+      setPartner(json);
+    } catch (err) {
+      console.error("Partner detail fetch error:", err);
+      toast.error("Failed to load partner.");
+    } finally {
+      setLoading(false);
+    }
+  }, [partnerId]);
+
+  useEffect(() => {
+    fetchPartner();
+  }, [fetchPartner]);
+
+  // Archive brand
+  async function handleArchiveBrand(brandId: string) {
+    try {
+      const res = await fetch(`/api/brands/${brandId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "Archived" }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Failed to archive brand.");
+      }
+      toast.success("Brand archived.");
+      fetchPartner();
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "An unexpected error occurred.";
+      toast.error(message);
+    }
+  }
+
+  // Dialog helpers
+  function toPartnerDialogShape(p: PartnerDetail) {
+    return {
+      id: p.partnerId,
+      name: p.name,
+      websiteDomain: p.websiteDomain ?? undefined,
+      isDirect: p.isDirect,
+      status: p.status,
+      hasContract: p.hasContract,
+      hasLicense: p.hasLicense,
+      hasBanking: p.hasBanking,
+      sopNotes: p.sopNotes ?? undefined,
+    };
+  }
+
+  function toBrandDialogShape(b: Brand) {
+    return {
+      id: b.brandId,
+      name: b.name,
+      brandDomain: b.brandDomain ?? undefined,
+      trackingDomain: b.trackingDomain ?? undefined,
+      status: b.status,
+      targetGeos: b.targetGeos,
+    };
+  }
+
+  function toContactDialogShape(c: Contact) {
+    return {
+      id: c.contactId,
+      name: c.name,
+      email: c.email,
+      phone: c.phone ?? undefined,
+      role: c.role ?? undefined,
+    };
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-4 p-6">
+        <div className="h-8 w-32 animate-pulse rounded bg-muted" />
+        <div className="h-12 w-64 animate-pulse rounded bg-muted" />
+        <div className="h-96 animate-pulse rounded-lg bg-muted" />
+      </div>
+    );
+  }
+
+  if (!partner) {
+    return (
+      <div className="p-6">
+        <p className="text-muted-foreground">Partner not found.</p>
+        <Link
+          href="/dashboard/partners"
+          className="mt-2 inline-flex items-center gap-1 text-sm text-primary hover:underline"
+        >
+          <ArrowLeft className="size-4" />
+          Back to Partners
+        </Link>
+      </div>
+    );
+  }
+
+  const sopComplete =
+    partner.hasContract && partner.hasLicense && partner.hasBanking;
+
+  return (
+    <div className="space-y-6 p-6">
+      {/* Back link */}
+      <Link
+        href="/dashboard/partners"
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="size-4" />
+        Back to Partners
+      </Link>
+
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <h1 className="text-2xl font-bold">{partner.name}</h1>
+        <StatusBadge status={partner.status} variant="partner" />
+      </div>
+
+      {/* Tabs */}
+      <Tabs defaultValue="info">
+        <TabsList>
+          <TabsTrigger value="info">Company Info</TabsTrigger>
+          <TabsTrigger value="brands">Brands</TabsTrigger>
+          <TabsTrigger value="contacts">Contacts</TabsTrigger>
+          <TabsTrigger value="deals">Deals</TabsTrigger>
+        </TabsList>
+
+        {/* ---- Company Info Tab ---- */}
+        <TabsContent value="info">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Company Information</CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPartnerDialogOpen(true)}
+              >
+                <Pencil className="mr-2 size-4" />
+                Edit
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <dl className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">
+                    Website Domain
+                  </dt>
+                  <dd className="text-sm">
+                    {partner.websiteDomain ?? "Not set"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">
+                    Direct Partner
+                  </dt>
+                  <dd className="text-sm">{partner.isDirect ? "Yes" : "No"}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">
+                    Status
+                  </dt>
+                  <dd className="text-sm">{partner.status}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">
+                    Owner User ID
+                  </dt>
+                  <dd className="font-mono text-xs">{partner.ownerUserId}</dd>
+                </div>
+              </dl>
+
+              {/* SOP / Compliance section for direct partners */}
+              {partner.isDirect && (
+                <div className="mt-6 rounded-md border p-4">
+                  <h3 className="mb-3 text-sm font-semibold">
+                    SOP / Compliance
+                    {sopComplete ? (
+                      <span className="ml-2 text-green-600">(Complete)</span>
+                    ) : (
+                      <span className="ml-2 text-yellow-600">(Incomplete)</span>
+                    )}
+                  </h3>
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-center gap-2">
+                      {partner.hasContract ? (
+                        <Check className="size-4 text-green-600" />
+                      ) : (
+                        <X className="size-4 text-red-500" />
+                      )}
+                      Contract
+                    </li>
+                    <li className="flex items-center gap-2">
+                      {partner.hasLicense ? (
+                        <Check className="size-4 text-green-600" />
+                      ) : (
+                        <X className="size-4 text-red-500" />
+                      )}
+                      License
+                    </li>
+                    <li className="flex items-center gap-2">
+                      {partner.hasBanking ? (
+                        <Check className="size-4 text-green-600" />
+                      ) : (
+                        <X className="size-4 text-red-500" />
+                      )}
+                      Banking
+                    </li>
+                  </ul>
+                  {partner.sopNotes && (
+                    <p className="mt-3 text-sm text-muted-foreground">
+                      {partner.sopNotes}
+                    </p>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ---- Brands Tab ---- */}
+        <TabsContent value="brands">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Brands</h2>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setEditingBrand(undefined);
+                  setBrandDialogOpen(true);
+                }}
+              >
+                <Plus className="mr-2 size-4" />
+                Add Brand
+              </Button>
+            </div>
+
+            <div className="rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Domain</TableHead>
+                    <TableHead>Tracking Domain</TableHead>
+                    <TableHead>Target Geos</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-12">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {partner.brands.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={6}
+                        className="text-center text-muted-foreground"
+                      >
+                        No brands yet.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    partner.brands.map((brand) => (
+                      <TableRow key={brand.brandId}>
+                        <TableCell className="font-medium">
+                          {brand.name}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {brand.brandDomain ?? "-"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {brand.trackingDomain ?? "-"}
+                        </TableCell>
+                        <TableCell>
+                          {(brand.targetGeos?.length ?? 0) === 0 ? (
+                            <span className="text-muted-foreground">-</span>
+                          ) : (
+                            <div className="flex flex-wrap gap-1">
+                              {(brand.targetGeos ?? []).map((geo) => (
+                                <Badge
+                                  key={geo}
+                                  variant="outline"
+                                  className="text-xs"
+                                >
+                                  {geo}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge status={brand.status} variant="brand" />
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-8"
+                              >
+                                <MoreHorizontal className="size-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setEditingBrand(brand);
+                                  setBrandDialogOpen(true);
+                                }}
+                              >
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                variant="destructive"
+                                onClick={() =>
+                                  handleArchiveBrand(brand.brandId)
+                                }
+                              >
+                                Archive
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* ---- Contacts Tab ---- */}
+        <TabsContent value="contacts">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Contacts</h2>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setEditingContact(undefined);
+                  setContactDialogOpen(true);
+                }}
+              >
+                <Plus className="mr-2 size-4" />
+                Add Contact
+              </Button>
+            </div>
+
+            <div className="rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead className="w-12">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {partner.contacts.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={5}
+                        className="text-center text-muted-foreground"
+                      >
+                        No contacts yet.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    partner.contacts.map((contact) => (
+                      <TableRow key={contact.contactId}>
+                        <TableCell className="font-medium">
+                          {contact.name}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {contact.email}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {contact.phone ?? "-"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {contact.role ?? "-"}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8"
+                            onClick={() => {
+                              setEditingContact(contact);
+                              setContactDialogOpen(true);
+                            }}
+                          >
+                            <Pencil className="size-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* ---- Deals Tab ---- */}
+        <TabsContent value="deals">
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">Deals</h2>
+
+            <div className="rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Brand</TableHead>
+                    <TableHead>Asset</TableHead>
+                    <TableHead>Position</TableHead>
+                    <TableHead>Geo</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Start Date</TableHead>
+                    <TableHead>End Date</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {partner.deals.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={7}
+                        className="text-center text-muted-foreground"
+                      >
+                        No deals yet.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    partner.deals.map((deal) => (
+                      <TableRow key={deal.dealId}>
+                        <TableCell className="font-medium">
+                          {deal.brand.name}
+                        </TableCell>
+                        <TableCell>{deal.asset.name}</TableCell>
+                        <TableCell>{deal.position.name}</TableCell>
+                        <TableCell>{COUNTRY_MAP[deal.geo] ?? deal.geo ?? "-"}</TableCell>
+                        <TableCell>
+                          <StatusBadge status={deal.status} variant="deal" />
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {new Date(deal.startDate).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {deal.endDate
+                            ? new Date(deal.endDate).toLocaleDateString()
+                            : "-"}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Dialogs */}
+      <PartnerDialog
+        open={partnerDialogOpen}
+        onOpenChange={setPartnerDialogOpen}
+        partner={partner ? toPartnerDialogShape(partner) : undefined}
+        onSuccess={fetchPartner}
+      />
+
+      <BrandDialog
+        open={brandDialogOpen}
+        onOpenChange={setBrandDialogOpen}
+        partnerId={partnerId}
+        brand={editingBrand ? toBrandDialogShape(editingBrand) : undefined}
+        onSuccess={fetchPartner}
+      />
+
+      <ContactDialog
+        open={contactDialogOpen}
+        onOpenChange={setContactDialogOpen}
+        partnerId={partnerId}
+        contact={
+          editingContact ? toContactDialogShape(editingContact) : undefined
+        }
+        onSuccess={fetchPartner}
+      />
+    </div>
+  );
+}

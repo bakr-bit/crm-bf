@@ -1,0 +1,244 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PartnerStatus {
+  Active
+  Pending
+  Inactive
+  Archived
+}
+
+enum BrandStatus {
+  Active
+  Inactive
+  Archived
+}
+
+enum DealStatus {
+  Active
+  PendingValidation
+  Ended
+  Expired
+}
+
+enum AssetStatus {
+  Active
+  Archived
+}
+
+enum PositionStatus {
+  Active
+  Archived
+}
+
+enum ScanItemType {
+  Verified
+  NewUnmatched
+  Missing
+  Replacement
+}
+
+enum ScanItemAction {
+  Pending
+  Ignored
+  Confirmed
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  partners     Partner[]
+  auditLogs    AuditLog[]
+  createdDeals  Deal[]         @relation("DealCreatedBy")
+  updatedDeals  Deal[]         @relation("DealUpdatedBy")
+  notifications Notification[]
+  scanResults   ScanResult[]
+}
+
+model Partner {
+  partnerId     String        @id @default(cuid())
+  name          String
+  websiteDomain String?
+  isDirect      Boolean       @default(false)
+  status        PartnerStatus @default(Pending)
+
+  // SOP fields for direct partners
+  hasContract   Boolean   @default(false)
+  hasLicense    Boolean   @default(false)
+  hasBanking    Boolean   @default(false)
+  sopNotes      String?
+
+  ownerUserId   String
+  owner         User      @relation(fields: [ownerUserId], references: [id])
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  brands        Brand[]
+  contacts      Contact[]
+  deals         Deal[]
+}
+
+model Brand {
+  brandId          String      @id @default(cuid())
+  partnerId        String
+  partner          Partner     @relation(fields: [partnerId], references: [partnerId], onDelete: Cascade)
+  name             String
+  brandDomain      String?
+  trackingDomain   String?
+  brandIdentifiers Json?
+  status           BrandStatus @default(Active)
+  targetGeos       String[]         @default([])
+
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  deals            Deal[]
+  scanItems        ScanResultItem[]
+}
+
+model Contact {
+  contactId String   @id @default(cuid())
+  partnerId String
+  partner   Partner  @relation(fields: [partnerId], references: [partnerId], onDelete: Cascade)
+  name      String
+  email     String
+  phone     String?
+  role      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([partnerId, email])
+}
+
+model Asset {
+  assetId     String      @id @default(cuid())
+  name        String
+  assetDomain String?     @unique
+  description String?
+  status      AssetStatus @default(Active)
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  positions   Position[]
+  deals       Deal[]
+  scanResults ScanResult[]
+}
+
+model Position {
+  positionId String         @id @default(cuid())
+  assetId    String
+  asset      Asset          @relation(fields: [assetId], references: [assetId], onDelete: Cascade)
+  name       String
+  details    String?
+  status     PositionStatus @default(Active)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  deals      Deal[]
+
+  @@unique([assetId, name])
+}
+
+model Deal {
+  dealId         String     @id @default(cuid())
+  partnerId      String
+  partner        Partner    @relation(fields: [partnerId], references: [partnerId])
+  brandId        String
+  brand          Brand      @relation(fields: [brandId], references: [brandId])
+  assetId        String
+  asset          Asset      @relation(fields: [assetId], references: [assetId])
+  positionId     String
+  position       Position   @relation(fields: [positionId], references: [positionId])
+
+  affiliateLink  String?
+  startDate      DateTime   @default(now())
+  endDate        DateTime?
+  status         DealStatus @default(Active)
+  isDirect       Boolean    @default(false)
+  geo            String     @default("")
+  notes          String?
+
+  // Replacement chain
+  replacedDealId String?    @unique
+  replacedDeal   Deal?      @relation("DealReplacement", fields: [replacedDealId], references: [dealId])
+  replacedBy     Deal?      @relation("DealReplacement")
+
+  createdById    String
+  createdBy      User       @relation("DealCreatedBy", fields: [createdById], references: [id])
+  updatedById    String?
+  updatedBy      User?      @relation("DealUpdatedBy", fields: [updatedById], references: [id])
+
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  scanItems      ScanResultItem[]
+}
+
+model Notification {
+  notificationId String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  type           String
+  title          String
+  message        String
+  entityType     String?
+  entityId       String?
+  isRead         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+}
+
+model ScanResult {
+  scanId     String           @id @default(cuid())
+  assetId    String
+  asset      Asset            @relation(fields: [assetId], references: [assetId])
+  scannedUrl String
+  scannedAt  DateTime         @default(now())
+  totalLinks Int
+  userId     String
+  user       User             @relation(fields: [userId], references: [id])
+  items      ScanResultItem[]
+}
+
+model ScanResultItem {
+  itemId         String         @id @default(cuid())
+  scanId         String
+  scan           ScanResult     @relation(fields: [scanId], references: [scanId], onDelete: Cascade)
+  type           ScanItemType
+  action         ScanItemAction @default(Pending)
+  foundUrl       String?
+  foundAnchor    String?
+  matchedDealId  String?
+  matchedDeal    Deal?          @relation(fields: [matchedDealId], references: [dealId])
+  matchedBrandId String?
+  matchedBrand   Brand?         @relation(fields: [matchedBrandId], references: [brandId])
+  confidence     Float?
+  notes          String?
+  createdAt      DateTime       @default(now())
+}
+
+model AuditLog {
+  logId     String   @id @default(cuid())
+  timestamp DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  entity    String
+  entityId  String
+  action    String
+  details   Json?
+}
