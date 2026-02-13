@@ -17,6 +17,19 @@ export async function GET(request: Request) {
         prisma.asset.count(),
         prisma.deal.count({ where: { status: "PendingValidation" } }),
         prisma.auditLog.findMany({
+          where: {
+            action: {
+              in: [
+                "CREATE",
+                "UPDATE",
+                "ARCHIVE",
+                "CREATE_REPLACEMENT",
+                "ENDED_BY_REPLACEMENT",
+                "ENDED_BY_SCAN",
+                "CREATE_FROM_SCAN",
+              ],
+            },
+          },
           take: 10,
           orderBy: { timestamp: "desc" },
           include: {
