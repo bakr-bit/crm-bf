@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       },
     });
 
-    const baseUrl = process.env.NEXTAUTH_URL || request.headers.get("origin") || "";
+    const baseUrl = (process.env.NEXTAUTH_URL || request.headers.get("origin") || "").trim().replace(/\/+$/, "");
     const intakeUrl = `${baseUrl}/intake/${token}`;
 
     return NextResponse.json(
