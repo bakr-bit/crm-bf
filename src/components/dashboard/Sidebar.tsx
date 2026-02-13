@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -11,6 +12,7 @@ import {
   Search,
   Activity,
   Settings,
+  Shield,
 } from "lucide-react";
 
 const navigation = [
@@ -25,6 +27,12 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.isAdmin === true;
+
+  const items = isAdmin
+    ? [...navigation, { name: "Admin", href: "/dashboard/admin", icon: Shield }]
+    : navigation;
 
   return (
     <div className="flex h-full w-64 flex-col bg-zinc-900">
@@ -32,7 +40,7 @@ export function Sidebar() {
         <h1 className="text-xl font-bold text-white">CRM System</h1>
       </div>
       <nav className="flex-1 space-y-1 px-3 py-4">
-        {navigation.map((item) => {
+        {items.map((item) => {
           const isActive =
             item.href === "/dashboard"
               ? pathname === "/dashboard"

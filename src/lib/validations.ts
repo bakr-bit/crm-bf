@@ -120,6 +120,13 @@ export const confirmScanItemSchema = z.object({
   positionId: z.string().optional(),
 });
 
+// Admin user creation schema
+export const adminCreateUserSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Invalid email"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
 // Credential schemas
 export const credentialCreateSchema = z.object({
   label: z.string().min(1, "Label is required"),
