@@ -140,3 +140,31 @@ export const credentialCreateSchema = z.object({
 });
 
 export const credentialUpdateSchema = credentialCreateSchema.partial();
+
+// Intake schemas
+export const intakeLinkCreateSchema = z.object({
+  note: z.string().optional(),
+  expiresInDays: z.number().int().min(1).max(30).default(7),
+});
+
+export const intakeSubmissionCreateSchema = z.object({
+  companyName: z.string().min(1, "Company name is required"),
+  websiteDomain: domainTransform,
+  brandName: z.string().min(1, "Brand name is required"),
+  brandDomain: domainTransform,
+  trackingDomain: domainTransform,
+  targetGeos: z.array(z.string().length(2).toUpperCase()).default([]),
+  licenseInfo: z.string().optional(),
+  contactName: z.string().min(1, "Contact name is required"),
+  contactEmail: z.string().email("Invalid email"),
+  contactPhone: z.string().optional(),
+  preferredContact: z.enum(["Email", "Telegram", "WhatsApp", "Phone"]).optional(),
+  notes: z.string().optional(),
+});
+
+export const intakeConvertSchema = z.object({
+  submissionId: z.string().min(1, "Submission ID is required"),
+  force: z.boolean().default(false),
+  partnerStatus: z.enum(["Active", "Pending", "Inactive"]).default("Pending"),
+  isDirect: z.boolean().default(false),
+});

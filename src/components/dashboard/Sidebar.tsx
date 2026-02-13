@@ -12,11 +12,13 @@ import {
   Activity,
   Settings,
   Shield,
+  ClipboardList,
 } from "lucide-react";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Partners", href: "/dashboard/partners", icon: Users },
+  { name: "Intake", href: "/dashboard/intake", icon: ClipboardList },
   { name: "Assets", href: "/dashboard/assets", icon: Globe },
   { name: "Deals", href: "/dashboard/deals", icon: Handshake },
   { name: "Deal Finder", href: "/dashboard/deal-finder", icon: Search },
