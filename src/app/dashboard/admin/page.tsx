@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,9 +31,9 @@ interface UserRow {
 }
 
 export default function AdminPage() {
-  const { data: session, status } = useSession();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [forbidden, setForbidden] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   // Form state
@@ -46,6 +45,10 @@ export default function AdminPage() {
   const fetchUsers = useCallback(async () => {
     try {
       const res = await fetch("/api/admin/users");
+      if (res.status === 403) {
+        setForbidden(true);
+        return;
+      }
       if (!res.ok) throw new Error("Failed to fetch users");
       const data: UserRow[] = await res.json();
       setUsers(data);
@@ -57,12 +60,10 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
-    if (session?.user?.isAdmin) {
-      fetchUsers();
-    }
-  }, [session, fetchUsers]);
+    fetchUsers();
+  }, [fetchUsers]);
 
-  if (status === "loading") {
+  if (loading) {
     return (
       <div className="flex items-center justify-center p-12">
         <p className="text-muted-foreground">Loading...</p>
@@ -70,7 +71,7 @@ export default function AdminPage() {
     );
   }
 
-  if (!session?.user?.isAdmin) {
+  if (forbidden) {
     return (
       <div className="flex items-center justify-center p-12">
         <p className="text-muted-foreground">
@@ -143,16 +144,7 @@ export default function AdminPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell
-                  colSpan={4}
-                  className="text-center text-muted-foreground"
-                >
-                  Loading...
-                </TableCell>
-              </TableRow>
-            ) : users.length === 0 ? (
+            {users.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={4}
