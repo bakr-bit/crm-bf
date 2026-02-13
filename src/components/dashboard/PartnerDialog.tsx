@@ -71,6 +71,7 @@ export function PartnerDialog({
   const [licenseFileUrl, setLicenseFileUrl] = useState<string | null>(null);
   const [bankingFileUrl, setBankingFileUrl] = useState<string | null>(null);
   const [sopUploading, setSopUploading] = useState<string | null>(null);
+  const [pendingFiles, setPendingFiles] = useState<Record<string, File>>({});
   const contractInputRef = useRef<HTMLInputElement>(null);
   const licenseInputRef = useRef<HTMLInputElement>(null);
   const bankingInputRef = useRef<HTMLInputElement>(null);
@@ -104,6 +105,7 @@ export function PartnerDialog({
       setSopNotes("");
     }
     setDuplicates([]);
+    setPendingFiles({});
   }, [partner, open]);
 
   const fileUrlState: Record<string, { value: string | null; set: (v: string | null) => void }> = {
@@ -119,13 +121,19 @@ export function PartnerDialog({
   };
 
   async function handleSopUpload(docType: string, file: File) {
-    if (!partner?.id) return;
+    if (!isEdit) {
+      // Queue file for upload after partner creation
+      setPendingFiles((prev) => ({ ...prev, [docType]: file }));
+      fileUrlState[docType].set("pending");
+      toast.success(`${docType} document queued for upload.`);
+      return;
+    }
     setSopUploading(docType);
     try {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("docType", docType);
-      const res = await fetch(`/api/partners/${partner.id}/sop-documents`, {
+      const res = await fetch(`/api/partners/${partner!.id}/sop-documents`, {
         method: "POST",
         body: formData,
       });
@@ -146,6 +154,16 @@ export function PartnerDialog({
   }
 
   async function handleSopDelete(docType: string) {
+    if (!isEdit) {
+      // Remove queued file
+      setPendingFiles((prev) => {
+        const next = { ...prev };
+        delete next[docType];
+        return next;
+      });
+      fileUrlState[docType].set(null);
+      return;
+    }
     if (!partner?.id) return;
     try {
       const res = await fetch(`/api/partners/${partner.id}/sop-documents`, {
@@ -208,6 +226,28 @@ export function PartnerDialog({
           return;
         }
         throw new Error(data?.error ?? "Failed to save partner.");
+      }
+
+      // Upload pending files after creating a new partner
+      if (!isEdit) {
+        const data = await res.json();
+        const newPartnerId = data.partnerId;
+        const fileEntries = Object.entries(pendingFiles);
+        if (fileEntries.length > 0 && newPartnerId) {
+          for (const [docType, file] of fileEntries) {
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("docType", docType);
+            try {
+              await fetch(`/api/partners/${newPartnerId}/sop-documents`, {
+                method: "POST",
+                body: formData,
+              });
+            } catch {
+              toast.error(`Failed to upload ${docType} document.`);
+            }
+          }
+        }
       }
 
       toast.success(isEdit ? "Partner updated." : "Partner created.");
@@ -301,47 +341,47 @@ export function PartnerDialog({
                     className="h-4 w-4 rounded border-gray-300"
                   />
                   <Label htmlFor={item.id} className="min-w-[100px]">{item.label}</Label>
-                  {isEdit && (
-                    fileUrlState[item.key].value ? (
-                      <div className="flex items-center gap-1 ml-auto">
-                        <span className="text-xs text-muted-foreground">File uploaded</span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="size-7 text-destructive"
-                          title="Remove file"
-                          onClick={() => handleSopDelete(item.key)}
-                        >
-                          <Trash2 className="size-3.5" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="ml-auto">
-                        <input
-                          ref={fileInputRefs[item.key]}
-                          type="file"
-                          accept=".pdf,.png,.jpg,.jpeg"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) handleSopUpload(item.key, file);
-                            e.target.value = "";
-                          }}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-7 text-xs"
-                          disabled={sopUploading === item.key}
-                          onClick={() => fileInputRefs[item.key]?.current?.click()}
-                        >
-                          <Upload className="mr-1 size-3" />
-                          {sopUploading === item.key ? "Uploading…" : "Upload"}
-                        </Button>
-                      </div>
-                    )
+                  {fileUrlState[item.key].value ? (
+                    <div className="flex items-center gap-1 ml-auto">
+                      <span className="text-xs text-muted-foreground">
+                        {pendingFiles[item.key] ? pendingFiles[item.key].name : "File uploaded"}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-7 text-destructive"
+                        title="Remove file"
+                        onClick={() => handleSopDelete(item.key)}
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="ml-auto">
+                      <input
+                        ref={fileInputRefs[item.key]}
+                        type="file"
+                        accept=".pdf,.png,.jpg,.jpeg"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleSopUpload(item.key, file);
+                          e.target.value = "";
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs"
+                        disabled={sopUploading === item.key}
+                        onClick={() => fileInputRefs[item.key]?.current?.click()}
+                      >
+                        <Upload className="mr-1 size-3" />
+                        {sopUploading === item.key ? "Uploading…" : "Upload"}
+                      </Button>
+                    </div>
                   )}
                 </div>
               ))}
