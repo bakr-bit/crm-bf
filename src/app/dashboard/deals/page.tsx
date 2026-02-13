@@ -29,7 +29,8 @@ import { DealDialog } from "@/components/dashboard/DealDialog";
 import { DealReplacementDialog } from "@/components/dashboard/DealReplacementDialog";
 import { MoreHorizontal, Plus } from "lucide-react";
 import Link from "next/link";
-import { COUNTRIES, COUNTRY_MAP } from "@/lib/countries";
+import { COUNTRIES } from "@/lib/countries";
+import { GeoFlag } from "@/components/dashboard/GeoFlag";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -299,7 +300,10 @@ export default function DealsPage() {
               <SelectItem value="All">All Geos</SelectItem>
               {COUNTRIES.map((c) => (
                 <SelectItem key={c.code} value={c.code}>
-                  {c.name} ({c.code})
+                  <span className="inline-flex items-center gap-2">
+                    <span className={`fflag fflag-${c.code} ff-sm`} />
+                    {c.name}
+                  </span>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -362,7 +366,7 @@ export default function DealsPage() {
                   </TableCell>
                   <TableCell>{deal.asset.name}</TableCell>
                   <TableCell>{deal.position.name}</TableCell>
-                  <TableCell>{COUNTRY_MAP[deal.geo] ?? deal.geo ?? "-"}</TableCell>
+                  <TableCell><GeoFlag geo={deal.geo} /></TableCell>
                   <TableCell>
                     <StatusBadge status={deal.status} variant="deal" />
                   </TableCell>

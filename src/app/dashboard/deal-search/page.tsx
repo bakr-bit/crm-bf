@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { COUNTRIES, COUNTRY_MAP } from "@/lib/countries";
+import { GeoFlag } from "@/components/dashboard/GeoFlag";
 
 // ---------- types ----------
 
@@ -138,7 +139,10 @@ export default function DealSearchPage() {
           <SelectContent>
             {COUNTRIES.map((c) => (
               <SelectItem key={c.code} value={c.code}>
-                {c.name} ({c.code})
+                <span className="inline-flex items-center gap-2">
+                  <span className={`fflag fflag-${c.code} ff-sm`} />
+                  {c.name}
+                </span>
               </SelectItem>
             ))}
           </SelectContent>
@@ -264,7 +268,7 @@ export default function DealSearchPage() {
                     <TableCell>{deal.asset.name}</TableCell>
                     <TableCell>{deal.position.name}</TableCell>
                     <TableCell>
-                      {COUNTRY_MAP[deal.geo] ?? deal.geo ?? "-"}
+                      <GeoFlag geo={deal.geo} />
                     </TableCell>
                     <TableCell className="max-w-[200px] truncate font-mono text-xs">
                       {deal.affiliateLink ?? "-"}

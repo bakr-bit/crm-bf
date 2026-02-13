@@ -358,7 +358,10 @@ export function DealDialog({
               <SelectContent>
                 {COUNTRIES.map((c) => (
                   <SelectItem key={c.code} value={c.code}>
-                    {c.name} ({c.code})
+                    <span className="inline-flex items-center gap-2">
+                      <span className={`fflag fflag-${c.code} ff-sm`} />
+                      {c.name}
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>

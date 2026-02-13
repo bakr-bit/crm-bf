@@ -23,7 +23,7 @@ import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { DealReplacementDialog } from "@/components/dashboard/DealReplacementDialog";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
-import { COUNTRY_MAP } from "@/lib/countries";
+import { GeoFlag } from "@/components/dashboard/GeoFlag";
 
 // ---------- types ----------
 
@@ -353,7 +353,7 @@ export default function DealDetailPage() {
                     Geo
                   </dt>
                   <dd className="text-sm">
-                    {deal.geo ? `${COUNTRY_MAP[deal.geo] ?? deal.geo} (${deal.geo})` : "-"}
+                    <GeoFlag geo={deal.geo} />
                   </dd>
                 </div>
                 <div>

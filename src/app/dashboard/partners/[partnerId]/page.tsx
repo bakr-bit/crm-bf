@@ -39,7 +39,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
-import { COUNTRY_MAP } from "@/lib/countries";
+import { GeoFlag } from "@/components/dashboard/GeoFlag";
 
 // ---------- types ----------
 
@@ -584,7 +584,7 @@ export default function PartnerDetailPage() {
                         </TableCell>
                         <TableCell>{deal.asset.name}</TableCell>
                         <TableCell>{deal.position.name}</TableCell>
-                        <TableCell>{COUNTRY_MAP[deal.geo] ?? deal.geo ?? "-"}</TableCell>
+                        <TableCell><GeoFlag geo={deal.geo} /></TableCell>
                         <TableCell>
                           <StatusBadge status={deal.status} variant="deal" />
                         </TableCell>
