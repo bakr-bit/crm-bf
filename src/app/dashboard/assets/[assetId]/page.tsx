@@ -104,6 +104,25 @@ export default function AssetDetailPage() {
     fetchAsset();
   }, [fetchAsset]);
 
+  // Delete (archive) a position
+  async function handleDeletePosition(positionId: string) {
+    try {
+      const res = await fetch(`/api/assets/${assetId}/positions/${positionId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Failed to delete position.");
+      }
+      toast.success("Position deleted.");
+      fetchAsset();
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "An unexpected error occurred.";
+      toast.error(message);
+    }
+  }
+
   // End a deal
   async function handleEndDeal(dealId: string) {
     try {
@@ -300,6 +319,14 @@ export default function AssetDetailPage() {
                               }}
                             >
                               Edit Position
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onClick={() =>
+                                handleDeletePosition(position.positionId)
+                              }
+                            >
+                              Delete Position
                             </DropdownMenuItem>
 
                             {isOccupied ? (

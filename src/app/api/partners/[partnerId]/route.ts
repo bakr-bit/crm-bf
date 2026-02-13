@@ -22,11 +22,7 @@ export async function GET(
       where: { partnerId },
       include: {
         brands: true,
-        contacts: {
-          include: {
-            brand: { select: { brandId: true, name: true } },
-          },
-        },
+        contacts: true,
         deals: {
           include: {
             brand: true,

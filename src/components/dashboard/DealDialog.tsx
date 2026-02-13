@@ -93,6 +93,7 @@ export function DealDialog({
   const [affiliateLink, setAffiliateLink] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [endDateNA, setEndDateNA] = useState(false);
   const [notes, setNotes] = useState("");
 
   // Financial fields
@@ -154,6 +155,7 @@ export function DealDialog({
       setAffiliateLink("");
       setStartDate("");
       setEndDate("");
+      setEndDateNA(false);
       setNotes("");
       setPayoutModel("");
       setPayoutValue("");
@@ -480,12 +482,28 @@ export function DealDialog({
             </div>
             <div className="grid gap-2">
               <Label htmlFor="deal-end-date">End Date</Label>
-              <Input
-                id="deal-end-date"
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  id="deal-end-date"
+                  type="date"
+                  value={endDateNA ? "" : endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  disabled={endDateNA}
+                  className={endDateNA ? "opacity-50" : ""}
+                />
+                <label className="flex items-center gap-1.5 text-sm text-muted-foreground whitespace-nowrap cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={endDateNA}
+                    onChange={(e) => {
+                      setEndDateNA(e.target.checked);
+                      if (e.target.checked) setEndDate("");
+                    }}
+                    className="rounded border-input"
+                  />
+                  N/A
+                </label>
+              </div>
             </div>
           </div>
 

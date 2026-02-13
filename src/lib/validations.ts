@@ -44,7 +44,6 @@ export const contactCreateSchema = z.object({
   telegram: z.string().optional(),
   whatsapp: z.string().optional(),
   preferredContact: z.enum(["Email", "Telegram", "WhatsApp", "Phone"]).optional(),
-  brandId: z.string().optional(),
   geo: z.string().optional(),
 });
 

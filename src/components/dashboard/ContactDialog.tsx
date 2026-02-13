@@ -28,7 +28,6 @@ interface Contact {
   telegram?: string;
   whatsapp?: string;
   preferredContact?: string;
-  brandId?: string;
   geo?: string;
 }
 
@@ -38,7 +37,6 @@ interface ContactDialogProps {
   partnerId: string;
   contact?: Contact;
   onSuccess: () => void;
-  brands?: { brandId: string; name: string }[];
 }
 
 export function ContactDialog({
@@ -47,7 +45,6 @@ export function ContactDialog({
   partnerId,
   contact,
   onSuccess,
-  brands,
 }: ContactDialogProps) {
   const isEdit = Boolean(contact);
 
@@ -58,7 +55,6 @@ export function ContactDialog({
   const [telegram, setTelegram] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [preferredContact, setPreferredContact] = useState("");
-  const [brandId, setBrandId] = useState("");
   const [geo, setGeo] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -71,7 +67,6 @@ export function ContactDialog({
       setTelegram(contact.telegram ?? "");
       setWhatsapp(contact.whatsapp ?? "");
       setPreferredContact(contact.preferredContact ?? "");
-      setBrandId(contact.brandId ?? "");
       setGeo(contact.geo ?? "");
     } else {
       setName("");
@@ -81,7 +76,6 @@ export function ContactDialog({
       setTelegram("");
       setWhatsapp("");
       setPreferredContact("");
-      setBrandId("");
       setGeo("");
     }
   }, [contact, open]);
@@ -106,7 +100,6 @@ export function ContactDialog({
       telegram: telegram.trim() || undefined,
       whatsapp: whatsapp.trim() || undefined,
       preferredContact: preferredContact || undefined,
-      brandId: brandId && brandId !== "__none" ? brandId : undefined,
       geo: geo.trim().toUpperCase() || undefined,
     };
 
@@ -232,26 +225,6 @@ export function ContactDialog({
               </SelectContent>
             </Select>
           </div>
-
-          {/* Brand Scope */}
-          {brands && brands.length > 0 && (
-            <div className="grid gap-2">
-              <Label>Brand Scope</Label>
-              <Select value={brandId} onValueChange={setBrandId}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="All brands (no scope)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none">All brands (no scope)</SelectItem>
-                  {brands.map((b) => (
-                    <SelectItem key={b.brandId} value={b.brandId}>
-                      {b.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
 
           {/* Geo Scope */}
           <div className="grid gap-2">

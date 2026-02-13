@@ -30,9 +30,6 @@ export async function GET(
 
     const contacts = await prisma.contact.findMany({
       where: { partnerId },
-      include: {
-        brand: { select: { brandId: true, name: true } },
-      },
       orderBy: { createdAt: "desc" },
     });
 
@@ -98,19 +95,6 @@ export async function POST(
       );
     }
 
-    // Validate brandId belongs to partner if provided
-    if (data.brandId) {
-      const brand = await prisma.brand.findFirst({
-        where: { brandId: data.brandId, partnerId },
-      });
-      if (!brand) {
-        return NextResponse.json(
-          { error: "Brand not found for this partner" },
-          { status: 400 }
-        );
-      }
-    }
-
     const contact = await prisma.contact.create({
       data: {
         partnerId,
@@ -121,11 +105,7 @@ export async function POST(
         telegram: data.telegram,
         whatsapp: data.whatsapp,
         preferredContact: data.preferredContact,
-        brandId: data.brandId,
         geo: data.geo,
-      },
-      include: {
-        brand: { select: { brandId: true, name: true } },
       },
     });
 

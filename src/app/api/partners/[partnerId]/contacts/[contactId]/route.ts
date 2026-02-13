@@ -19,9 +19,6 @@ export async function GET(
 
     const contact = await prisma.contact.findFirst({
       where: { contactId, partnerId },
-      include: {
-        brand: { select: { brandId: true, name: true } },
-      },
     });
 
     if (!contact) {
@@ -92,25 +89,9 @@ export async function PUT(
       }
     }
 
-    // If brandId provided, validate it belongs to the partner
-    if (parsed.data.brandId) {
-      const brand = await prisma.brand.findFirst({
-        where: { brandId: parsed.data.brandId, partnerId },
-      });
-      if (!brand) {
-        return NextResponse.json(
-          { error: "Brand not found for this partner" },
-          { status: 400 }
-        );
-      }
-    }
-
     const contact = await prisma.contact.update({
       where: { contactId },
       data: parsed.data,
-      include: {
-        brand: { select: { brandId: true, name: true } },
-      },
     });
 
     await logAudit({

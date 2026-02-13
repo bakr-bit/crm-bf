@@ -75,8 +75,6 @@ interface Contact {
   telegram: string | null;
   whatsapp: string | null;
   preferredContact: string | null;
-  brandId: string | null;
-  brand: { brandId: string; name: string } | null;
   geo: string | null;
   createdAt: string;
   updatedAt: string;
@@ -331,7 +329,6 @@ export default function PartnerDetailPage() {
       telegram: c.telegram ?? undefined,
       whatsapp: c.whatsapp ?? undefined,
       preferredContact: c.preferredContact ?? undefined,
-      brandId: c.brandId ?? undefined,
       geo: c.geo ?? undefined,
     };
   }
@@ -632,7 +629,7 @@ export default function PartnerDetailPage() {
                     <TableHead>WhatsApp</TableHead>
                     <TableHead>Preferred</TableHead>
                     <TableHead>Role</TableHead>
-                    <TableHead>Scope</TableHead>
+                    <TableHead>Geo</TableHead>
                     <TableHead className="w-12">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -667,22 +664,8 @@ export default function PartnerDetailPage() {
                         <TableCell className="text-muted-foreground">
                           {contact.role ?? "-"}
                         </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {contact.brand && (
-                              <Badge variant="outline" className="text-xs">
-                                {contact.brand.name}
-                              </Badge>
-                            )}
-                            {contact.geo && (
-                              <Badge variant="outline" className="text-xs">
-                                {contact.geo}
-                              </Badge>
-                            )}
-                            {!contact.brand && !contact.geo && (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </div>
+                        <TableCell className="text-muted-foreground">
+                          {contact.geo ?? "-"}
                         </TableCell>
                         <TableCell>
                           <Button
@@ -927,7 +910,6 @@ export default function PartnerDetailPage() {
         contact={
           editingContact ? toContactDialogShape(editingContact) : undefined
         }
-        brands={partner.brands.map((b) => ({ brandId: b.brandId, name: b.name }))}
         onSuccess={fetchPartner}
       />
 
