@@ -20,7 +20,6 @@ model User {
   intakeLinks     IntakeLink[]
   notifications   Notification[]
   managedPartners    Partner[]      @relation("PartnerAccountManager")
-  partners           Partner[]
   wishlistContacted  WishlistItem[] @relation("WishlistContacted")
 }
 
@@ -35,7 +34,6 @@ model Partner {
   hasBanking           Boolean       @default(false)
   sopNotes             String?
   lastInvoicedAt       DateTime?
-  ownerUserId          String
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
   bankingFileUrl       String?
@@ -47,7 +45,6 @@ model Partner {
   credentials          Credential[]
   deals                Deal[]
   accountManager       User?         @relation("PartnerAccountManager", fields: [accountManagerUserId], references: [id])
-  owner                User          @relation(fields: [ownerUserId], references: [id])
 }
 
 model Brand {

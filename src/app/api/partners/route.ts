@@ -110,8 +110,7 @@ export async function POST(request: Request) {
         hasLicense: partnerData.hasLicense,
         hasBanking: partnerData.hasBanking,
         sopNotes: partnerData.sopNotes,
-        accountManagerUserId: partnerData.accountManagerUserId,
-        ownerUserId: userId,
+        accountManagerUserId: partnerData.accountManagerUserId ?? userId,
       },
     });
 

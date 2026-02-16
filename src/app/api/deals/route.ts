@@ -21,7 +21,7 @@ export async function GET(request: Request) {
     const assetId = searchParams.get("assetId");
     const geo = searchParams.get("geo");
     const search = searchParams.get("search");
-    const ownerUserId = searchParams.get("ownerUserId");
+    const accountManagerUserId = searchParams.get("accountManagerUserId");
     const hasLicense = searchParams.get("hasLicense");
     const isDirect = searchParams.get("isDirect");
     const includeInactive = searchParams.get("includeInactive") === "true";
@@ -46,8 +46,8 @@ export async function GET(request: Request) {
     if (geo) {
       where.geo = geo;
     }
-    if (ownerUserId) {
-      where.partner = { ...(where.partner as Record<string, unknown> ?? {}), ownerUserId };
+    if (accountManagerUserId) {
+      where.partner = { ...(where.partner as Record<string, unknown> ?? {}), accountManagerUserId };
     }
     if (hasLicense === "yes") {
       where.brand = { ...(where.brand as Record<string, unknown> ?? {}), licenses: { isEmpty: false } };
@@ -73,7 +73,7 @@ export async function GET(request: Request) {
       include: {
         partner: {
           include: {
-            owner: { select: { id: true, name: true, email: true } },
+            accountManager: { select: { id: true, name: true, email: true } },
           },
         },
         brand: true,

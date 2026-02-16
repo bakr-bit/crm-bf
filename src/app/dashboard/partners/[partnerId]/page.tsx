@@ -145,8 +145,6 @@ interface PartnerDetail {
   hasBanking: boolean;
   sopNotes: string | null;
   lastInvoicedAt: string | null;
-  ownerUserId: string;
-  owner: { id: string; name: string } | null;
   accountManagerUserId: string | null;
   accountManager: { id: string; name: string } | null;
   createdAt: string;
@@ -546,12 +544,6 @@ export default function PartnerDetailPage() {
                     Status
                   </dt>
                   <dd className="text-sm">{partner.status}</dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-muted-foreground">
-                    Owner
-                  </dt>
-                  <dd className="text-sm">{partner.owner?.name ?? "Unknown"}</dd>
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-muted-foreground">

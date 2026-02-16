@@ -56,7 +56,6 @@ interface Partner {
   hasBanking: boolean;
   sopNotes: string | null;
   lastInvoicedAt: string | null;
-  ownerUserId: string;
   createdAt: string;
   updatedAt: string;
   _count: {

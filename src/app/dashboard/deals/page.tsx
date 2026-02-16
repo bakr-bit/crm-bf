@@ -57,7 +57,7 @@ interface Deal {
   updatedAt: string;
   partner: {
     name: string;
-    owner?: { id: string; name: string | null; email: string };
+    accountManager?: { id: string; name: string | null; email: string };
   };
   brand: {
     name: string;
@@ -109,7 +109,7 @@ export default function DealsPage() {
   const [partnerFilter, setPartnerFilter] = useState("All");
   const [assetFilter, setAssetFilter] = useState("All");
   const [geoFilter, setGeoFilter] = useState("All");
-  const [ownerFilter, setOwnerFilter] = useState("All");
+  const [accountManagerFilter, setAccountManagerFilter] = useState("All");
   const [licenseFilter, setLicenseFilter] = useState("All");
   const [directFilter, setDirectFilter] = useState("All");
   const [includeInactive, setIncludeInactive] = useState(false);
@@ -188,7 +188,7 @@ export default function DealsPage() {
       if (partnerFilter !== "All") params.set("partnerId", partnerFilter);
       if (assetFilter !== "All") params.set("assetId", assetFilter);
       if (geoFilter !== "All") params.set("geo", geoFilter);
-      if (ownerFilter !== "All") params.set("ownerUserId", ownerFilter);
+      if (accountManagerFilter !== "All") params.set("accountManagerUserId", accountManagerFilter);
       if (licenseFilter !== "All") params.set("hasLicense", licenseFilter);
       if (directFilter !== "All") params.set("isDirect", directFilter);
       if (includeInactive) params.set("includeInactive", "true");
@@ -206,7 +206,7 @@ export default function DealsPage() {
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, statusFilter, partnerFilter, assetFilter, geoFilter, ownerFilter, licenseFilter, directFilter, includeInactive]);
+  }, [searchQuery, statusFilter, partnerFilter, assetFilter, geoFilter, accountManagerFilter, licenseFilter, directFilter, includeInactive]);
 
   useEffect(() => {
     setLoading(true);
@@ -366,12 +366,12 @@ export default function DealsPage() {
         </div>
 
         <div className="w-48">
-          <Select value={ownerFilter} onValueChange={setOwnerFilter}>
+          <Select value={accountManagerFilter} onValueChange={setAccountManagerFilter}>
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Filter by owner" />
+              <SelectValue placeholder="Filter by account manager" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="All">All Owners</SelectItem>
+              <SelectItem value="All">All Account Managers</SelectItem>
               {users.map((u) => (
                 <SelectItem key={u.id} value={u.id}>
                   {u.name || u.email}

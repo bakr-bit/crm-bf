@@ -152,21 +152,23 @@ export async function POST(request: Request) {
       return { endedDeal: { ...endedDeal, partner: existingDeal.partner }, newDeal };
     });
 
-    // Notify the old partner's owner (the one losing the position)
-    const oldPartnerOwnerUserId = result.endedDeal.partner.ownerUserId;
+    // Notify the old partner's account manager (the one losing the position)
+    const oldPartnerAccountManagerUserId = result.endedDeal.partner.accountManagerUserId;
     const notificationMessage = `Deal on ${result.newDeal.asset.name} — ${result.newDeal.position.name} replaced with ${result.newDeal.brand.name}. Reason: ${data.replacementReason}`;
 
-    createNotification({
-      userId: oldPartnerOwnerUserId,
-      type: "DEAL_REPLACED",
-      title: "Deal Replaced",
-      message: notificationMessage,
-      entityType: "Deal",
-      entityId: result.newDeal.dealId,
-    }).catch(() => {});
+    if (oldPartnerAccountManagerUserId) {
+      createNotification({
+        userId: oldPartnerAccountManagerUserId,
+        type: "DEAL_REPLACED",
+        title: "Deal Replaced",
+        message: notificationMessage,
+        entityType: "Deal",
+        entityId: result.newDeal.dealId,
+      }).catch(() => {});
+    }
 
-    // Also notify the current user if they're different from the owner
-    if (userId !== oldPartnerOwnerUserId) {
+    // Also notify the current user if they're different from the account manager
+    if (userId !== oldPartnerAccountManagerUserId) {
       createNotification({
         userId,
         type: "DEAL_REPLACED",

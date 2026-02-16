@@ -75,7 +75,7 @@ export async function POST(
       }
     }
 
-    const ownerUserId = submission.intakeLink.createdByUserId;
+    const intakeLinkCreatorUserId = submission.intakeLink.createdByUserId;
     const brands = (submission.brands as unknown as IntakeBrand[]) || [];
 
     const result = await prisma.$transaction(async (tx) => {
@@ -85,7 +85,7 @@ export async function POST(
           websiteDomain: submission.websiteDomain,
           isDirect: parsed.data.isDirect,
           status: parsed.data.partnerStatus,
-          ownerUserId,
+          accountManagerUserId: intakeLinkCreatorUserId,
         },
       });
 
