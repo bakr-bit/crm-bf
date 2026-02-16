@@ -121,7 +121,7 @@ export default function IntakePage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Intake</h1>
+        <h1 className="text-2xl font-bold">Sign Up Links</h1>
         <Button onClick={() => setLinkDialogOpen(true)}>Generate Link</Button>
       </div>
 
@@ -203,7 +203,7 @@ export default function IntakePage() {
             <p className="py-8 text-center text-muted-foreground">Loading...</p>
           ) : links.length === 0 ? (
             <p className="py-8 text-center text-muted-foreground">
-              No intake links generated yet.
+              No sign up links generated yet.
             </p>
           ) : (
             <div className="rounded-md border">

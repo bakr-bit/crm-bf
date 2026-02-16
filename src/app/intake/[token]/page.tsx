@@ -179,7 +179,7 @@ export default function IntakePage() {
     <div className="flex min-h-screen items-center justify-center bg-zinc-100 py-8">
       <Card className="w-full max-w-2xl">
         <CardHeader>
-          <CardTitle className="text-2xl">Partner Intake Form</CardTitle>
+          <CardTitle className="text-2xl">Partner Sign Up Form</CardTitle>
           <CardDescription>
             Please fill in your company, brand, and contact details below.
           </CardDescription>

@@ -152,7 +152,7 @@ export function IntakeConvertDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Intake Submission — {submission.companyName}</DialogTitle>
+          <DialogTitle>Sign Up Submission — {submission.companyName}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-5 py-2">

@@ -160,7 +160,7 @@ export async function POST(
 
     createNotificationForAllUsers({
       type: "INTAKE_CONVERTED",
-      title: "Intake Submission Converted",
+      title: "Sign Up Submission Converted",
       message: `"${submission.companyName}" was converted to Partner + ${result.brands.length} Brand(s) + Contact`,
       entityType: "Partner",
       entityId: result.partner.partnerId,

@@ -117,8 +117,8 @@ export async function POST(
 
     createNotificationForAllUsers({
       type: "INTAKE_SUBMISSION",
-      title: "New Intake Submission",
-      message: `New partner intake from "${parsed.data.companyName}" (${parsed.data.contactName})`,
+      title: "New Sign Up Submission",
+      message: `New partner sign up from "${parsed.data.companyName}" (${parsed.data.contactName})`,
       entityType: "IntakeSubmission",
       entityId: submission.submissionId,
     }).catch(() => {});

@@ -67,7 +67,7 @@ export function IntakeLinkDialog({
 
       const data = await res.json();
       setGeneratedUrl(data.url);
-      toast.success("Intake link generated.");
+      toast.success("Sign up link generated.");
       onSuccess();
     } catch (err) {
       const message =
@@ -89,7 +89,7 @@ export function IntakeLinkDialog({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Generate Intake Link</DialogTitle>
+          <DialogTitle>Generate Sign Up Link</DialogTitle>
         </DialogHeader>
 
         {!generatedUrl ? (
