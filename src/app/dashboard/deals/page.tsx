@@ -133,13 +133,22 @@ export default function DealsPage() {
   // Prefill from URL search params
   const router = useRouter();
 
+  const prefillPartnerId = searchParams.get("partnerId") ?? undefined;
+  const prefillBrandId = searchParams.get("brandId") ?? undefined;
   const prefillAssetId = searchParams.get("assetId") ?? undefined;
   const prefillPageId = searchParams.get("pageId") ?? undefined;
   const prefillPositionId = searchParams.get("positionId") ?? undefined;
   const prefill =
-    prefillAssetId || prefillPageId || prefillPositionId
-      ? { assetId: prefillAssetId, pageId: prefillPageId, positionId: prefillPositionId }
+    prefillPartnerId || prefillBrandId || prefillAssetId || prefillPageId || prefillPositionId
+      ? { partnerId: prefillPartnerId, brandId: prefillBrandId, assetId: prefillAssetId, pageId: prefillPageId, positionId: prefillPositionId }
       : undefined;
+
+  // Auto-open dialog when prefill params are present
+  useEffect(() => {
+    if (prefill) {
+      setDealDialogOpen(true);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---------- fetch filter data ----------
   const fetchFilterData = useCallback(async () => {

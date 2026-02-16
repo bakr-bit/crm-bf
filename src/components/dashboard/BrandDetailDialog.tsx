@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   Dialog,
   DialogContent,
@@ -8,11 +10,13 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { GeoFlag } from "@/components/dashboard/GeoFlag";
 import { COUNTRY_MAP } from "@/lib/countries";
 import { LICENSE_MAP } from "@/lib/licenses";
+import { Plus } from "lucide-react";
 
 interface Brand {
   brandId: string;
@@ -28,6 +32,16 @@ interface Brand {
   targetGeos: string[];
   createdAt: string;
   updatedAt: string;
+}
+
+interface BrandDeal {
+  dealId: string;
+  status: string;
+  geo: string;
+  asset: { name: string };
+  position: { name: string };
+  startDate: string;
+  endDate: string | null;
 }
 
 interface BrandDetailDialogProps {
@@ -57,17 +71,51 @@ export function BrandDetailDialog({
   onOpenChange,
   brand,
 }: BrandDetailDialogProps) {
+  const [deals, setDeals] = useState<BrandDeal[]>([]);
+  const [loadingDeals, setLoadingDeals] = useState(false);
+
+  useEffect(() => {
+    if (!open || !brand) {
+      setDeals([]);
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingDeals(true);
+
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/deals?partnerId=${brand.partnerId}&brandId=${brand.brandId}&includeInactive=true`
+        );
+        if (!res.ok) throw new Error("Failed to fetch deals");
+        const json: BrandDeal[] = await res.json();
+        if (!cancelled) setDeals(json);
+      } catch {
+        if (!cancelled) setDeals([]);
+      } finally {
+        if (!cancelled) setLoadingDeals(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, brand]);
+
   if (!brand) return null;
+
+  const createDealUrl = `/dashboard/deals?partnerId=${brand.partnerId}&brandId=${brand.brandId}`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <DialogTitle>{brand.name}</DialogTitle>
             <StatusBadge status={brand.status} variant="brand" />
           </div>
-          <DialogDescription>Brand details (read-only)</DialogDescription>
+          <DialogDescription>Brand details</DialogDescription>
         </DialogHeader>
 
         <dl className="grid gap-4 sm:grid-cols-2">
@@ -192,6 +240,56 @@ export function BrandDetailDialog({
             </dd>
           </div>
         </dl>
+
+        {/* Deals section */}
+        <div className="border-t pt-4 mt-2">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold">
+              Deals
+              {!loadingDeals && (
+                <span className="ml-1.5 font-normal text-muted-foreground">
+                  ({deals.length})
+                </span>
+              )}
+            </h3>
+            <Button size="sm" asChild>
+              <Link href={createDealUrl}>
+                <Plus className="mr-2 size-4" />
+                Create Deal
+              </Link>
+            </Button>
+          </div>
+
+          {loadingDeals ? (
+            <div className="h-16 animate-pulse rounded bg-muted" />
+          ) : deals.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No deals for this brand yet.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {deals.map((deal) => (
+                <Link
+                  key={deal.dealId}
+                  href={`/dashboard/deals/${deal.dealId}`}
+                  className="flex items-center justify-between rounded-md border px-3 py-2 text-sm hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <StatusBadge status={deal.status} variant="deal" />
+                    <span>{deal.asset.name}</span>
+                    <span className="text-muted-foreground">{deal.position.name}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <GeoFlag geo={deal.geo} size="sm" />
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(deal.startDate).toLocaleDateString()}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
 
         <DialogFooter showCloseButton />
       </DialogContent>

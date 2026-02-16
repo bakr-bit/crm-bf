@@ -17,6 +17,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
     const partnerId = searchParams.get("partnerId");
+    const brandId = searchParams.get("brandId");
     const assetId = searchParams.get("assetId");
     const geo = searchParams.get("geo");
     const search = searchParams.get("search");
@@ -35,6 +36,9 @@ export async function GET(request: Request) {
     }
     if (partnerId) {
       where.partnerId = partnerId;
+    }
+    if (brandId) {
+      where.brandId = brandId;
     }
     if (assetId) {
       where.assetId = assetId;

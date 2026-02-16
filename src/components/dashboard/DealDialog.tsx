@@ -58,6 +58,8 @@ interface DealDialogProps {
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
   prefill?: {
+    partnerId?: string;
+    brandId?: string;
     assetId?: string;
     pageId?: string;
     positionId?: string;
@@ -117,7 +119,8 @@ export function DealDialog({
 
   const [loading, setLoading] = useState(false);
 
-  const isPrefilled = Boolean(prefill?.assetId);
+  const isAssetPrefilled = Boolean(prefill?.assetId);
+  const isPartnerPrefilled = Boolean(prefill?.partnerId);
 
   // ---------- fetch partners on mount ----------
   const fetchPartners = useCallback(async () => {
@@ -154,8 +157,8 @@ export function DealDialog({
   // Reset form when dialog opens/closes
   useEffect(() => {
     if (open) {
-      setPartnerId("");
-      setBrandId("");
+      setPartnerId(prefill?.partnerId ?? "");
+      setBrandId(prefill?.brandId ?? "");
       setBrands([]);
       setGeo("");
       setAssetId(prefill?.assetId ?? "");
@@ -189,14 +192,22 @@ export function DealDialog({
 
     let cancelled = false;
     setLoadingBrands(true);
-    setBrandId("");
+    if (!prefill?.brandId) {
+      setBrandId("");
+    }
 
     (async () => {
       try {
         const res = await fetch(`/api/partners/${partnerId}/brands`);
         if (!res.ok) throw new Error("Failed to fetch brands");
         const json: Brand[] = await res.json();
-        if (!cancelled) setBrands(json);
+        if (!cancelled) {
+          setBrands(json);
+          // Restore prefilled brand after brands load
+          if (prefill?.brandId && json.some((b) => b.brandId === prefill.brandId)) {
+            setBrandId(prefill.brandId);
+          }
+        }
       } catch {
         if (!cancelled) setBrands([]);
       } finally {
@@ -207,7 +218,7 @@ export function DealDialog({
     return () => {
       cancelled = true;
     };
-  }, [partnerId]);
+  }, [partnerId, prefill?.brandId]);
 
   // ---------- fetch pages when asset changes ----------
   useEffect(() => {
@@ -389,7 +400,7 @@ export function DealDialog({
           {/* Partner */}
           <div className="grid gap-2">
             <Label>Partner *</Label>
-            <Select value={partnerId} onValueChange={setPartnerId}>
+            <Select value={partnerId} onValueChange={setPartnerId} disabled={isPartnerPrefilled}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select a partner" />
               </SelectTrigger>
@@ -409,7 +420,7 @@ export function DealDialog({
             <Select
               value={brandId}
               onValueChange={setBrandId}
-              disabled={!partnerId || loadingBrands}
+              disabled={!partnerId || loadingBrands || (isPartnerPrefilled && Boolean(prefill?.brandId))}
             >
               <SelectTrigger className="w-full">
                 <SelectValue
@@ -458,7 +469,7 @@ export function DealDialog({
             <Select
               value={assetId}
               onValueChange={setAssetId}
-              disabled={isPrefilled}
+              disabled={isAssetPrefilled}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select an asset" />
@@ -479,7 +490,7 @@ export function DealDialog({
             <Select
               value={pageId}
               onValueChange={setPageId}
-              disabled={!assetId || loadingPages || (isPrefilled && Boolean(prefill?.pageId))}
+              disabled={!assetId || loadingPages || (isAssetPrefilled && Boolean(prefill?.pageId))}
             >
               <SelectTrigger className="w-full">
                 <SelectValue
@@ -508,7 +519,7 @@ export function DealDialog({
             <Select
               value={positionId}
               onValueChange={setPositionId}
-              disabled={!pageId || loadingPositions || (isPrefilled && Boolean(prefill?.positionId))}
+              disabled={!pageId || loadingPositions || (isAssetPrefilled && Boolean(prefill?.positionId))}
             >
               <SelectTrigger className="w-full">
                 <SelectValue
