@@ -62,7 +62,6 @@ interface Position {
   positionId: string;
   pageId: string;
   name: string;
-  path: string | null;
   details: string | null;
   createdAt: string;
   updatedAt: string;
@@ -112,18 +111,21 @@ export default function AssetDetailPage() {
       const res = await fetch(`/api/assets/${assetId}`);
       if (!res.ok) throw new Error("Failed to fetch asset");
       const json: AssetDetail = await res.json();
+      // Defensive: ensure pages array exists
+      if (!json.pages) json.pages = [];
       setAsset(json);
       // Set active tab to first page if not already set
-      if (!activePageId && json.pages.length > 0) {
-        setActivePageId(json.pages[0].pageId);
-      }
+      setActivePageId((prev) => {
+        if (!prev && json.pages.length > 0) return json.pages[0].pageId;
+        return prev;
+      });
     } catch (err) {
       console.error("Asset detail fetch error:", err);
       toast.error("Failed to load asset.");
     } finally {
       setLoading(false);
     }
-  }, [assetId, activePageId]);
+  }, [assetId]);
 
   useEffect(() => {
     fetchAsset();
@@ -217,7 +219,6 @@ export default function AssetDetailPage() {
     return {
       id: p.positionId,
       name: p.name,
-      path: p.path ?? undefined,
       details: p.details ?? undefined,
     };
   }
@@ -235,7 +236,6 @@ export default function AssetDetailPage() {
     const headers = [
       "Page",
       "Position Name",
-      "Path",
       "Details",
       "Status",
       "Brand",
@@ -250,7 +250,6 @@ export default function AssetDetailPage() {
         return [
           page.name,
           position.name,
-          position.path ?? "",
           position.details ?? "",
           activeDeal ? "Occupied" : "Available",
           activeDeal?.brand.name ?? "",
@@ -450,7 +449,6 @@ export default function AssetDetailPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Name</TableHead>
-                        <TableHead>Path</TableHead>
                         <TableHead>Details</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="w-12">Actions</TableHead>
@@ -460,7 +458,7 @@ export default function AssetDetailPage() {
                       {page.positions.length === 0 ? (
                         <TableRow>
                           <TableCell
-                            colSpan={5}
+                            colSpan={4}
                             className="text-center text-muted-foreground"
                           >
                             No positions yet.
@@ -475,9 +473,6 @@ export default function AssetDetailPage() {
                             <TableRow key={position.positionId}>
                               <TableCell className="font-medium">
                                 {position.name}
-                              </TableCell>
-                              <TableCell className="font-mono text-sm text-muted-foreground">
-                                {position.path ?? "-"}
                               </TableCell>
                               <TableCell className="text-muted-foreground">
                                 {position.details ?? "-"}

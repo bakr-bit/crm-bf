@@ -4,8 +4,9 @@ import path from "path";
 import pg from "pg";
 
 /**
- * Runs the add_page_model.sql migration against the database.
- * Usage: npx tsx prisma/run-migration.ts
+ * Runs a SQL migration against the database.
+ * Usage: npx tsx prisma/run-migration.ts [migration-file.sql]
+ * Default: add_page_model.sql
  */
 async function main() {
   const dbUrl = process.env.DIRECT_DATABASE_URL || process.env.DATABASE_URL;
@@ -19,7 +20,8 @@ async function main() {
     ssl: { rejectUnauthorized: false },
   });
 
-  const sqlPath = path.join(__dirname, "migrations", "add_page_model.sql");
+  const sqlFile = process.argv[2] || "add_page_model.sql";
+  const sqlPath = path.join(__dirname, "migrations", sqlFile);
   const sql = fs.readFileSync(sqlPath, "utf-8");
 
   console.log("==> Running SQL migration...");

@@ -67,7 +67,6 @@ export const pageUpdateSchema = pageCreateSchema.partial();
 
 export const positionCreateSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  path: z.string().optional(),
   details: z.string().optional(),
 });
 

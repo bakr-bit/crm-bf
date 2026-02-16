@@ -177,7 +177,6 @@ model Position {
   pageId     String
   page       Page           @relation(fields: [pageId], references: [pageId], onDelete: Cascade)
   name       String
-  path       String?
   details    String?
   status     PositionStatus @default(Active)
 
