@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { normalizeDomain } from "./utils";
 import { DEAL_STATUSES } from "./deal-status";
+import { PARTNER_STATUSES } from "./partner-status";
 
 const domainTransform = z.string().optional().transform((val) => {
   if (!val || val.trim() === "") return undefined;
@@ -11,7 +12,7 @@ export const partnerCreateSchema = z.object({
   name: z.string().min(1, "Name is required"),
   websiteDomain: domainTransform,
   isDirect: z.boolean().default(false),
-  status: z.enum(["Active", "Pending", "Inactive", "Archived"]).default("Pending"),
+  status: z.enum(PARTNER_STATUSES).default("Lead"),
   hasContract: z.boolean().default(false),
   hasLicense: z.boolean().default(false),
   hasBanking: z.boolean().default(false),
@@ -173,6 +174,6 @@ export const intakeSubmissionCreateSchema = z.object({
 export const intakeConvertSchema = z.object({
   submissionId: z.string().min(1, "Submission ID is required"),
   force: z.boolean().default(false),
-  partnerStatus: z.enum(["Active", "Pending", "Inactive"]).default("Pending"),
+  partnerStatus: z.enum(PARTNER_STATUSES).default("Lead"),
   isDirect: z.boolean().default(false),
 });

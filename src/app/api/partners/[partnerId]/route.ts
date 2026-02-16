@@ -170,24 +170,23 @@ export async function DELETE(
       );
     }
 
-    const partner = await prisma.partner.update({
+    await prisma.partner.delete({
       where: { partnerId },
-      data: { status: "Archived" },
     });
 
     await logAudit({
       userId,
       entity: "Partner",
       entityId: partnerId,
-      action: "ARCHIVE",
-      details: { previousStatus: existing.status },
+      action: "DELETE",
+      details: { name: existing.name, previousStatus: existing.status },
     });
 
-    return NextResponse.json(partner);
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Partner archive error:", error);
+    console.error("Partner delete error:", error);
     return NextResponse.json(
-      { error: "Failed to archive partner" },
+      { error: "Failed to delete partner" },
       { status: 500 }
     );
   }

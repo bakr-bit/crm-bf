@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { PARTNER_STATUSES, PARTNER_STATUS_LABELS } from "@/lib/partner-status";
 import {
   Dialog,
   DialogContent,
@@ -71,7 +72,7 @@ export function IntakeConvertDialog({
   submission,
   onSuccess,
 }: IntakeConvertDialogProps) {
-  const [partnerStatus, setPartnerStatus] = useState("Pending");
+  const [partnerStatus, setPartnerStatus] = useState("Lead");
   const [isDirect, setIsDirect] = useState(false);
   const [loading, setLoading] = useState(false);
   const [duplicates, setDuplicates] = useState<Duplicate[]>([]);
@@ -311,9 +312,11 @@ export function IntakeConvertDialog({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Active">Active</SelectItem>
-                      <SelectItem value="Pending">Pending</SelectItem>
-                      <SelectItem value="Inactive">Inactive</SelectItem>
+                      {PARTNER_STATUSES.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {PARTNER_STATUS_LABELS[s]}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

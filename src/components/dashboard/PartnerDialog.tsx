@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import Link from "next/link";
+import { PARTNER_STATUSES, PARTNER_STATUS_LABELS } from "@/lib/partner-status";
 
 interface DuplicateMatch {
   partnerId: string;
@@ -59,7 +60,7 @@ export function PartnerDialog({
   const [name, setName] = useState("");
   const [websiteDomain, setWebsiteDomain] = useState("");
   const [isDirect, setIsDirect] = useState(false);
-  const [status, setStatus] = useState("Active");
+  const [status, setStatus] = useState("Lead");
   const [hasContract, setHasContract] = useState(false);
   const [hasLicense, setHasLicense] = useState(false);
   const [hasBanking, setHasBanking] = useState(false);
@@ -83,7 +84,7 @@ export function PartnerDialog({
       setName(partner.name ?? "");
       setWebsiteDomain(partner.websiteDomain ?? "");
       setIsDirect(partner.isDirect ?? false);
-      setStatus(partner.status ?? "Active");
+      setStatus(partner.status ?? "Lead");
       setHasContract(partner.hasContract ?? false);
       setHasLicense(partner.hasLicense ?? false);
       setHasBanking(partner.hasBanking ?? false);
@@ -93,7 +94,7 @@ export function PartnerDialog({
       setName("");
       setWebsiteDomain("");
       setIsDirect(false);
-      setStatus("Active");
+      setStatus("Lead");
       setHasContract(false);
       setHasLicense(false);
       setHasBanking(false);
@@ -212,10 +213,11 @@ export function PartnerDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Active">Active</SelectItem>
-                <SelectItem value="Pending">Pending</SelectItem>
-                <SelectItem value="Inactive">Inactive</SelectItem>
-                <SelectItem value="Archived">Archived</SelectItem>
+                {PARTNER_STATUSES.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {PARTNER_STATUS_LABELS[s]}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

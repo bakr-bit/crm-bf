@@ -18,7 +18,6 @@ export async function GET(request: Request) {
     const search = searchParams.get("search");
     const status = searchParams.get("status");
     const isDirect = searchParams.get("isDirect");
-    const showArchived = searchParams.get("showArchived");
 
     const where: Record<string, unknown> = {};
 
@@ -31,8 +30,6 @@ export async function GET(request: Request) {
 
     if (status) {
       where.status = status;
-    } else if (showArchived !== "true") {
-      where.status = { not: "Archived" };
     }
 
     if (isDirect === "true") {

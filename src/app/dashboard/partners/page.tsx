@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/popover";
 import { MoreHorizontal, Plus, Search, Eye, Copy } from "lucide-react";
 import { toast } from "sonner";
+import { PARTNER_STATUSES, PARTNER_STATUS_LABELS } from "@/lib/partner-status";
 
 // ---------- types ----------
 
@@ -65,7 +66,6 @@ export default function PartnersPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [directFilter, setDirectFilter] = useState("all");
-  const [showArchived, setShowArchived] = useState(false);
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -79,7 +79,6 @@ export default function PartnersPage() {
       if (query) params.set("search", query);
       if (statusFilter !== "all") params.set("status", statusFilter);
       if (directFilter !== "all") params.set("isDirect", directFilter);
-      if (showArchived) params.set("showArchived", "true");
       const qs = params.toString();
       const url = `/api/partners${qs ? `?${qs}` : ""}`;
       const res = await fetch(url);
@@ -92,7 +91,7 @@ export default function PartnersPage() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, directFilter, showArchived]);
+  }, [statusFilter, directFilter]);
 
   useEffect(() => {
     fetchPartners();
@@ -116,16 +115,16 @@ export default function PartnersPage() {
     setDialogOpen(true);
   }
 
-  async function handleArchive(partnerId: string) {
+  async function handleDelete(partnerId: string) {
     try {
       const res = await fetch(`/api/partners/${partnerId}`, {
         method: "DELETE",
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        throw new Error(data?.error ?? "Failed to archive partner.");
+        throw new Error(data?.error ?? "Failed to delete partner.");
       }
-      toast.success("Partner archived.");
+      toast.success("Partner deleted.");
       fetchPartners(search || undefined);
     } catch (err) {
       const message =
@@ -229,10 +228,11 @@ export default function PartnersPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="Active">Active</SelectItem>
-            <SelectItem value="Pending">Pending</SelectItem>
-            <SelectItem value="Inactive">Inactive</SelectItem>
-            <SelectItem value="Archived">Archived</SelectItem>
+            {PARTNER_STATUSES.map((s) => (
+              <SelectItem key={s} value={s}>
+                {PARTNER_STATUS_LABELS[s]}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
 
@@ -247,18 +247,6 @@ export default function PartnersPage() {
           </SelectContent>
         </Select>
 
-        <div className="flex items-center gap-2">
-          <input
-            id="show-archived"
-            type="checkbox"
-            checked={showArchived}
-            onChange={(e) => setShowArchived(e.target.checked)}
-            className="h-4 w-4 rounded border-gray-300"
-          />
-          <label htmlFor="show-archived" className="text-sm text-muted-foreground">
-            Show archived
-          </label>
-        </div>
       </div>
 
       {/* Table */}
@@ -377,9 +365,9 @@ export default function PartnersPage() {
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           variant="destructive"
-                          onClick={() => handleArchive(partner.partnerId)}
+                          onClick={() => handleDelete(partner.partnerId)}
                         >
-                          Archive
+                          Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

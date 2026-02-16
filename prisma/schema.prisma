@@ -28,7 +28,7 @@ model Partner {
   name                 String
   websiteDomain        String?
   isDirect             Boolean       @default(false)
-  status               PartnerStatus @default(Pending)
+  status               PartnerStatus @default(Lead)
   hasContract          Boolean       @default(false)
   hasLicense           Boolean       @default(false)
   hasBanking           Boolean       @default(false)
@@ -250,10 +250,13 @@ model IntakeSubmission {
 }
 
 enum PartnerStatus {
+  Lead
+  EstablishedContact
+  PlatformSignedUp
+  AwaitingKYC
+  AvailableForAsset
+  AwaitingPostback
   Active
-  Pending
-  Inactive
-  Archived
 }
 
 enum BrandStatus {

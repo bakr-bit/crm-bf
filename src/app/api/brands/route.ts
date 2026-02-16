@@ -15,7 +15,6 @@ export async function GET(request: Request) {
 
     const where: Record<string, unknown> = {
       status: "Active",
-      partner: { status: "Active" },
     };
 
     if (geo) {

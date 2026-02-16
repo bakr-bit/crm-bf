@@ -19,7 +19,6 @@ export async function findDuplicatePartners({
 }): Promise<DuplicateMatch[]> {
   const partners = await prisma.partner.findMany({
     where: {
-      status: { not: "Archived" },
       ...(excludePartnerId ? { partnerId: { not: excludePartnerId } } : {}),
     },
     select: {
