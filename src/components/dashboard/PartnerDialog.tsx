@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -18,7 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Upload, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 
@@ -38,9 +37,6 @@ interface Partner {
   hasContract?: boolean;
   hasLicense?: boolean;
   hasBanking?: boolean;
-  contractFileUrl?: string | null;
-  licenseFileUrl?: string | null;
-  bankingFileUrl?: string | null;
   sopNotes?: string;
   accountManagerUserId?: string;
 }
@@ -68,14 +64,6 @@ export function PartnerDialog({
   const [hasLicense, setHasLicense] = useState(false);
   const [hasBanking, setHasBanking] = useState(false);
   const [sopNotes, setSopNotes] = useState("");
-  const [contractFileUrl, setContractFileUrl] = useState<string | null>(null);
-  const [licenseFileUrl, setLicenseFileUrl] = useState<string | null>(null);
-  const [bankingFileUrl, setBankingFileUrl] = useState<string | null>(null);
-  const [sopUploading, setSopUploading] = useState<string | null>(null);
-  const [pendingFiles, setPendingFiles] = useState<Record<string, File>>({});
-  const contractInputRef = useRef<HTMLInputElement>(null);
-  const licenseInputRef = useRef<HTMLInputElement>(null);
-  const bankingInputRef = useRef<HTMLInputElement>(null);
   const [accountManagerUserId, setAccountManagerUserId] = useState("");
   const [users, setUsers] = useState<{id: string; name: string; email: string}[]>([]);
   const [loading, setLoading] = useState(false);
@@ -99,9 +87,6 @@ export function PartnerDialog({
       setHasContract(partner.hasContract ?? false);
       setHasLicense(partner.hasLicense ?? false);
       setHasBanking(partner.hasBanking ?? false);
-      setContractFileUrl(partner.contractFileUrl ?? null);
-      setLicenseFileUrl(partner.licenseFileUrl ?? null);
-      setBankingFileUrl(partner.bankingFileUrl ?? null);
       setSopNotes(partner.sopNotes ?? "");
       setAccountManagerUserId(partner.accountManagerUserId ?? "");
     } else {
@@ -112,91 +97,11 @@ export function PartnerDialog({
       setHasContract(false);
       setHasLicense(false);
       setHasBanking(false);
-      setContractFileUrl(null);
-      setLicenseFileUrl(null);
-      setBankingFileUrl(null);
       setSopNotes("");
       setAccountManagerUserId("");
     }
     setDuplicates([]);
-    setPendingFiles({});
   }, [partner, open]);
-
-  const fileUrlState: Record<string, { value: string | null; set: (v: string | null) => void }> = {
-    contract: { value: contractFileUrl, set: setContractFileUrl },
-    license: { value: licenseFileUrl, set: setLicenseFileUrl },
-    banking: { value: bankingFileUrl, set: setBankingFileUrl },
-  };
-
-  const fileInputRefs: Record<string, React.RefObject<HTMLInputElement | null>> = {
-    contract: contractInputRef,
-    license: licenseInputRef,
-    banking: bankingInputRef,
-  };
-
-  async function handleSopUpload(docType: string, file: File) {
-    if (!isEdit) {
-      // Queue file for upload after partner creation
-      setPendingFiles((prev) => ({ ...prev, [docType]: file }));
-      fileUrlState[docType].set("pending");
-      toast.success(`${docType} document queued for upload.`);
-      return;
-    }
-    setSopUploading(docType);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("docType", docType);
-      const res = await fetch(`/api/partners/${partner!.id}/sop-documents`, {
-        method: "POST",
-        body: formData,
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.error ?? "Upload failed");
-      }
-      const { storagePath } = await res.json();
-      fileUrlState[docType].set(storagePath);
-      toast.success(`${docType} document uploaded.`);
-      onSuccess();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Upload failed";
-      toast.error(message);
-    } finally {
-      setSopUploading(null);
-    }
-  }
-
-  async function handleSopDelete(docType: string) {
-    if (!isEdit) {
-      // Remove queued file
-      setPendingFiles((prev) => {
-        const next = { ...prev };
-        delete next[docType];
-        return next;
-      });
-      fileUrlState[docType].set(null);
-      return;
-    }
-    if (!partner?.id) return;
-    try {
-      const res = await fetch(`/api/partners/${partner.id}/sop-documents`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ docType }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.error ?? "Delete failed");
-      }
-      fileUrlState[docType].set(null);
-      toast.success(`${docType} document removed.`);
-      onSuccess();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Delete failed";
-      toast.error(message);
-    }
-  }
 
   async function handleSubmit(force = false) {
     if (!name.trim()) {
@@ -241,28 +146,6 @@ export function PartnerDialog({
           return;
         }
         throw new Error(data?.error ?? "Failed to save partner.");
-      }
-
-      // Upload pending files after creating a new partner
-      if (!isEdit) {
-        const data = await res.json();
-        const newPartnerId = data.partnerId;
-        const fileEntries = Object.entries(pendingFiles);
-        if (fileEntries.length > 0 && newPartnerId) {
-          for (const [docType, file] of fileEntries) {
-            const formData = new FormData();
-            formData.append("file", file);
-            formData.append("docType", docType);
-            try {
-              await fetch(`/api/partners/${newPartnerId}/sop-documents`, {
-                method: "POST",
-                body: formData,
-              });
-            } catch {
-              toast.error(`Failed to upload ${docType} document.`);
-            }
-          }
-        }
       }
 
       toast.success(isEdit ? "Partner updated." : "Partner created.");
@@ -361,14 +244,14 @@ export function PartnerDialog({
           {/* SOP Section - only visible when isDirect is checked */}
           {isDirect && (
             <div className="grid gap-4 rounded-md border p-4">
-              <p className="text-sm font-medium">SOP Details</p>
+              <p className="text-sm font-medium">SOP Compliance</p>
 
               {([
-                { key: "contract", id: "partner-has-contract", label: "Has Contract", checked: hasContract, setChecked: setHasContract },
-                { key: "license", id: "partner-has-license", label: "Has License", checked: hasLicense, setChecked: setHasLicense },
-                { key: "banking", id: "partner-has-banking", label: "Has Banking", checked: hasBanking, setChecked: setHasBanking },
+                { id: "partner-has-contract", label: "Has Contract", checked: hasContract, setChecked: setHasContract },
+                { id: "partner-has-license", label: "Has License", checked: hasLicense, setChecked: setHasLicense },
+                { id: "partner-has-banking", label: "Has Banking", checked: hasBanking, setChecked: setHasBanking },
               ] as const).map((item) => (
-                <div key={item.key} className="flex items-center gap-2">
+                <div key={item.id} className="flex items-center gap-2">
                   <input
                     id={item.id}
                     type="checkbox"
@@ -376,49 +259,7 @@ export function PartnerDialog({
                     onChange={(e) => item.setChecked(e.target.checked)}
                     className="h-4 w-4 rounded border-gray-300"
                   />
-                  <Label htmlFor={item.id} className="min-w-[100px]">{item.label}</Label>
-                  {fileUrlState[item.key].value ? (
-                    <div className="flex items-center gap-1 ml-auto">
-                      <span className="text-xs text-muted-foreground">
-                        {pendingFiles[item.key] ? pendingFiles[item.key].name : "File uploaded"}
-                      </span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-7 text-destructive"
-                        title="Remove file"
-                        onClick={() => handleSopDelete(item.key)}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="ml-auto">
-                      <input
-                        ref={fileInputRefs[item.key]}
-                        type="file"
-                        accept=".pdf,.png,.jpg,.jpeg"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleSopUpload(item.key, file);
-                          e.target.value = "";
-                        }}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-7 text-xs"
-                        disabled={sopUploading === item.key}
-                        onClick={() => fileInputRefs[item.key]?.current?.click()}
-                      >
-                        <Upload className="mr-1 size-3" />
-                        {sopUploading === item.key ? "Uploading…" : "Upload"}
-                      </Button>
-                    </div>
-                  )}
+                  <Label htmlFor={item.id}>{item.label}</Label>
                 </div>
               ))}
 

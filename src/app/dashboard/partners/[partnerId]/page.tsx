@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -43,7 +43,9 @@ import {
   EyeOff,
   Copy,
   Trash2,
-  Download,
+  Upload,
+  FileText,
+  Paperclip,
 } from "lucide-react";
 import { toast } from "sonner";
 import { GeoFlag } from "@/components/dashboard/GeoFlag";
@@ -140,9 +142,6 @@ interface PartnerDetail {
   hasContract: boolean;
   hasLicense: boolean;
   hasBanking: boolean;
-  contractFileUrl: string | null;
-  licenseFileUrl: string | null;
-  bankingFileUrl: string | null;
   sopNotes: string | null;
   ownerUserId: string;
   owner: { id: string; name: string } | null;
@@ -312,9 +311,6 @@ export default function PartnerDetailPage() {
       hasContract: p.hasContract,
       hasLicense: p.hasLicense,
       hasBanking: p.hasBanking,
-      contractFileUrl: p.contractFileUrl,
-      licenseFileUrl: p.licenseFileUrl,
-      bankingFileUrl: p.bankingFileUrl,
       sopNotes: p.sopNotes ?? undefined,
       accountManagerUserId: p.accountManagerUserId ?? undefined,
     };
@@ -359,22 +355,100 @@ export default function PartnerDetailPage() {
     };
   }
 
-  // SOP file download handler
-  async function handleSopDownload(docType: string) {
+  // ---------- Attachments ----------
+  interface Attachment {
+    name: string;
+    path: string;
+    size: number;
+    mimeType: string | null;
+    createdAt: string;
+  }
+
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [attachmentsLoading, setAttachmentsLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const fetchAttachments = useCallback(async () => {
+    setAttachmentsLoading(true);
     try {
-      const res = await fetch(
-        `/api/partners/${partnerId}/sop-documents?docType=${docType}`
-      );
+      const res = await fetch(`/api/partners/${partnerId}/attachments`);
+      if (!res.ok) throw new Error("Failed to fetch attachments");
+      const data = await res.json();
+      setAttachments(Array.isArray(data) ? data : []);
+    } catch {
+      setAttachments([]);
+    } finally {
+      setAttachmentsLoading(false);
+    }
+  }, [partnerId]);
+
+  useEffect(() => {
+    fetchAttachments();
+  }, [fetchAttachments]);
+
+  async function handleUploadAttachment(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch(`/api/partners/${partnerId}/attachments`, {
+        method: "POST",
+        body: formData,
+      });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        throw new Error(data?.error ?? "Download failed");
+        throw new Error(data?.error ?? "Upload failed");
       }
+      toast.success("File uploaded.");
+      fetchAttachments();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Upload failed";
+      toast.error(message);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  async function handleDownloadAttachment(filePath: string) {
+    try {
+      const res = await fetch(
+        `/api/partners/${partnerId}/attachments?file=${encodeURIComponent(filePath)}`
+      );
+      if (!res.ok) throw new Error("Download failed");
       const { url } = await res.json();
       window.open(url, "_blank");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Download failed";
       toast.error(message);
     }
+  }
+
+  async function handleDeleteAttachment(filePath: string, fileName: string) {
+    try {
+      const res = await fetch(`/api/partners/${partnerId}/attachments`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filePath }),
+      });
+      if (!res.ok) throw new Error("Delete failed");
+      toast.success(`Deleted ${fileName}`);
+      fetchAttachments();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Delete failed";
+      toast.error(message);
+    }
+  }
+
+  function formatFileSize(bytes: number) {
+    if (bytes === 0) return "0 B";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
   }
 
   if (loading) {
@@ -430,6 +504,7 @@ export default function PartnerDetailPage() {
           <TabsTrigger value="contacts">Contacts</TabsTrigger>
           <TabsTrigger value="credentials">Credentials</TabsTrigger>
           <TabsTrigger value="deals">Deals</TabsTrigger>
+          <TabsTrigger value="attachments">Attachments</TabsTrigger>
         </TabsList>
 
         {/* ---- Company Info Tab ---- */}
@@ -495,9 +570,9 @@ export default function PartnerDetailPage() {
                   </h3>
                   <ul className="space-y-2 text-sm">
                     {([
-                      { key: "contract" as const, label: "Contract", has: partner.hasContract, fileUrl: partner.contractFileUrl },
-                      { key: "license" as const, label: "License", has: partner.hasLicense, fileUrl: partner.licenseFileUrl },
-                      { key: "banking" as const, label: "Banking", has: partner.hasBanking, fileUrl: partner.bankingFileUrl },
+                      { key: "contract", label: "Contract", has: partner.hasContract },
+                      { key: "license", label: "License", has: partner.hasLicense },
+                      { key: "banking", label: "Banking", has: partner.hasBanking },
                     ]).map((item) => (
                       <li key={item.key} className="flex items-center gap-2">
                         {item.has ? (
@@ -505,18 +580,7 @@ export default function PartnerDetailPage() {
                         ) : (
                           <X className="size-4 text-red-500" />
                         )}
-                        <span className="min-w-[70px]">{item.label}</span>
-                        {item.fileUrl && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-7 ml-2"
-                            title={`Download ${item.label}`}
-                            onClick={() => handleSopDownload(item.key)}
-                          >
-                            <Download className="size-3.5" />
-                          </Button>
-                        )}
+                        <span>{item.label}</span>
                       </li>
                     ))}
                   </ul>
@@ -949,6 +1013,72 @@ export default function PartnerDetailPage() {
                 </TableBody>
               </Table>
             </div>
+          </div>
+        </TabsContent>
+
+        {/* ---- Attachments Tab ---- */}
+        <TabsContent value="attachments">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Attachments</h2>
+              <div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.txt"
+                  onChange={handleUploadAttachment}
+                />
+                <Button
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                >
+                  <Upload className="mr-2 size-4" />
+                  {uploading ? "Uploading..." : "Upload File"}
+                </Button>
+              </div>
+            </div>
+
+            {attachmentsLoading ? (
+              <div className="h-32 animate-pulse rounded-lg bg-muted" />
+            ) : attachments.length === 0 ? (
+              <div className="rounded-lg border border-dashed p-8 text-center text-muted-foreground">
+                <Paperclip className="mx-auto mb-2 size-8 opacity-50" />
+                <p>No attachments yet.</p>
+                <p className="text-xs mt-1">Upload PDF, images, documents, or spreadsheets (max 10MB)</p>
+              </div>
+            ) : (
+              <div className="rounded-lg border divide-y">
+                {attachments.map((att) => (
+                  <div
+                    key={att.path}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50"
+                  >
+                    <FileText className="size-5 shrink-0 text-muted-foreground" />
+                    <button
+                      type="button"
+                      className="flex-1 text-left text-sm font-medium text-primary hover:underline truncate"
+                      onClick={() => handleDownloadAttachment(att.path)}
+                    >
+                      {att.name}
+                    </button>
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      {formatFileSize(att.size)}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-7 shrink-0"
+                      title="Delete"
+                      onClick={() => handleDeleteAttachment(att.path, att.name)}
+                    >
+                      <Trash2 className="size-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </TabsContent>
       </Tabs>
