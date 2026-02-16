@@ -159,12 +159,19 @@ export const intakeSubmissionCreateSchema = z.object({
   websiteDomain: domainTransform,
   brands: z.array(intakeBrandSchema).min(1, "At least one brand is required"),
   contactName: z.string().min(1, "Contact name is required"),
-  contactEmail: z.string().email("Invalid email"),
+  contactEmail: z.string().email("Invalid email").optional().or(z.literal("")),
   contactPhone: z.string().optional(),
   contactTelegram: z.string().optional(),
+  contactWhatsapp: z.string().optional(),
   preferredContact: z.enum(["Email", "Telegram", "WhatsApp", "Phone"]).optional(),
   notes: z.string().optional(),
-});
+}).refine(
+  (data) =>
+    (data.contactEmail && data.contactEmail !== "") ||
+    (data.contactTelegram && data.contactTelegram !== "") ||
+    (data.contactWhatsapp && data.contactWhatsapp !== ""),
+  { message: "At least one of Email, Telegram, or WhatsApp is required", path: ["contactEmail"] }
+);
 
 export const intakeConvertSchema = z.object({
   submissionId: z.string().min(1, "Submission ID is required"),

@@ -36,6 +36,7 @@ interface Submission {
   contactEmail: string;
   contactPhone: string | null;
   contactTelegram: string | null;
+  contactWhatsapp: string | null;
   preferredContact: string | null;
   notes: string | null;
   status: string;

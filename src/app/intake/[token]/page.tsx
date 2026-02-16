@@ -49,6 +49,7 @@ export default function IntakePage() {
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [contactTelegram, setContactTelegram] = useState("");
+  const [contactWhatsapp, setContactWhatsapp] = useState("");
   const [preferredContact, setPreferredContact] = useState("");
   const [notes, setNotes] = useState("");
 
@@ -106,6 +107,7 @@ export default function IntakePage() {
           contactEmail: contactEmail.trim(),
           contactPhone: contactPhone.trim() || undefined,
           contactTelegram: contactTelegram.trim() || undefined,
+          contactWhatsapp: contactWhatsapp.trim() || undefined,
           preferredContact: preferredContact || undefined,
           notes: notes.trim() || undefined,
         }),
@@ -298,6 +300,9 @@ export default function IntakePage() {
               <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                 Contact
               </h3>
+              <p className="mb-3 text-sm text-muted-foreground">
+                At least one of Email, Telegram, or WhatsApp is required.
+              </p>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="contactName">Contact Name *</Label>
@@ -310,23 +315,13 @@ export default function IntakePage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="contactEmail">Contact Email *</Label>
+                  <Label htmlFor="contactEmail">Email</Label>
                   <Input
                     id="contactEmail"
                     type="email"
                     value={contactEmail}
                     onChange={(e) => setContactEmail(e.target.value)}
                     placeholder="john@acme.com"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="contactPhone">Phone</Label>
-                  <Input
-                    id="contactPhone"
-                    value={contactPhone}
-                    onChange={(e) => setContactPhone(e.target.value)}
-                    placeholder="+1 555 000 0000"
                   />
                 </div>
                 <div className="space-y-2">
@@ -336,6 +331,24 @@ export default function IntakePage() {
                     value={contactTelegram}
                     onChange={(e) => setContactTelegram(e.target.value)}
                     placeholder="@username"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="contactWhatsapp">WhatsApp</Label>
+                  <Input
+                    id="contactWhatsapp"
+                    value={contactWhatsapp}
+                    onChange={(e) => setContactWhatsapp(e.target.value)}
+                    placeholder="+1 555 000 0000"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="contactPhone">Phone</Label>
+                  <Input
+                    id="contactPhone"
+                    value={contactPhone}
+                    onChange={(e) => setContactPhone(e.target.value)}
+                    placeholder="+1 555 000 0000"
                   />
                 </div>
                 <div className="space-y-2">

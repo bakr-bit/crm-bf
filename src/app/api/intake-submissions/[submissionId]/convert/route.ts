@@ -108,9 +108,10 @@ export async function POST(
           partnerId: partner.partnerId,
           brandId: createdBrands[0]?.brandId,
           name: submission.contactName,
-          email: submission.contactEmail,
+          email: submission.contactEmail || "",
           phone: submission.contactPhone,
           telegram: submission.contactTelegram,
+          whatsapp: submission.contactWhatsapp,
           preferredContact: submission.preferredContact,
         },
       });

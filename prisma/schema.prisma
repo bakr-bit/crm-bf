@@ -317,9 +317,10 @@ model IntakeSubmission {
   websiteDomain      String?
   brands             Json                   @default("[]")
   contactName        String
-  contactEmail       String
+  contactEmail       String?
   contactPhone       String?
   contactTelegram    String?
+  contactWhatsapp    String?
   preferredContact   String?
   notes              String?
   status             IntakeSubmissionStatus  @default(Pending)

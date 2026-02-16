@@ -39,6 +39,7 @@ interface Submission {
   contactEmail: string;
   contactPhone: string | null;
   contactTelegram: string | null;
+  contactWhatsapp: string | null;
   preferredContact: string | null;
   notes: string | null;
   status: string;
@@ -216,6 +217,8 @@ export function IntakeConvertDialog({
               <dd>{submission.contactPhone || "—"}</dd>
               <dt className="text-muted-foreground">Telegram</dt>
               <dd>{submission.contactTelegram || "—"}</dd>
+              <dt className="text-muted-foreground">WhatsApp</dt>
+              <dd>{submission.contactWhatsapp || "—"}</dd>
               <dt className="text-muted-foreground">Preferred Contact</dt>
               <dd>{submission.preferredContact || "—"}</dd>
             </dl>
