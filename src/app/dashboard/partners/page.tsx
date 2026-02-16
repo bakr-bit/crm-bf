@@ -21,6 +21,13 @@ import {
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { PartnerDialog } from "@/components/dashboard/PartnerDialog";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -72,6 +79,9 @@ export default function PartnersPage() {
   const [editingPartner, setEditingPartner] = useState<Partner | undefined>(
     undefined
   );
+  const [deletingPartner, setDeletingPartner] = useState<Partner | undefined>(
+    undefined
+  );
 
   const fetchPartners = useCallback(async (query?: string) => {
     try {
@@ -115,9 +125,10 @@ export default function PartnersPage() {
     setDialogOpen(true);
   }
 
-  async function handleDelete(partnerId: string) {
+  async function handleConfirmDelete() {
+    if (!deletingPartner) return;
     try {
-      const res = await fetch(`/api/partners/${partnerId}`, {
+      const res = await fetch(`/api/partners/${deletingPartner.partnerId}`, {
         method: "DELETE",
       });
       if (!res.ok) {
@@ -125,6 +136,7 @@ export default function PartnersPage() {
         throw new Error(data?.error ?? "Failed to delete partner.");
       }
       toast.success("Partner deleted.");
+      setDeletingPartner(undefined);
       fetchPartners(search || undefined);
     } catch (err) {
       const message =
@@ -365,7 +377,7 @@ export default function PartnersPage() {
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           variant="destructive"
-                          onClick={() => handleDelete(partner.partnerId)}
+                          onClick={() => setDeletingPartner(partner)}
                         >
                           Delete
                         </DropdownMenuItem>
@@ -386,6 +398,25 @@ export default function PartnersPage() {
         partner={editingPartner ? toDialogPartner(editingPartner) : undefined}
         onSuccess={handleDialogSuccess}
       />
+
+      <Dialog open={!!deletingPartner} onOpenChange={(open) => { if (!open) setDeletingPartner(undefined); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Partner</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete <strong>{deletingPartner?.name}</strong>? This action cannot be reversed.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setDeletingPartner(undefined)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmDelete}>
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

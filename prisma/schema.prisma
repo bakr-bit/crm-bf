@@ -159,7 +159,7 @@ model Deal {
   brand             Brand      @relation(fields: [brandId], references: [brandId])
   createdBy         User       @relation("DealCreatedBy", fields: [createdById], references: [id])
   page              Page       @relation(fields: [pageId], references: [pageId])
-  partner           Partner    @relation(fields: [partnerId], references: [partnerId])
+  partner           Partner    @relation(fields: [partnerId], references: [partnerId], onDelete: Cascade)
   position          Position   @relation(fields: [positionId], references: [positionId])
   replacedDeal      Deal?      @relation("DealReplacement", fields: [replacedDealId], references: [dealId])
   replacedBy        Deal?      @relation("DealReplacement")

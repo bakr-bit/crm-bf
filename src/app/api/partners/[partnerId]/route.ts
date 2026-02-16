@@ -185,8 +185,10 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Partner delete error:", error);
+    const message =
+      error instanceof Error ? error.message : "Failed to delete partner";
     return NextResponse.json(
-      { error: "Failed to delete partner" },
+      { error: message },
       { status: 500 }
     );
   }
