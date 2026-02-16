@@ -110,7 +110,6 @@ export default function DealsPage() {
   const [assetFilter, setAssetFilter] = useState("All");
   const [geoFilter, setGeoFilter] = useState("All");
   const [accountManagerFilter, setAccountManagerFilter] = useState("All");
-  const [licenseFilter, setLicenseFilter] = useState("All");
   const [directFilter, setDirectFilter] = useState("All");
   const [includeInactive, setIncludeInactive] = useState(false);
 
@@ -189,7 +188,6 @@ export default function DealsPage() {
       if (assetFilter !== "All") params.set("assetId", assetFilter);
       if (geoFilter !== "All") params.set("geo", geoFilter);
       if (accountManagerFilter !== "All") params.set("accountManagerUserId", accountManagerFilter);
-      if (licenseFilter !== "All") params.set("hasLicense", licenseFilter);
       if (directFilter !== "All") params.set("isDirect", directFilter);
       if (includeInactive) params.set("includeInactive", "true");
 
@@ -206,7 +204,7 @@ export default function DealsPage() {
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, statusFilter, partnerFilter, assetFilter, geoFilter, accountManagerFilter, licenseFilter, directFilter, includeInactive]);
+  }, [searchQuery, statusFilter, partnerFilter, assetFilter, geoFilter, accountManagerFilter, directFilter, includeInactive]);
 
   useEffect(() => {
     setLoading(true);
@@ -377,19 +375,6 @@ export default function DealsPage() {
                   {u.name || u.email}
                 </SelectItem>
               ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="w-36">
-          <Select value={licenseFilter} onValueChange={setLicenseFilter}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="License" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All">License: All</SelectItem>
-              <SelectItem value="yes">Has License</SelectItem>
-              <SelectItem value="no">No License</SelectItem>
             </SelectContent>
           </Select>
         </div>
