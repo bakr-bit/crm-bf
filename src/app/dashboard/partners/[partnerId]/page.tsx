@@ -28,6 +28,7 @@ import {
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { PartnerDialog } from "@/components/dashboard/PartnerDialog";
 import { BrandDialog } from "@/components/dashboard/BrandDialog";
+import { BrandDetailDialog } from "@/components/dashboard/BrandDetailDialog";
 import { ContactDialog } from "@/components/dashboard/ContactDialog";
 import { CredentialDialog } from "@/components/dashboard/CredentialDialog";
 import { Badge } from "@/components/ui/badge";
@@ -167,6 +168,9 @@ export default function PartnerDetailPage() {
   const [partnerDialogOpen, setPartnerDialogOpen] = useState(false);
   const [brandDialogOpen, setBrandDialogOpen] = useState(false);
   const [editingBrand, setEditingBrand] = useState<Brand | undefined>(
+    undefined
+  );
+  const [viewingBrand, setViewingBrand] = useState<Brand | undefined>(
     undefined
   );
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
@@ -569,7 +573,13 @@ export default function PartnerDetailPage() {
                     partner.brands.map((brand) => (
                       <TableRow key={brand.brandId}>
                         <TableCell className="font-medium">
-                          {brand.name}
+                          <button
+                            type="button"
+                            className="text-primary hover:underline"
+                            onClick={() => setViewingBrand(brand)}
+                          >
+                            {brand.name}
+                          </button>
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {brand.brandDomain ?? "-"}
@@ -947,6 +957,14 @@ export default function PartnerDetailPage() {
         onOpenChange={setPartnerDialogOpen}
         partner={partner ? toPartnerDialogShape(partner) : undefined}
         onSuccess={fetchPartner}
+      />
+
+      <BrandDetailDialog
+        open={!!viewingBrand}
+        onOpenChange={(open) => {
+          if (!open) setViewingBrand(undefined);
+        }}
+        brand={viewingBrand ?? null}
       />
 
       <BrandDialog
