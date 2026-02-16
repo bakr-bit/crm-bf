@@ -32,7 +32,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { MoreHorizontal, Plus, Search, Eye, Copy, EyeOff } from "lucide-react";
+import { MoreHorizontal, Plus, Search, Eye, Copy } from "lucide-react";
 import { toast } from "sonner";
 
 // ---------- types ----------
@@ -145,6 +145,7 @@ export default function PartnersPage() {
     loginUrl: string | null;
     username: string;
     email: string | null;
+    password: string | null;
   }
 
   const [credentialsCache, setCredentialsCache] = useState<
@@ -153,10 +154,6 @@ export default function PartnersPage() {
   const [credentialsLoading, setCredentialsLoading] = useState<
     Record<string, boolean>
   >({});
-  const [revealedPasswords, setRevealedPasswords] = useState<
-    Record<string, string>
-  >({});
-
   async function fetchCredentials(partnerId: string) {
     if (credentialsCache[partnerId]) return;
     setCredentialsLoading((prev) => ({ ...prev, [partnerId]: true }));
@@ -170,48 +167,6 @@ export default function PartnersPage() {
     } finally {
       setCredentialsLoading((prev) => ({ ...prev, [partnerId]: false }));
     }
-  }
-
-  async function handleRevealPassword(partnerId: string, credentialId: string) {
-    if (revealedPasswords[credentialId]) {
-      setRevealedPasswords((prev) => {
-        const next = { ...prev };
-        delete next[credentialId];
-        return next;
-      });
-      return;
-    }
-    try {
-      const res = await fetch(
-        `/api/partners/${partnerId}/credentials/${credentialId}/reveal`,
-        { method: "POST" }
-      );
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      setRevealedPasswords((prev) => ({ ...prev, [credentialId]: data.password }));
-    } catch {
-      toast.error("Failed to reveal password");
-    }
-  }
-
-  async function handleCopyPassword(partnerId: string, credentialId: string) {
-    let password = revealedPasswords[credentialId];
-    if (!password) {
-      try {
-        const res = await fetch(
-          `/api/partners/${partnerId}/credentials/${credentialId}/reveal`,
-          { method: "POST" }
-        );
-        if (!res.ok) throw new Error();
-        const data = await res.json();
-        password = data.password;
-      } catch {
-        toast.error("Failed to copy password");
-        return;
-      }
-    }
-    await navigator.clipboard.writeText(password);
-    toast.success("Password copied");
   }
 
   function handleCopyText(text: string, label: string) {
@@ -365,7 +320,6 @@ export default function PartnersPage() {
                           <div className="space-y-3">
                             {credentialsCache[partner.partnerId].map((cred) => (
                               <div key={cred.credentialId} className="rounded border p-2 text-sm space-y-1">
-                                <p className="font-medium">{cred.label}</p>
                                 {cred.loginUrl && (
                                   <div className="flex items-center justify-between gap-1">
                                     <span className="text-muted-foreground truncate">URL: {cred.loginUrl}</span>
@@ -388,19 +342,14 @@ export default function PartnersPage() {
                                     </Button>
                                   </div>
                                 )}
-                                <div className="flex items-center justify-between gap-1">
-                                  <span className="font-mono text-muted-foreground truncate">
-                                    Pass: {revealedPasswords[cred.credentialId] || "••••••••"}
-                                  </span>
-                                  <div className="flex shrink-0">
-                                    <Button variant="ghost" size="icon" className="size-6" onClick={() => handleRevealPassword(partner.partnerId, cred.credentialId)}>
-                                      {revealedPasswords[cred.credentialId] ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="size-6" onClick={() => handleCopyPassword(partner.partnerId, cred.credentialId)}>
+                                {cred.password && (
+                                  <div className="flex items-center justify-between gap-1">
+                                    <span className="font-mono text-muted-foreground truncate">Pass: {cred.password}</span>
+                                    <Button variant="ghost" size="icon" className="size-6 shrink-0" onClick={() => handleCopyText(cred.password!, "Password")}>
                                       <Copy className="size-3" />
                                     </Button>
                                   </div>
-                                </div>
+                                )}
                               </div>
                             ))}
                           </div>

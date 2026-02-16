@@ -37,11 +37,12 @@ export async function GET(
         label: true,
         loginUrl: true,
         username: true,
+        email: true,
+        password: true,
         softwareType: true,
         notes: true,
         createdAt: true,
         updatedAt: true,
-        // password is intentionally omitted
       },
     });
 
@@ -113,6 +114,7 @@ export async function POST(
         label: data.label,
         loginUrl: data.loginUrl,
         username: data.username,
+        email: data.email || null,
         password: data.password,
         softwareType: data.softwareType,
         notes: data.notes,
@@ -123,6 +125,8 @@ export async function POST(
         label: true,
         loginUrl: true,
         username: true,
+        email: true,
+        password: true,
         softwareType: true,
         notes: true,
         createdAt: true,
