@@ -27,7 +27,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MoreHorizontal, Plus, Search } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { MoreHorizontal, Plus, Search, Eye, Copy, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 // ---------- types ----------
@@ -133,6 +138,87 @@ export default function PartnersPage() {
     fetchPartners(search || undefined);
   }
 
+  // ---------- Credentials popover ----------
+  interface CredentialEntry {
+    credentialId: string;
+    label: string;
+    loginUrl: string | null;
+    username: string;
+    email: string | null;
+  }
+
+  const [credentialsCache, setCredentialsCache] = useState<
+    Record<string, CredentialEntry[]>
+  >({});
+  const [credentialsLoading, setCredentialsLoading] = useState<
+    Record<string, boolean>
+  >({});
+  const [revealedPasswords, setRevealedPasswords] = useState<
+    Record<string, string>
+  >({});
+
+  async function fetchCredentials(partnerId: string) {
+    if (credentialsCache[partnerId]) return;
+    setCredentialsLoading((prev) => ({ ...prev, [partnerId]: true }));
+    try {
+      const res = await fetch(`/api/partners/${partnerId}/credentials`);
+      if (!res.ok) throw new Error();
+      const data: CredentialEntry[] = await res.json();
+      setCredentialsCache((prev) => ({ ...prev, [partnerId]: data }));
+    } catch {
+      toast.error("Failed to load credentials");
+    } finally {
+      setCredentialsLoading((prev) => ({ ...prev, [partnerId]: false }));
+    }
+  }
+
+  async function handleRevealPassword(partnerId: string, credentialId: string) {
+    if (revealedPasswords[credentialId]) {
+      setRevealedPasswords((prev) => {
+        const next = { ...prev };
+        delete next[credentialId];
+        return next;
+      });
+      return;
+    }
+    try {
+      const res = await fetch(
+        `/api/partners/${partnerId}/credentials/${credentialId}/reveal`,
+        { method: "POST" }
+      );
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setRevealedPasswords((prev) => ({ ...prev, [credentialId]: data.password }));
+    } catch {
+      toast.error("Failed to reveal password");
+    }
+  }
+
+  async function handleCopyPassword(partnerId: string, credentialId: string) {
+    let password = revealedPasswords[credentialId];
+    if (!password) {
+      try {
+        const res = await fetch(
+          `/api/partners/${partnerId}/credentials/${credentialId}/reveal`,
+          { method: "POST" }
+        );
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        password = data.password;
+      } catch {
+        toast.error("Failed to copy password");
+        return;
+      }
+    }
+    await navigator.clipboard.writeText(password);
+    toast.success("Password copied");
+  }
+
+  function handleCopyText(text: string, label: string) {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} copied`);
+  }
+
   // Map partner to the shape expected by PartnerDialog
   function toDialogPartner(p: Partner) {
     return {
@@ -231,6 +317,7 @@ export default function PartnersPage() {
               <TableHead>Brands</TableHead>
               <TableHead>Active Deals</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Credentials</TableHead>
               <TableHead className="w-12">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -238,7 +325,7 @@ export default function PartnersPage() {
             {partners.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={8}
                   className="text-center text-muted-foreground"
                 >
                   No partners found.
@@ -260,6 +347,66 @@ export default function PartnersPage() {
                   <TableCell>{partner._count.deals}</TableCell>
                   <TableCell>
                     <StatusBadge status={partner.status} variant="partner" />
+                  </TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Popover onOpenChange={(open) => { if (open) fetchCredentials(partner.partnerId); }}>
+                      <PopoverTrigger asChild>
+                        <Button variant="ghost" size="icon" className="size-8">
+                          <Eye className="size-4" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80 p-3" align="start">
+                        <p className="text-sm font-semibold mb-2">Credentials</p>
+                        {credentialsLoading[partner.partnerId] ? (
+                          <p className="text-sm text-muted-foreground">Loading...</p>
+                        ) : !credentialsCache[partner.partnerId]?.length ? (
+                          <p className="text-sm text-muted-foreground">No credentials</p>
+                        ) : (
+                          <div className="space-y-3">
+                            {credentialsCache[partner.partnerId].map((cred) => (
+                              <div key={cred.credentialId} className="rounded border p-2 text-sm space-y-1">
+                                <p className="font-medium">{cred.label}</p>
+                                {cred.loginUrl && (
+                                  <div className="flex items-center justify-between gap-1">
+                                    <span className="text-muted-foreground truncate">URL: {cred.loginUrl}</span>
+                                    <Button variant="ghost" size="icon" className="size-6 shrink-0" onClick={() => handleCopyText(cred.loginUrl!, "URL")}>
+                                      <Copy className="size-3" />
+                                    </Button>
+                                  </div>
+                                )}
+                                <div className="flex items-center justify-between gap-1">
+                                  <span className="text-muted-foreground truncate">User: {cred.username}</span>
+                                  <Button variant="ghost" size="icon" className="size-6 shrink-0" onClick={() => handleCopyText(cred.username, "Username")}>
+                                    <Copy className="size-3" />
+                                  </Button>
+                                </div>
+                                {cred.email && (
+                                  <div className="flex items-center justify-between gap-1">
+                                    <span className="text-muted-foreground truncate">Email: {cred.email}</span>
+                                    <Button variant="ghost" size="icon" className="size-6 shrink-0" onClick={() => handleCopyText(cred.email!, "Email")}>
+                                      <Copy className="size-3" />
+                                    </Button>
+                                  </div>
+                                )}
+                                <div className="flex items-center justify-between gap-1">
+                                  <span className="font-mono text-muted-foreground truncate">
+                                    Pass: {revealedPasswords[cred.credentialId] || "••••••••"}
+                                  </span>
+                                  <div className="flex shrink-0">
+                                    <Button variant="ghost" size="icon" className="size-6" onClick={() => handleRevealPassword(partner.partnerId, cred.credentialId)}>
+                                      {revealedPasswords[cred.credentialId] ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
+                                    </Button>
+                                    <Button variant="ghost" size="icon" className="size-6" onClick={() => handleCopyPassword(partner.partnerId, cred.credentialId)}>
+                                      <Copy className="size-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </PopoverContent>
+                    </Popover>
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
