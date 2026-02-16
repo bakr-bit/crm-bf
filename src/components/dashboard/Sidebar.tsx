@@ -9,6 +9,7 @@ import {
   Globe,
   Handshake,
   Search,
+  Star,
   Activity,
   Settings,
   Shield,
@@ -22,6 +23,7 @@ const navigation = [
   { name: "Assets", href: "/dashboard/assets", icon: Globe },
   { name: "Deals", href: "/dashboard/deals", icon: Handshake },
   { name: "Deal Finder", href: "/dashboard/deal-finder", icon: Search },
+  { name: "Wishlist", href: "/dashboard/wishlist", icon: Star },
   { name: "Activity Log", href: "/dashboard/activity", icon: Activity },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];

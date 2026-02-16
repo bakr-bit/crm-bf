@@ -120,6 +120,16 @@ export const dealReplaceSchema = z.object({
   ...dealFinancialFields,
 });
 
+// Wishlist schemas
+export const wishlistItemCreateSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  description: z.string().optional(),
+});
+
+export const wishlistItemUpdateSchema = wishlistItemCreateSchema.partial().extend({
+  contacted: z.boolean().optional(),
+});
+
 // Admin user creation schema
 export const adminCreateUserSchema = z.object({
   name: z.string().min(1, "Name is required"),

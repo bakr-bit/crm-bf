@@ -24,7 +24,9 @@ import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { AssetDialog } from "@/components/dashboard/AssetDialog";
 import { PageDialog } from "@/components/dashboard/PageDialog";
 import { PositionDialog } from "@/components/dashboard/PositionDialog";
-import { ArrowLeft, Pencil, Plus, MoreHorizontal, Download, Trash2, Search } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowLeft, Pencil, Plus, MoreHorizontal, Download, Trash2, Search, Star } from "lucide-react";
 import { toast } from "sonner";
 import { OCCUPYING_STATUSES } from "@/lib/deal-status";
 import type { DealStatusType } from "@/lib/deal-status";
@@ -82,6 +84,17 @@ interface AssetDetail {
   pages: Page[];
 }
 
+interface WishlistItem {
+  wishlistItemId: string;
+  assetId: string;
+  name: string;
+  description: string | null;
+  contacted: boolean;
+  contactedAt: string | null;
+  contactedBy: { id: string; name: string } | null;
+  createdAt: string;
+}
+
 // ---------- component ----------
 
 export default function AssetDetailPage() {
@@ -101,6 +114,26 @@ export default function AssetDetailPage() {
   );
   const [activePageId, setActivePageId] = useState<string>("");
   const [pageSearch, setPageSearch] = useState("");
+
+  // Wishlist state
+  const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
+  const [wishlistName, setWishlistName] = useState("");
+  const [wishlistDesc, setWishlistDesc] = useState("");
+  const [wishlistAdding, setWishlistAdding] = useState(false);
+  const [editingWishlistId, setEditingWishlistId] = useState<string | null>(null);
+  const [editingWishlistName, setEditingWishlistName] = useState("");
+  const [editingWishlistDesc, setEditingWishlistDesc] = useState("");
+
+  const fetchWishlist = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/assets/${assetId}/wishlist`);
+      if (!res.ok) return;
+      const data: WishlistItem[] = await res.json();
+      setWishlistItems(data);
+    } catch {
+      // silent
+    }
+  }, [assetId]);
 
   const fetchAsset = useCallback(async () => {
     try {
@@ -125,7 +158,8 @@ export default function AssetDetailPage() {
 
   useEffect(() => {
     fetchAsset();
-  }, [fetchAsset]);
+    fetchWishlist();
+  }, [fetchAsset, fetchWishlist]);
 
   // Delete (archive) a position
   async function handleDeletePosition(pageId: string, positionId: string) {
@@ -224,6 +258,81 @@ export default function AssetDetailPage() {
     return position.deals.find((d) =>
       OCCUPYING_STATUSES.includes(d.status as DealStatusType)
     );
+  }
+
+  async function handleAddWishlistItem() {
+    if (!wishlistName.trim()) return;
+    setWishlistAdding(true);
+    try {
+      const res = await fetch(`/api/assets/${assetId}/wishlist`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: wishlistName.trim(), description: wishlistDesc.trim() || undefined }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Failed to add wishlist item.");
+      }
+      toast.success("Added to wishlist.");
+      setWishlistName("");
+      setWishlistDesc("");
+      fetchWishlist();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "An unexpected error occurred.";
+      toast.error(message);
+    } finally {
+      setWishlistAdding(false);
+    }
+  }
+
+  async function handleToggleContacted(item: WishlistItem) {
+    try {
+      const res = await fetch(`/api/assets/${assetId}/wishlist/${item.wishlistItemId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contacted: !item.contacted }),
+      });
+      if (!res.ok) throw new Error("Failed to update.");
+      fetchWishlist();
+    } catch {
+      toast.error("Failed to update contacted status.");
+    }
+  }
+
+  async function handleDeleteWishlistItem(wishlistItemId: string) {
+    try {
+      const res = await fetch(`/api/assets/${assetId}/wishlist/${wishlistItemId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to delete.");
+      toast.success("Wishlist item deleted.");
+      fetchWishlist();
+    } catch {
+      toast.error("Failed to delete wishlist item.");
+    }
+  }
+
+  async function handleSaveWishlistEdit(wishlistItemId: string) {
+    try {
+      const res = await fetch(`/api/assets/${assetId}/wishlist/${wishlistItemId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editingWishlistName.trim(),
+          description: editingWishlistDesc.trim() || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Failed to update.");
+      }
+      toast.success("Wishlist item updated.");
+      setEditingWishlistId(null);
+      fetchWishlist();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "An unexpected error occurred.";
+      toast.error(message);
+    }
   }
 
   function handleExportCsv() {
@@ -640,6 +749,169 @@ export default function AssetDetailPage() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Wishlist Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <Star className="size-5" />
+            Wishlist
+            <span className="text-sm font-normal text-muted-foreground">
+              ({wishlistItems.length})
+            </span>
+          </h2>
+        </div>
+
+        {/* Add form */}
+        <div className="flex items-end gap-3">
+          <div className="flex-1 max-w-xs">
+            <label className="text-sm font-medium mb-1 block">Brand Name</label>
+            <Input
+              placeholder="e.g. Acme Corp"
+              value={wishlistName}
+              onChange={(e) => setWishlistName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleAddWishlistItem();
+              }}
+            />
+          </div>
+          <div className="flex-1 max-w-sm">
+            <label className="text-sm font-medium mb-1 block">Description</label>
+            <Input
+              placeholder="Optional notes..."
+              value={wishlistDesc}
+              onChange={(e) => setWishlistDesc(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleAddWishlistItem();
+              }}
+            />
+          </div>
+          <Button
+            size="sm"
+            onClick={handleAddWishlistItem}
+            disabled={!wishlistName.trim() || wishlistAdding}
+          >
+            <Plus className="mr-2 size-4" />
+            Add
+          </Button>
+        </div>
+
+        {/* Wishlist table */}
+        <div className="rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-10">Contacted</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Contacted By</TableHead>
+                <TableHead className="w-12">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {wishlistItems.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                    No wishlist items yet. Add brands you want to work with.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                wishlistItems.map((item) => (
+                  <TableRow key={item.wishlistItemId} className={item.contacted ? "opacity-60" : ""}>
+                    <TableCell>
+                      <Checkbox
+                        checked={item.contacted}
+                        onCheckedChange={() => handleToggleContacted(item)}
+                      />
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {editingWishlistId === item.wishlistItemId ? (
+                        <Input
+                          value={editingWishlistName}
+                          onChange={(e) => setEditingWishlistName(e.target.value)}
+                          className="h-8"
+                        />
+                      ) : (
+                        <span className={item.contacted ? "line-through" : ""}>{item.name}</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {editingWishlistId === item.wishlistItemId ? (
+                        <Input
+                          value={editingWishlistDesc}
+                          onChange={(e) => setEditingWishlistDesc(e.target.value)}
+                          className="h-8"
+                        />
+                      ) : (
+                        item.description ?? "-"
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {item.contacted && item.contactedBy ? (
+                        <span>
+                          {item.contactedBy.name}
+                          {item.contactedAt && (
+                            <span className="ml-1 text-xs">
+                              ({new Date(item.contactedAt).toLocaleDateString()})
+                            </span>
+                          )}
+                        </span>
+                      ) : (
+                        "-"
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {editingWishlistId === item.wishlistItemId ? (
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleSaveWishlistEdit(item.wishlistItemId)}
+                          >
+                            Save
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setEditingWishlistId(null)}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="size-8">
+                              <MoreHorizontal className="size-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setEditingWishlistId(item.wishlistItemId);
+                                setEditingWishlistName(item.name);
+                                setEditingWishlistDesc(item.description ?? "");
+                              }}
+                            >
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onClick={() => handleDeleteWishlistItem(item.wishlistItemId)}
+                            >
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       {/* Dialogs */}
