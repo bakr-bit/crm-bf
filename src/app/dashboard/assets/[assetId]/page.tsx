@@ -385,7 +385,7 @@ export default function AssetDetailPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="flex gap-6">
+          <div className="flex items-start gap-6">
             {/* Sidebar */}
             <div className="w-72 shrink-0 space-y-2">
               <div className="relative">
@@ -463,18 +463,16 @@ export default function AssetDetailPage() {
             <div className="min-w-0 flex-1">
               {activePage ? (
                 <>
-                  {/* Page info bar */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 className="text-base font-semibold">{activePage.name}</h3>
-                      <div className="text-sm text-muted-foreground">
-                        {activePage.path && (
-                          <span className="font-mono mr-3">{activePage.path}</span>
-                        )}
-                        {activePage.description && (
-                          <span>{activePage.description}</span>
-                        )}
-                      </div>
+                  {/* Page header — same height as search input row */}
+                  <div className="flex items-center justify-between mb-2 min-h-9">
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-base font-semibold leading-none">{activePage.name}</h3>
+                      {activePage.path && (
+                        <span className="text-sm font-mono text-muted-foreground">{activePage.path}</span>
+                      )}
+                      {activePage.description && (
+                        <span className="text-sm text-muted-foreground">{activePage.description}</span>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
