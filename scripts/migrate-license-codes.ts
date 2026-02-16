@@ -5,6 +5,9 @@
  */
 
 import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import pg from "pg";
+import "dotenv/config";
 
 const LEGACY_LICENSE_TO_COUNTRY: Record<string, string> = {
   MGA: "MT",
@@ -36,7 +39,9 @@ function migrateCodes(codes: string[]): string[] {
 }
 
 async function main() {
-  const prisma = new PrismaClient();
+  const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+  const adapter = new PrismaPg(pool);
+  const prisma = new PrismaClient({ adapter });
 
   try {
     // --- Brands ---
