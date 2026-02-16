@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions, isValidApiKey } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { PIPELINE_STATUSES } from "@/lib/deal-status";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -11,45 +10,52 @@ export async function GET(request: Request) {
   }
 
   try {
-    const [totalPartners, liveDeals, totalAssets, pipelineDeals, recentAuditLogs] =
-      await Promise.all([
-        prisma.partner.count(),
-        prisma.deal.count({ where: { status: "Live" } }),
-        prisma.asset.count(),
-        prisma.deal.count({ where: { status: { in: PIPELINE_STATUSES } } }),
-        prisma.auditLog.findMany({
-          where: {
-            action: {
-              in: [
-                "CREATE",
-                "UPDATE",
-                "ARCHIVE",
-                "CREATE_REPLACEMENT",
-                "ENDED_BY_REPLACEMENT",
-                "ENDED_BY_SCAN",
-                "CREATE_FROM_SCAN",
-                "CREDENTIAL_ACCESS",
+    const userId = session?.user.id;
+
+    const [
+      unassignedPartners,
+      missingInfoPartners,
+      assetsAwaitingPositions,
+    ] = await Promise.all([
+      // Partners with no account manager assigned
+      prisma.partner.count({
+        where: { accountManagerUserId: null },
+      }),
+
+      // Partners assigned to current user missing contract, license, or banking
+      userId
+        ? prisma.partner.count({
+            where: {
+              accountManagerUserId: userId,
+              OR: [
+                { hasContract: false },
+                { hasLicense: false },
+                { hasBanking: false },
               ],
             },
-          },
-          take: 10,
-          orderBy: { timestamp: "desc" },
-          include: {
-            user: {
-              select: { id: true, name: true, email: true },
+          })
+        : Promise.resolve(0),
+
+      // Assets that have pages with zero positions
+      prisma.asset.count({
+        where: {
+          status: "Active",
+          pages: {
+            some: {
+              status: "Active",
+              positions: { none: {} },
             },
           },
-        }),
-      ]);
+        },
+      }),
+    ]);
 
     return NextResponse.json({
       stats: {
-        totalPartners,
-        liveDeals,
-        totalAssets,
-        pipelineDeals,
+        unassignedPartners,
+        missingInfoPartners,
+        assetsAwaitingPositions,
       },
-      recentAuditLogs,
     });
   } catch (error) {
     console.error("Dashboard stats error:", error);
