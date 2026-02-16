@@ -48,6 +48,7 @@ import {
 import { toast } from "sonner";
 import { GeoFlag } from "@/components/dashboard/GeoFlag";
 import { LICENSE_MAP } from "@/lib/licenses";
+import { COUNTRY_MAP } from "@/lib/countries";
 
 // ---------- types ----------
 
@@ -595,7 +596,8 @@ export default function PartnerDetailPage() {
                                   variant="outline"
                                   className="text-xs"
                                 >
-                                  {LICENSE_MAP[code] ?? code}
+                                  <GeoFlag geo={code} size="sm" showLabel={false} />
+                                  {COUNTRY_MAP[code] ?? LICENSE_MAP[code] ?? code}
                                 </Badge>
                               ))}
                             </div>

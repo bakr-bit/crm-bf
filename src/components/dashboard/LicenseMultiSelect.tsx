@@ -10,7 +10,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { LICENSES, LICENSE_MAP } from "@/lib/licenses";
+import { COUNTRIES, COUNTRY_MAP } from "@/lib/countries";
+import { GeoFlag } from "@/components/dashboard/GeoFlag";
 import { ChevronsUpDown, X } from "lucide-react";
 
 interface LicenseMultiSelectProps {
@@ -22,10 +23,10 @@ export function LicenseMultiSelect({ value, onChange }: LicenseMultiSelectProps)
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
 
-  const filtered = LICENSES.filter(
-    (l) =>
-      l.name.toLowerCase().includes(search.toLowerCase()) ||
-      l.code.toLowerCase().includes(search.toLowerCase())
+  const filtered = COUNTRIES.filter(
+    (c) =>
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.code.toLowerCase().includes(search.toLowerCase())
   );
 
   function toggle(code: string) {
@@ -51,7 +52,7 @@ export function LicenseMultiSelect({ value, onChange }: LicenseMultiSelectProps)
             className="w-full justify-between font-normal"
           >
             {value.length === 0
-              ? "Select licenses..."
+              ? "Select license jurisdictions..."
               : `${value.length} selected`}
             <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
           </Button>
@@ -63,7 +64,7 @@ export function LicenseMultiSelect({ value, onChange }: LicenseMultiSelectProps)
         >
           <div className="p-2">
             <Input
-              placeholder="Search licenses..."
+              placeholder="Search countries..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-8"
@@ -72,21 +73,22 @@ export function LicenseMultiSelect({ value, onChange }: LicenseMultiSelectProps)
           <div className="max-h-[200px] overflow-y-auto overscroll-contain px-2 pb-2">
             {filtered.length === 0 ? (
               <p className="py-2 text-center text-sm text-muted-foreground">
-                No licenses found.
+                No countries found.
               </p>
             ) : (
-              filtered.map((license) => (
+              filtered.map((country) => (
                 <label
-                  key={license.code}
+                  key={country.code}
                   className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
                 >
                   <Checkbox
-                    checked={value.includes(license.code)}
-                    onCheckedChange={() => toggle(license.code)}
+                    checked={value.includes(country.code)}
+                    onCheckedChange={() => toggle(country.code)}
                   />
-                  <span>{license.name}</span>
+                  <GeoFlag geo={country.code} size="sm" showLabel={false} />
+                  <span>{country.name}</span>
                   <span className="ml-auto text-xs text-muted-foreground">
-                    {license.code}
+                    {country.code}
                   </span>
                 </label>
               ))
@@ -99,7 +101,8 @@ export function LicenseMultiSelect({ value, onChange }: LicenseMultiSelectProps)
         <div className="flex flex-wrap gap-1">
           {value.map((code) => (
             <Badge key={code} variant="secondary" className="gap-1">
-              {LICENSE_MAP[code] ?? code}
+              <GeoFlag geo={code} size="sm" showLabel={false} />
+              {COUNTRY_MAP[code] ?? code}
               <button
                 type="button"
                 onClick={() => remove(code)}

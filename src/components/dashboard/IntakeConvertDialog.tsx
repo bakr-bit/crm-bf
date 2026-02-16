@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { COUNTRY_MAP } from "@/lib/countries";
 import { LICENSE_MAP } from "@/lib/licenses";
+import { GeoFlag } from "@/components/dashboard/GeoFlag";
 
 interface IntakeBrand {
   brandName: string;
@@ -188,7 +189,8 @@ export function IntakeConvertDialog({
                         <div className="flex flex-wrap gap-1">
                           {(brand.licenses ?? []).map((code) => (
                             <Badge key={code} variant="secondary" className="text-xs">
-                              {LICENSE_MAP[code] ?? code}
+                              <GeoFlag geo={code} size="sm" showLabel={false} />
+                              {COUNTRY_MAP[code] ?? LICENSE_MAP[code] ?? code}
                             </Badge>
                           ))}
                         </div>

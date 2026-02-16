@@ -1,3 +1,5 @@
+import { COUNTRY_MAP } from "@/lib/countries";
+
 export interface License {
   code: string;
   name: string;
@@ -28,6 +30,38 @@ export const LICENSES: License[] = [
   { code: "BRA", name: "Brazil (SPA/MF)" },
 ];
 
-export const LICENSE_MAP: Record<string, string> = Object.fromEntries(
-  LICENSES.map((l) => [l.code, l.name])
-);
+/** Maps legacy license codes to ISO country codes */
+export const LEGACY_LICENSE_TO_COUNTRY: Record<string, string> = {
+  MGA: "MT",
+  UKGC: "GB",
+  CUR: "CW",
+  GIB: "GI",
+  ANJ: "FR",
+  KAN: "CA",
+  IOM: "IM",
+  ALG: "GB",
+  SWE: "SE",
+  DEN: "DK",
+  EST: "EE",
+  ITA: "IT",
+  ESP: "ES",
+  POR: "PT",
+  GRE: "GR",
+  ROM: "RO",
+  CRO: "HR",
+  CZE: "CZ",
+  LTU: "LT",
+  LVA: "LV",
+  PHI: "PH",
+  BRA: "BR",
+};
+
+/**
+ * Compat layer: maps both legacy codes and ISO country codes to display names.
+ * - Legacy codes (MGA, UKGC, etc.) → old descriptive names
+ * - ISO country codes (MT, GB, etc.) → country names from COUNTRY_MAP
+ */
+export const LICENSE_MAP: Record<string, string> = {
+  ...Object.fromEntries(LICENSES.map((l) => [l.code, l.name])),
+  ...COUNTRY_MAP,
+};

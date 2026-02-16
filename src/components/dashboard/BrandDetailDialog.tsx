@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { GeoFlag } from "@/components/dashboard/GeoFlag";
+import { COUNTRY_MAP } from "@/lib/countries";
 import { LICENSE_MAP } from "@/lib/licenses";
 
 interface Brand {
@@ -114,7 +115,8 @@ export function BrandDetailDialog({
                 <div className="flex flex-wrap gap-1">
                   {brand.licenses.map((code) => (
                     <Badge key={code} variant="outline" className="text-xs">
-                      {LICENSE_MAP[code] ?? code}
+                      <GeoFlag geo={code} size="sm" showLabel={false} />
+                      {COUNTRY_MAP[code] ?? LICENSE_MAP[code] ?? code}
                     </Badge>
                   ))}
                 </div>
