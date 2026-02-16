@@ -147,14 +147,17 @@ export const intakeLinkCreateSchema = z.object({
   expiresInDays: z.number().int().min(1).max(30).default(7),
 });
 
+export const intakeBrandSchema = z.object({
+  brandName: z.string().min(1, "Brand name is required"),
+  brandDomain: domainTransform,
+  targetGeos: z.array(z.string().length(2).toUpperCase()).default([]),
+  licenseInfo: z.string().optional(),
+});
+
 export const intakeSubmissionCreateSchema = z.object({
   companyName: z.string().min(1, "Company name is required"),
   websiteDomain: domainTransform,
-  brandName: z.string().min(1, "Brand name is required"),
-  brandDomain: domainTransform,
-  trackingDomain: domainTransform,
-  targetGeos: z.array(z.string().length(2).toUpperCase()).default([]),
-  licenseInfo: z.string().optional(),
+  brands: z.array(intakeBrandSchema).min(1, "At least one brand is required"),
   contactName: z.string().min(1, "Contact name is required"),
   contactEmail: z.string().email("Invalid email"),
   contactPhone: z.string().optional(),

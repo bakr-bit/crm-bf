@@ -315,11 +315,7 @@ model IntakeSubmission {
   intakeLink         IntakeLink             @relation(fields: [intakeLinkId], references: [intakeLinkId])
   companyName        String
   websiteDomain      String?
-  brandName          String
-  brandDomain        String?
-  trackingDomain     String?
-  targetGeos         String[]               @default([])
-  licenseInfo        String?
+  brands             Json                   @default("[]")
   contactName        String
   contactEmail       String
   contactPhone       String?
@@ -328,7 +324,7 @@ model IntakeSubmission {
   notes              String?
   status             IntakeSubmissionStatus  @default(Pending)
   convertedPartnerId String?
-  convertedBrandId   String?
+  convertedBrandIds  String[]               @default([])
   convertedContactId String?
   convertedByUserId  String?
   convertedAt        DateTime?

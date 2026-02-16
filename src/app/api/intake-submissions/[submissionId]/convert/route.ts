@@ -7,6 +7,13 @@ import { intakeConvertSchema } from "@/lib/validations";
 import { findDuplicatePartners } from "@/lib/dedup";
 import { createNotificationForAllUsers } from "@/lib/notifications";
 
+interface IntakeBrand {
+  brandName: string;
+  brandDomain?: string;
+  targetGeos?: string[];
+  licenseInfo?: string;
+}
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ submissionId: string }> }
@@ -69,6 +76,7 @@ export async function POST(
     }
 
     const ownerUserId = submission.intakeLink.createdByUserId;
+    const brands = (submission.brands as unknown as IntakeBrand[]) || [];
 
     const result = await prisma.$transaction(async (tx) => {
       const partner = await tx.partner.create({
@@ -81,21 +89,24 @@ export async function POST(
         },
       });
 
-      const brand = await tx.brand.create({
-        data: {
-          partnerId: partner.partnerId,
-          name: submission.brandName,
-          brandDomain: submission.brandDomain,
-          trackingDomain: submission.trackingDomain,
-          targetGeos: submission.targetGeos,
-          licenseInfo: submission.licenseInfo,
-        },
-      });
+      const createdBrands = [];
+      for (const b of brands) {
+        const brand = await tx.brand.create({
+          data: {
+            partnerId: partner.partnerId,
+            name: b.brandName,
+            brandDomain: b.brandDomain,
+            targetGeos: b.targetGeos ?? [],
+            licenseInfo: b.licenseInfo,
+          },
+        });
+        createdBrands.push(brand);
+      }
 
       const contact = await tx.contact.create({
         data: {
           partnerId: partner.partnerId,
-          brandId: brand.brandId,
+          brandId: createdBrands[0]?.brandId,
           name: submission.contactName,
           email: submission.contactEmail,
           phone: submission.contactPhone,
@@ -109,17 +120,17 @@ export async function POST(
         data: {
           status: "Converted",
           convertedPartnerId: partner.partnerId,
-          convertedBrandId: brand.brandId,
+          convertedBrandIds: createdBrands.map((b) => b.brandId),
           convertedContactId: contact.contactId,
           convertedByUserId: userId,
           convertedAt: new Date(),
         },
       });
 
-      return { partner, brand, contact };
+      return { partner, brands: createdBrands, contact };
     });
 
-    await Promise.all([
+    const auditPromises = [
       logAudit({
         userId,
         entity: "Partner",
@@ -129,31 +140,34 @@ export async function POST(
       }),
       logAudit({
         userId,
-        entity: "Brand",
-        entityId: result.brand.brandId,
-        action: "CREATE",
-        details: { source: "intake", submissionId, name: result.brand.name },
-      }),
-      logAudit({
-        userId,
         entity: "Contact",
         entityId: result.contact.contactId,
         action: "CREATE",
         details: { source: "intake", submissionId, name: result.contact.name },
       }),
-    ]);
+      ...result.brands.map((brand) =>
+        logAudit({
+          userId,
+          entity: "Brand",
+          entityId: brand.brandId,
+          action: "CREATE",
+          details: { source: "intake", submissionId, name: brand.name },
+        })
+      ),
+    ];
+    await Promise.all(auditPromises);
 
     createNotificationForAllUsers({
       type: "INTAKE_CONVERTED",
       title: "Intake Submission Converted",
-      message: `"${submission.companyName}" was converted to Partner + Brand + Contact`,
+      message: `"${submission.companyName}" was converted to Partner + ${result.brands.length} Brand(s) + Contact`,
       entityType: "Partner",
       entityId: result.partner.partnerId,
     }).catch(() => {});
 
     return NextResponse.json({
       partnerId: result.partner.partnerId,
-      brandId: result.brand.brandId,
+      brandIds: result.brands.map((b) => b.brandId),
       contactId: result.contact.contactId,
     });
   } catch (error) {

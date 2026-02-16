@@ -21,6 +21,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { GeoMultiSelect } from "@/components/dashboard/GeoMultiSelect";
+import { Plus, X } from "lucide-react";
+
+interface BrandEntry {
+  brandName: string;
+  brandDomain: string;
+  targetGeos: string[];
+  licenseInfo: string;
+}
+
+function emptyBrand(): BrandEntry {
+  return { brandName: "", brandDomain: "", targetGeos: [], licenseInfo: "" };
+}
 
 type PageState = "loading" | "invalid" | "form" | "submitting" | "success";
 
@@ -32,11 +44,7 @@ export default function IntakePage() {
   // Form fields
   const [companyName, setCompanyName] = useState("");
   const [websiteDomain, setWebsiteDomain] = useState("");
-  const [brandName, setBrandName] = useState("");
-  const [brandDomain, setBrandDomain] = useState("");
-  const [trackingDomain, setTrackingDomain] = useState("");
-  const [targetGeos, setTargetGeos] = useState<string[]>([]);
-  const [licenseInfo, setLicenseInfo] = useState("");
+  const [brands, setBrands] = useState<BrandEntry[]>([emptyBrand()]);
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
@@ -61,8 +69,24 @@ export default function IntakePage() {
       });
   }, [token]);
 
+  function updateBrand(index: number, field: keyof BrandEntry, value: string | string[]) {
+    setBrands((prev) =>
+      prev.map((b, i) => (i === index ? { ...b, [field]: value } : b))
+    );
+  }
+
+  function addBrand() {
+    setBrands((prev) => [...prev, emptyBrand()]);
+  }
+
+  function removeBrand(index: number) {
+    if (brands.length <= 1) return;
+    setBrands((prev) => prev.filter((_, i) => i !== index));
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setError("");
     setState("submitting");
 
     try {
@@ -72,11 +96,12 @@ export default function IntakePage() {
         body: JSON.stringify({
           companyName: companyName.trim(),
           websiteDomain: websiteDomain.trim() || undefined,
-          brandName: brandName.trim(),
-          brandDomain: brandDomain.trim() || undefined,
-          trackingDomain: trackingDomain.trim() || undefined,
-          targetGeos,
-          licenseInfo: licenseInfo.trim() || undefined,
+          brands: brands.map((b) => ({
+            brandName: b.brandName.trim(),
+            brandDomain: b.brandDomain.trim() || undefined,
+            targetGeos: b.targetGeos,
+            licenseInfo: b.licenseInfo.trim() || undefined,
+          })),
           contactName: contactName.trim(),
           contactEmail: contactEmail.trim(),
           contactPhone: contactPhone.trim() || undefined,
@@ -191,53 +216,80 @@ export default function IntakePage() {
               </div>
             </div>
 
-            {/* Brand Section */}
+            {/* Brands Section */}
             <div>
-              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                Brand
-              </h3>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="brandName">Brand Name *</Label>
-                  <Input
-                    id="brandName"
-                    value={brandName}
-                    onChange={(e) => setBrandName(e.target.value)}
-                    placeholder="Brand name"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="brandDomain">Brand Domain</Label>
-                  <Input
-                    id="brandDomain"
-                    value={brandDomain}
-                    onChange={(e) => setBrandDomain(e.target.value)}
-                    placeholder="brand.com"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="trackingDomain">Tracking Domain</Label>
-                  <Input
-                    id="trackingDomain"
-                    value={trackingDomain}
-                    onChange={(e) => setTrackingDomain(e.target.value)}
-                    placeholder="tracking.brand.com"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="licenseInfo">License Info</Label>
-                  <Input
-                    id="licenseInfo"
-                    value={licenseInfo}
-                    onChange={(e) => setLicenseInfo(e.target.value)}
-                    placeholder="e.g. MGA, Curacao, UKGC"
-                  />
-                </div>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                  Brands
+                </h3>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addBrand}
+                  className="gap-1"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Brand
+                </Button>
               </div>
-              <div className="mt-4 space-y-2">
-                <Label>Target Geos</Label>
-                <GeoMultiSelect value={targetGeos} onChange={setTargetGeos} />
+              <div className="space-y-4">
+                {brands.map((brand, i) => (
+                  <div
+                    key={i}
+                    className="relative rounded-md border bg-white p-4"
+                  >
+                    {brands.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeBrand(i)}
+                        className="absolute right-2 top-2 rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label>Brand Name *</Label>
+                        <Input
+                          value={brand.brandName}
+                          onChange={(e) =>
+                            updateBrand(i, "brandName", e.target.value)
+                          }
+                          placeholder="Brand name"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Brand Domain</Label>
+                        <Input
+                          value={brand.brandDomain}
+                          onChange={(e) =>
+                            updateBrand(i, "brandDomain", e.target.value)
+                          }
+                          placeholder="brand.com"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>License Info</Label>
+                        <Input
+                          value={brand.licenseInfo}
+                          onChange={(e) =>
+                            updateBrand(i, "licenseInfo", e.target.value)
+                          }
+                          placeholder="e.g. MGA, Curacao, UKGC"
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-4 space-y-2">
+                      <Label>Target Geos</Label>
+                      <GeoMultiSelect
+                        value={brand.targetGeos}
+                        onChange={(val) => updateBrand(i, "targetGeos", val)}
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
