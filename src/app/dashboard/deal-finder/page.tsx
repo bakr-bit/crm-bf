@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -20,80 +18,58 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/dashboard/StatusBadge";
+import { GeoFlag } from "@/components/dashboard/GeoFlag";
 import { toast } from "sonner";
-import { Loader2, CheckCircle2 } from "lucide-react";
-import { COUNTRIES } from "@/lib/countries";
+import { Loader2 } from "lucide-react";
+import { COUNTRIES, COUNTRY_MAP } from "@/lib/countries";
+import { LICENSE_MAP } from "@/lib/licenses";
 
 // ---------- types ----------
 
-interface OpenPosition {
-  positionId: string;
+interface BrandResult {
+  brandId: string;
   name: string;
-  details: string | null;
-  page: {
-    pageId: string;
+  brandDomain: string | null;
+  targetGeos: string[];
+  licenses: string[];
+  affiliateSoftware: string | null;
+  status: string;
+  partner: {
+    partnerId: string;
     name: string;
-    asset: {
-      assetId: string;
-      name: string;
-      assetDomain: string | null;
-    };
   };
-  asset: {
-    assetId: string;
-    name: string;
-    assetDomain: string | null;
+  _count: {
+    deals: number;
   };
-  deals: {
-    dealId: string;
-    geo: string;
-    status: string;
-    partner: { partnerId: string; name: string };
-    brand: { brandId: string; name: string };
-  }[];
 }
 
 // ---------- component ----------
 
 export default function DealFinderPage() {
   const [geoFilter, setGeoFilter] = useState("");
-  const [openPositions, setOpenPositions] = useState<OpenPosition[]>([]);
+  const [brands, setBrands] = useState<BrandResult[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchOpenPositions = useCallback(async () => {
+  const fetchBrands = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
       if (geoFilter) params.set("geo", geoFilter);
-      const res = await fetch(`/api/open-positions?${params}`);
+      const res = await fetch(`/api/brands?${params}`);
       if (!res.ok) throw new Error();
-      const data: OpenPosition[] = await res.json();
-      setOpenPositions(data);
+      const data: BrandResult[] = await res.json();
+      setBrands(data);
     } catch {
-      toast.error("Failed to load open positions");
+      toast.error("Failed to load brands");
     } finally {
       setLoading(false);
     }
   }, [geoFilter]);
 
   useEffect(() => {
-    fetchOpenPositions();
-  }, [fetchOpenPositions]);
-
-  // Group open positions by asset
-  const positionsByAsset = openPositions.reduce<
-    Record<string, { asset: OpenPosition["asset"]; positions: OpenPosition[] }>
-  >((acc, pos) => {
-    const key = pos.asset.assetId;
-    if (!acc[key]) {
-      acc[key] = { asset: pos.asset, positions: [] };
-    }
-    acc[key].positions.push(pos);
-    return acc;
-  }, {});
-
-  const totalOpen = openPositions.filter((p) => p.deals.length === 0).length;
-  const totalOccupied = openPositions.filter((p) => p.deals.length > 0).length;
+    fetchBrands();
+  }, [fetchBrands]);
 
   return (
     <div className="space-y-6">
@@ -101,7 +77,7 @@ export default function DealFinderPage() {
       <div>
         <h1 className="text-2xl font-bold">Deal Finder</h1>
         <p className="mt-1 text-sm text-zinc-500">
-          Find open positions across your assets
+          Browse brands by target geo
         </p>
       </div>
 
@@ -126,139 +102,104 @@ export default function DealFinderPage() {
 
         {geoFilter && (
           <Badge variant="secondary" className="text-sm">
-            Showing positions open for {geoFilter}
+            Showing brands targeting {geoFilter}
           </Badge>
         )}
+
+        <span className="text-sm text-muted-foreground">
+          {brands.length} brand{brands.length !== 1 ? "s" : ""}
+        </span>
       </div>
 
-      {/* Summary */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-sm text-zinc-500">Open Positions</div>
-            <div className="mt-1 text-2xl font-bold text-green-600">
-              {totalOpen}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-sm text-zinc-500">Occupied</div>
-            <div className="mt-1 text-2xl font-bold text-blue-600">
-              {totalOccupied}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-sm text-zinc-500">Total Positions</div>
-            <div className="mt-1 text-2xl font-bold">
-              {openPositions.length}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Positions grouped by asset */}
+      {/* Brands table */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
         </div>
-      ) : Object.keys(positionsByAsset).length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <CheckCircle2 className="h-12 w-12 text-green-500" />
-            <h3 className="mt-4 text-lg font-medium">
-              No positions found
-            </h3>
-            <p className="mt-1 text-sm text-zinc-500">
-              {geoFilter
-                ? `No positions are open for ${geoFilter}`
-                : "No active positions exist"}
-            </p>
-          </CardContent>
-        </Card>
+      ) : brands.length === 0 ? (
+        <div className="rounded-lg border p-8 text-center text-muted-foreground">
+          {geoFilter
+            ? `No brands targeting ${geoFilter}`
+            : "No active brands found"}
+        </div>
       ) : (
-        Object.values(positionsByAsset).map(({ asset, positions }) => (
-          <div key={asset.assetId} className="space-y-2">
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-semibold">{asset.name}</h3>
-              {asset.assetDomain && (
-                <span className="text-xs text-zinc-400">
-                  {asset.assetDomain}
-                </span>
-              )}
-            </div>
-            <div className="rounded-lg border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Position</TableHead>
-                    <TableHead>Details</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Current Deals</TableHead>
-                    <TableHead className="w-32">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {positions.map((pos) => {
-                    const isOpen = pos.deals.length === 0;
-                    return (
-                      <TableRow key={pos.positionId}>
-                        <TableCell className="font-medium">
-                          {pos.name}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {pos.details ?? "-"}
-                        </TableCell>
-                        <TableCell>
-                          {isOpen ? (
-                            <span className="text-sm font-medium text-green-600">
-                              Open
-                            </span>
-                          ) : (
-                            <span className="text-sm text-blue-600">
-                              Occupied
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {pos.deals.length > 0 ? (
-                            <div className="flex flex-wrap gap-1">
-                              {pos.deals.map((d) => (
-                                <Badge
-                                  key={d.dealId}
-                                  variant="outline"
-                                  className="text-xs"
-                                >
-                                  {d.brand.name} ({d.geo}) —{" "}
-                                  {d.partner.name}
-                                </Badge>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-zinc-400 text-sm">
-                              None
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Button size="sm" variant="outline" asChild>
-                            <Link
-                              href={`/dashboard/deals?assetId=${asset.assetId}&pageId=${pos.page.pageId}&positionId=${pos.positionId}`}
-                            >
-                              Create Deal
-                            </Link>
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-        ))
+        <div className="rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Brand</TableHead>
+                <TableHead>Partner</TableHead>
+                <TableHead>Domain</TableHead>
+                <TableHead>Licenses</TableHead>
+                <TableHead>Target Geos</TableHead>
+                <TableHead>Software</TableHead>
+                <TableHead>Deals</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {brands.map((brand) => (
+                <TableRow key={brand.brandId}>
+                  <TableCell className="font-medium">
+                    <Link
+                      href={`/dashboard/partners/${brand.partner.partnerId}`}
+                      className="text-primary hover:underline"
+                    >
+                      {brand.name}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <Link
+                      href={`/dashboard/partners/${brand.partner.partnerId}`}
+                      className="text-muted-foreground hover:underline"
+                    >
+                      {brand.partner.name}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {brand.brandDomain ?? "-"}
+                  </TableCell>
+                  <TableCell>
+                    {brand.licenses.length === 0 ? (
+                      <span className="text-muted-foreground">-</span>
+                    ) : (
+                      <div className="flex flex-wrap gap-1">
+                        {brand.licenses.map((code) => (
+                          <Badge key={code} variant="outline" className="text-xs">
+                            <GeoFlag geo={code} size="sm" showLabel={false} />
+                            {COUNTRY_MAP[code] ?? LICENSE_MAP[code] ?? code}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {brand.targetGeos.length === 0 ? (
+                      <span className="text-muted-foreground">-</span>
+                    ) : (
+                      <div className="flex flex-wrap gap-1">
+                        {brand.targetGeos.map((geo) => (
+                          <Badge key={geo} variant="outline" className="text-xs">
+                            <GeoFlag geo={geo} size="sm" />
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {brand.affiliateSoftware ?? "-"}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {brand._count.deals}
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge status={brand.status} variant="brand" />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
     </div>
   );
