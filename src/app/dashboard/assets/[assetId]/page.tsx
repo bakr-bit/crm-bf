@@ -5,12 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -29,7 +24,7 @@ import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { AssetDialog } from "@/components/dashboard/AssetDialog";
 import { PageDialog } from "@/components/dashboard/PageDialog";
 import { PositionDialog } from "@/components/dashboard/PositionDialog";
-import { ArrowLeft, Pencil, Plus, MoreHorizontal, Download, Trash2 } from "lucide-react";
+import { ArrowLeft, Pencil, Plus, MoreHorizontal, Download, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { OCCUPYING_STATUSES } from "@/lib/deal-status";
 import type { DealStatusType } from "@/lib/deal-status";
@@ -105,6 +100,7 @@ export default function AssetDetailPage() {
     undefined
   );
   const [activePageId, setActivePageId] = useState<string>("");
+  const [pageSearch, setPageSearch] = useState("");
 
   const fetchAsset = useCallback(async () => {
     try {
@@ -364,7 +360,12 @@ export default function AssetDetailPage() {
       {/* Pages Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Pages</h2>
+          <h2 className="text-lg font-semibold">
+            Pages
+            <span className="ml-2 text-sm font-normal text-muted-foreground">
+              ({asset.pages.length})
+            </span>
+          </h2>
           <Button
             size="sm"
             onClick={() => {
@@ -384,193 +385,262 @@ export default function AssetDetailPage() {
             </CardContent>
           </Card>
         ) : (
-          <Tabs
-            value={activePageId}
-            onValueChange={setActivePageId}
-          >
-            <TabsList className="flex-wrap h-auto">
-              {asset.pages.map((page) => (
-                <TabsTrigger key={page.pageId} value={page.pageId}>
-                  {page.name}
-                  <span className="ml-1.5 text-xs text-muted-foreground">
-                    ({page.positions.length})
-                  </span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
+          <div className="flex gap-6">
+            {/* Sidebar */}
+            <div className="w-72 shrink-0 space-y-2">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search pages..."
+                  value={pageSearch}
+                  onChange={(e) => setPageSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <div className="max-h-[calc(100vh-22rem)] overflow-y-auto rounded-lg border">
+                {(() => {
+                  const q = pageSearch.toLowerCase();
+                  const filtered = asset.pages.filter(
+                    (p) =>
+                      p.name.toLowerCase().includes(q) ||
+                      (p.path ?? "").toLowerCase().includes(q)
+                  );
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+                        No pages match &ldquo;{pageSearch}&rdquo;
+                      </div>
+                    );
+                  }
+                  return filtered.map((page) => {
+                    const isActive = page.pageId === activePageId;
+                    const occupiedCount = page.positions.filter((p) =>
+                      p.deals.some((d) =>
+                        OCCUPYING_STATUSES.includes(d.status as DealStatusType)
+                      )
+                    ).length;
+                    return (
+                      <button
+                        key={page.pageId}
+                        onClick={() => setActivePageId(page.pageId)}
+                        className={`w-full text-left px-3 py-2.5 border-b last:border-b-0 transition-colors ${
+                          isActive
+                            ? "bg-accent"
+                            : "hover:bg-muted/50"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-sm truncate">
+                            {page.name}
+                          </span>
+                          <span className="ml-2 shrink-0 text-xs text-muted-foreground">
+                            {page.positions.length} pos
+                          </span>
+                        </div>
+                        {page.path && (
+                          <div className="mt-0.5 text-xs font-mono text-muted-foreground truncate">
+                            {page.path}
+                          </div>
+                        )}
+                        {page.positions.length > 0 && (
+                          <div className="mt-1 flex gap-2 text-xs text-muted-foreground">
+                            <span className="text-green-600">
+                              {page.positions.length - occupiedCount} open
+                            </span>
+                            {occupiedCount > 0 && (
+                              <span>{occupiedCount} filled</span>
+                            )}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
 
-            {asset.pages.map((page) => (
-              <TabsContent key={page.pageId} value={page.pageId}>
-                {/* Page info bar */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="text-sm text-muted-foreground">
-                    {page.path && (
-                      <span className="font-mono mr-3">{page.path}</span>
-                    )}
-                    {page.description && <span>{page.description}</span>}
+            {/* Content */}
+            <div className="min-w-0 flex-1">
+              {activePage ? (
+                <>
+                  {/* Page info bar */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="text-base font-semibold">{activePage.name}</h3>
+                      <div className="text-sm text-muted-foreground">
+                        {activePage.path && (
+                          <span className="font-mono mr-3">{activePage.path}</span>
+                        )}
+                        {activePage.description && (
+                          <span>{activePage.description}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setEditingPage(activePage);
+                          setPageDialogOpen(true);
+                        }}
+                      >
+                        <Pencil className="mr-2 size-4" />
+                        Edit Page
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDeletePage(activePage.pageId)}
+                      >
+                        <Trash2 className="mr-2 size-4" />
+                        Archive
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setEditingPosition(undefined);
+                          setPositionDialogOpen(true);
+                        }}
+                      >
+                        <Plus className="mr-2 size-4" />
+                        Add Position
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setEditingPage(page);
-                        setPageDialogOpen(true);
-                      }}
-                    >
-                      <Pencil className="mr-2 size-4" />
-                      Edit Page
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleDeletePage(page.pageId)}
-                    >
-                      <Trash2 className="mr-2 size-4" />
-                      Archive Page
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        setActivePageId(page.pageId);
-                        setEditingPosition(undefined);
-                        setPositionDialogOpen(true);
-                      }}
-                    >
-                      <Plus className="mr-2 size-4" />
-                      Add Position
-                    </Button>
-                  </div>
-                </div>
 
-                {/* Positions table */}
-                <div className="rounded-lg border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Details</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="w-12">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {page.positions.length === 0 ? (
+                  {/* Positions table */}
+                  <div className="rounded-lg border">
+                    <Table>
+                      <TableHeader>
                         <TableRow>
-                          <TableCell
-                            colSpan={4}
-                            className="text-center text-muted-foreground"
-                          >
-                            No positions yet.
-                          </TableCell>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Details</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="w-12">Actions</TableHead>
                         </TableRow>
-                      ) : (
-                        page.positions.map((position) => {
-                          const activeDeal = getActiveDeal(position);
-                          const isOccupied = Boolean(activeDeal);
+                      </TableHeader>
+                      <TableBody>
+                        {activePage.positions.length === 0 ? (
+                          <TableRow>
+                            <TableCell
+                              colSpan={4}
+                              className="text-center text-muted-foreground"
+                            >
+                              No positions yet.
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          activePage.positions.map((position) => {
+                            const activeDeal = getActiveDeal(position);
+                            const isOccupied = Boolean(activeDeal);
 
-                          return (
-                            <TableRow key={position.positionId}>
-                              <TableCell className="font-medium">
-                                {position.name}
-                              </TableCell>
-                              <TableCell className="text-muted-foreground">
-                                {position.details ?? "-"}
-                              </TableCell>
-                              <TableCell>
-                                {isOccupied ? (
-                                  <span className="text-sm">
-                                    <StatusBadge status="Active" variant="deal" />
-                                    <span className="ml-2 text-muted-foreground">
-                                      {activeDeal!.brand.name}
+                            return (
+                              <TableRow key={position.positionId}>
+                                <TableCell className="font-medium">
+                                  {position.name}
+                                </TableCell>
+                                <TableCell className="text-muted-foreground">
+                                  {position.details ?? "-"}
+                                </TableCell>
+                                <TableCell>
+                                  {isOccupied ? (
+                                    <span className="text-sm">
+                                      <StatusBadge status="Active" variant="deal" />
+                                      <span className="ml-2 text-muted-foreground">
+                                        {activeDeal!.brand.name}
+                                      </span>
                                     </span>
-                                  </span>
-                                ) : (
-                                  <span className="text-sm text-green-600">
-                                    Available
-                                  </span>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="size-8"
-                                    >
-                                      <MoreHorizontal className="size-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem
-                                      onClick={() => {
-                                        setActivePageId(page.pageId);
-                                        setEditingPosition(position);
-                                        setPositionDialogOpen(true);
-                                      }}
-                                    >
-                                      Edit Position
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      variant="destructive"
-                                      onClick={() =>
-                                        handleDeletePosition(
-                                          page.pageId,
-                                          position.positionId
-                                        )
-                                      }
-                                    >
-                                      Delete Position
-                                    </DropdownMenuItem>
-
-                                    {isOccupied ? (
-                                      <>
-                                        <DropdownMenuItem asChild>
-                                          <Link
-                                            href={`/dashboard/deals?dealId=${activeDeal!.dealId}`}
-                                          >
-                                            View Deal
-                                          </Link>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                          variant="destructive"
-                                          onClick={() =>
-                                            handleEndDeal(activeDeal!.dealId)
-                                          }
-                                        >
-                                          End Deal
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem asChild>
-                                          <Link
-                                            href={`/dashboard/deals?replace=${activeDeal!.dealId}`}
-                                          >
-                                            Replace Deal
-                                          </Link>
-                                        </DropdownMenuItem>
-                                      </>
-                                    ) : (
-                                      <DropdownMenuItem asChild>
-                                        <Link
-                                          href={`/dashboard/deals?assetId=${assetId}&pageId=${page.pageId}&positionId=${position.positionId}`}
-                                        >
-                                          Create Deal
-                                        </Link>
+                                  ) : (
+                                    <span className="text-sm text-green-600">
+                                      Available
+                                    </span>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="size-8"
+                                      >
+                                        <MoreHorizontal className="size-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setEditingPosition(position);
+                                          setPositionDialogOpen(true);
+                                        }}
+                                      >
+                                        Edit Position
                                       </DropdownMenuItem>
-                                    )}
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })
-                      )}
-                    </TableBody>
-                  </Table>
+                                      <DropdownMenuItem
+                                        variant="destructive"
+                                        onClick={() =>
+                                          handleDeletePosition(
+                                            activePage.pageId,
+                                            position.positionId
+                                          )
+                                        }
+                                      >
+                                        Delete Position
+                                      </DropdownMenuItem>
+
+                                      {isOccupied ? (
+                                        <>
+                                          <DropdownMenuItem asChild>
+                                            <Link
+                                              href={`/dashboard/deals?dealId=${activeDeal!.dealId}`}
+                                            >
+                                              View Deal
+                                            </Link>
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            variant="destructive"
+                                            onClick={() =>
+                                              handleEndDeal(activeDeal!.dealId)
+                                            }
+                                          >
+                                            End Deal
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem asChild>
+                                            <Link
+                                              href={`/dashboard/deals?replace=${activeDeal!.dealId}`}
+                                            >
+                                              Replace Deal
+                                            </Link>
+                                          </DropdownMenuItem>
+                                        </>
+                                      ) : (
+                                        <DropdownMenuItem asChild>
+                                          <Link
+                                            href={`/dashboard/deals?assetId=${assetId}&pageId=${activePage.pageId}&positionId=${position.positionId}`}
+                                          >
+                                            Create Deal
+                                          </Link>
+                                        </DropdownMenuItem>
+                                      )}
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">
+                  Select a page from the sidebar
                 </div>
-              </TabsContent>
-            ))}
-          </Tabs>
+              )}
+            </div>
+          </div>
         )}
       </div>
 
