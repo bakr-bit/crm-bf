@@ -188,6 +188,7 @@ model Credential {
   label        String
   loginUrl     String?
   username     String
+  email        String?
   password     String
   softwareType String?
   notes        String?

@@ -25,6 +25,7 @@ interface Credential {
   label: string;
   loginUrl?: string;
   username: string;
+  email?: string;
   password?: string;
   softwareType?: string;
   notes?: string;
@@ -50,6 +51,7 @@ export function CredentialDialog({
   const [label, setLabel] = useState("");
   const [loginUrl, setLoginUrl] = useState("");
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [softwareType, setSoftwareType] = useState("");
   const [notes, setNotes] = useState("");
@@ -60,6 +62,7 @@ export function CredentialDialog({
       setLabel(credential.label ?? "");
       setLoginUrl(credential.loginUrl ?? "");
       setUsername(credential.username ?? "");
+      setEmail(credential.email ?? "");
       setPassword(credential.password ?? "");
       setSoftwareType(credential.softwareType ?? "");
       setNotes(credential.notes ?? "");
@@ -67,6 +70,7 @@ export function CredentialDialog({
       setLabel("");
       setLoginUrl("");
       setUsername("");
+      setEmail("");
       setPassword("");
       setSoftwareType("");
       setNotes("");
@@ -93,6 +97,7 @@ export function CredentialDialog({
       label: label.trim(),
       loginUrl: loginUrl.trim() || undefined,
       username: username.trim(),
+      email: email.trim() || undefined,
       softwareType: softwareType || undefined,
       notes: notes.trim() || undefined,
     };
@@ -170,7 +175,19 @@ export function CredentialDialog({
               id="cred-username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Username or email"
+              placeholder="Username"
+            />
+          </div>
+
+          {/* Email */}
+          <div className="grid gap-2">
+            <Label htmlFor="cred-email">Email</Label>
+            <Input
+              id="cred-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="email@example.com"
             />
           </div>
 

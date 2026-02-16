@@ -91,6 +91,7 @@ interface Credential {
   label: string;
   loginUrl: string | null;
   username: string;
+  email: string | null;
   softwareType: string | null;
   notes: string | null;
   createdAt: string;
@@ -350,6 +351,7 @@ export default function PartnerDetailPage() {
       label: c.label,
       loginUrl: c.loginUrl ?? undefined,
       username: c.username,
+      email: c.email ?? undefined,
       softwareType: c.softwareType ?? undefined,
       notes: c.notes ?? undefined,
     };
@@ -839,6 +841,7 @@ export default function PartnerDetailPage() {
                     <TableHead>Software Type</TableHead>
                     <TableHead>Login URL</TableHead>
                     <TableHead>Username</TableHead>
+                    <TableHead>Email</TableHead>
                     <TableHead>Password</TableHead>
                     <TableHead className="w-12">Actions</TableHead>
                   </TableRow>
@@ -847,7 +850,7 @@ export default function PartnerDetailPage() {
                   {partner.credentials.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={6}
+                        colSpan={7}
                         className="text-center text-muted-foreground"
                       >
                         No credentials yet.
@@ -878,6 +881,9 @@ export default function PartnerDetailPage() {
                         </TableCell>
                         <TableCell className="font-mono text-sm">
                           {cred.username}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {cred.email ?? "-"}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">

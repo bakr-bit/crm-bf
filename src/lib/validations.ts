@@ -130,6 +130,7 @@ export const credentialCreateSchema = z.object({
   label: z.string().min(1, "Label is required"),
   loginUrl: z.string().optional(),
   username: z.string().min(1, "Username is required"),
+  email: z.string().email("Invalid email").optional().or(z.literal("")),
   password: z.string().min(1, "Password is required"),
   softwareType: z.string().optional(),
   notes: z.string().optional(),
