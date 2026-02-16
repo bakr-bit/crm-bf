@@ -18,6 +18,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
 import { toast } from "sonner";
 import Link from "next/link";
 import { PARTNER_STATUSES, PARTNER_STATUS_LABELS } from "@/lib/partner-status";
@@ -39,6 +47,7 @@ interface Partner {
   hasLicense?: boolean;
   hasBanking?: boolean;
   sopNotes?: string;
+  lastInvoicedAt?: string;
   accountManagerUserId?: string;
 }
 
@@ -65,6 +74,7 @@ export function PartnerDialog({
   const [hasLicense, setHasLicense] = useState(false);
   const [hasBanking, setHasBanking] = useState(false);
   const [sopNotes, setSopNotes] = useState("");
+  const [lastInvoicedAt, setLastInvoicedAt] = useState<Date | undefined>(undefined);
   const [accountManagerUserId, setAccountManagerUserId] = useState("");
   const [users, setUsers] = useState<{id: string; name: string; email: string}[]>([]);
   const [loading, setLoading] = useState(false);
@@ -89,6 +99,7 @@ export function PartnerDialog({
       setHasLicense(partner.hasLicense ?? false);
       setHasBanking(partner.hasBanking ?? false);
       setSopNotes(partner.sopNotes ?? "");
+      setLastInvoicedAt(partner.lastInvoicedAt ? new Date(partner.lastInvoicedAt) : undefined);
       setAccountManagerUserId(partner.accountManagerUserId ?? "");
     } else {
       setName("");
@@ -99,6 +110,7 @@ export function PartnerDialog({
       setHasLicense(false);
       setHasBanking(false);
       setSopNotes("");
+      setLastInvoicedAt(undefined);
       setAccountManagerUserId("");
     }
     setDuplicates([]);
@@ -118,6 +130,7 @@ export function PartnerDialog({
       websiteDomain: websiteDomain.trim() || undefined,
       isDirect,
       status,
+      lastInvoicedAt: lastInvoicedAt ? lastInvoicedAt.toISOString() : undefined,
       accountManagerUserId: accountManagerUserId || undefined,
       force,
       ...(isDirect && {
@@ -241,6 +254,31 @@ export function PartnerDialog({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Last Invoiced */}
+          <div className="grid gap-2">
+            <Label>Last Invoiced</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={`w-full justify-start text-left font-normal ${
+                    !lastInvoicedAt ? "text-muted-foreground" : ""
+                  }`}
+                >
+                  <CalendarIcon className="mr-2 size-4" />
+                  {lastInvoicedAt ? format(lastInvoicedAt, "PPP") : "Pick a date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={lastInvoicedAt}
+                  onSelect={setLastInvoicedAt}
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* SOP Section - only visible when isDirect is checked */}

@@ -55,6 +55,7 @@ interface Partner {
   hasLicense: boolean;
   hasBanking: boolean;
   sopNotes: string | null;
+  lastInvoicedAt: string | null;
   ownerUserId: string;
   createdAt: string;
   updatedAt: string;
@@ -197,6 +198,7 @@ export default function PartnersPage() {
       hasLicense: p.hasLicense,
       hasBanking: p.hasBanking,
       sopNotes: p.sopNotes ?? undefined,
+      lastInvoicedAt: p.lastInvoicedAt ?? undefined,
     };
   }
 
@@ -272,6 +274,7 @@ export default function PartnersPage() {
               <TableHead>Brands</TableHead>
               <TableHead>Active Deals</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Last Invoiced</TableHead>
               <TableHead>Credentials</TableHead>
               <TableHead className="w-12">Actions</TableHead>
             </TableRow>
@@ -280,7 +283,7 @@ export default function PartnersPage() {
             {partners.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={8}
+                  colSpan={9}
                   className="text-center text-muted-foreground"
                 >
                   No partners found.
@@ -302,6 +305,15 @@ export default function PartnersPage() {
                   <TableCell>{partner._count.deals}</TableCell>
                   <TableCell>
                     <StatusBadge status={partner.status} variant="partner" />
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {partner.lastInvoicedAt
+                      ? new Date(partner.lastInvoicedAt).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })
+                      : "-"}
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <Popover onOpenChange={(open) => { if (open) fetchCredentials(partner.partnerId); }}>

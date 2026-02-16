@@ -144,6 +144,7 @@ interface PartnerDetail {
   hasLicense: boolean;
   hasBanking: boolean;
   sopNotes: string | null;
+  lastInvoicedAt: string | null;
   ownerUserId: string;
   owner: { id: string; name: string } | null;
   accountManagerUserId: string | null;
@@ -313,6 +314,7 @@ export default function PartnerDetailPage() {
       hasLicense: p.hasLicense,
       hasBanking: p.hasBanking,
       sopNotes: p.sopNotes ?? undefined,
+      lastInvoicedAt: p.lastInvoicedAt ?? undefined,
       accountManagerUserId: p.accountManagerUserId ?? undefined,
     };
   }
@@ -556,6 +558,20 @@ export default function PartnerDetailPage() {
                     Account Manager
                   </dt>
                   <dd className="text-sm">{partner.accountManager?.name ?? "Not assigned"}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">
+                    Last Invoiced
+                  </dt>
+                  <dd className="text-sm">
+                    {partner.lastInvoicedAt
+                      ? new Date(partner.lastInvoicedAt).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })
+                      : "Not set"}
+                  </dd>
                 </div>
               </dl>
 
