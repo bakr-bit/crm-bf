@@ -73,13 +73,8 @@ export async function PUT(
 
     // If email changed, check uniqueness
     if (parsed.data.email && parsed.data.email !== existing.email) {
-      const dup = await prisma.contact.findUnique({
-        where: {
-          partnerId_email: {
-            partnerId,
-            email: parsed.data.email,
-          },
-        },
+      const dup = await prisma.contact.findFirst({
+        where: { partnerId, email: parsed.data.email, contactId: { not: contactId } },
       });
       if (dup) {
         return NextResponse.json(

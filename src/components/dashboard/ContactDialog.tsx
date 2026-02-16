@@ -22,7 +22,7 @@ import { toast } from "sonner";
 interface Contact {
   id: string;
   name: string;
-  email: string;
+  email?: string;
   phone?: string;
   role?: string;
   telegram?: string;
@@ -85,16 +85,12 @@ export function ContactDialog({
       toast.error("Contact name is required.");
       return;
     }
-    if (!email.trim()) {
-      toast.error("Contact email is required.");
-      return;
-    }
 
     setLoading(true);
 
     const body = {
       name: name.trim(),
-      email: email.trim(),
+      email: email.trim() || undefined,
       phone: phone.trim() || undefined,
       role: role.trim() || undefined,
       telegram: telegram.trim() || undefined,
@@ -155,7 +151,7 @@ export function ContactDialog({
 
           {/* Email */}
           <div className="grid gap-2">
-            <Label htmlFor="contact-email">Email *</Label>
+            <Label htmlFor="contact-email">Email</Label>
             <Input
               id="contact-email"
               type="email"

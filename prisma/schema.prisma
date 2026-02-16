@@ -6,6 +6,248 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  id              String         @id @default(cuid())
+  email           String         @unique
+  passwordHash    String
+  name            String
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  isAdmin         Boolean        @default(false)
+  auditLogs       AuditLog[]
+  createdDeals    Deal[]         @relation("DealCreatedBy")
+  updatedDeals    Deal[]         @relation("DealUpdatedBy")
+  intakeLinks     IntakeLink[]
+  notifications   Notification[]
+  managedPartners Partner[]      @relation("PartnerAccountManager")
+  partners        Partner[]
+}
+
+model Partner {
+  partnerId            String        @id @default(cuid())
+  name                 String
+  websiteDomain        String?
+  isDirect             Boolean       @default(false)
+  status               PartnerStatus @default(Pending)
+  hasContract          Boolean       @default(false)
+  hasLicense           Boolean       @default(false)
+  hasBanking           Boolean       @default(false)
+  sopNotes             String?
+  ownerUserId          String
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  bankingFileUrl       String?
+  contractFileUrl      String?
+  licenseFileUrl       String?
+  accountManagerUserId String?
+  brands               Brand[]
+  contacts             Contact[]
+  credentials          Credential[]
+  deals                Deal[]
+  accountManager       User?         @relation("PartnerAccountManager", fields: [accountManagerUserId], references: [id])
+  owner                User          @relation(fields: [ownerUserId], references: [id])
+}
+
+model Brand {
+  brandId           String      @id @default(cuid())
+  partnerId         String
+  name              String
+  brandDomain       String?
+  brandIdentifiers  Json?
+  status            BrandStatus @default(Active)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  targetGeos        String[]    @default([])
+  affiliateSoftware String?
+  extraInfo         String?
+  postbacks         String?
+  licenses          String[]    @default([])
+  partner           Partner     @relation(fields: [partnerId], references: [partnerId], onDelete: Cascade)
+  contacts          Contact[]
+  deals             Deal[]
+}
+
+model Contact {
+  contactId        String   @id @default(cuid())
+  partnerId        String
+  name             String
+  email            String?
+  phone            String?
+  role             String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  telegram         String?
+  brandId          String?
+  geo              String?
+  preferredContact String?
+  whatsapp         String?
+  brand            Brand?   @relation(fields: [brandId], references: [brandId])
+  partner          Partner  @relation(fields: [partnerId], references: [partnerId], onDelete: Cascade)
+}
+
+model Asset {
+  assetId     String      @id @default(cuid())
+  name        String
+  assetDomain String?     @unique
+  description String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  status      AssetStatus @default(Active)
+  deals       Deal[]
+  pages       Page[]
+}
+
+model Page {
+  pageId      String     @id @default(cuid())
+  assetId     String
+  name        String
+  path        String?
+  description String?
+  status      PageStatus @default(Active)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  deals       Deal[]
+  asset       Asset      @relation(fields: [assetId], references: [assetId], onDelete: Cascade)
+  positions   Position[]
+
+  @@unique([assetId, name])
+}
+
+model Position {
+  positionId String         @id @default(cuid())
+  name       String
+  details    String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  status     PositionStatus @default(Active)
+  pageId     String
+  deals      Deal[]
+  page       Page           @relation(fields: [pageId], references: [pageId], onDelete: Cascade)
+
+  @@unique([pageId, name])
+}
+
+model Deal {
+  dealId            String     @id @default(cuid())
+  partnerId         String
+  brandId           String
+  assetId           String
+  positionId        String
+  affiliateLink     String?
+  startDate         DateTime   @default(now())
+  endDate           DateTime?
+  status            DealStatus @default(Live)
+  isDirect          Boolean    @default(false)
+  notes             String?
+  replacedDealId    String?    @unique
+  createdById       String
+  updatedById       String?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  geo               String     @default("")
+  baseline          String?
+  cap               String?
+  conversionFlow    String?
+  currency          String?
+  hasLocalLicense   Boolean    @default(false)
+  holdPeriod        String?
+  payoutModel       String?
+  payoutValue       String?
+  replacementReason String?
+  pageId            String
+  asset             Asset      @relation(fields: [assetId], references: [assetId])
+  brand             Brand      @relation(fields: [brandId], references: [brandId])
+  createdBy         User       @relation("DealCreatedBy", fields: [createdById], references: [id])
+  page              Page       @relation(fields: [pageId], references: [pageId])
+  partner           Partner    @relation(fields: [partnerId], references: [partnerId])
+  position          Position   @relation(fields: [positionId], references: [positionId])
+  replacedDeal      Deal?      @relation("DealReplacement", fields: [replacedDealId], references: [dealId])
+  replacedBy        Deal?      @relation("DealReplacement")
+  updatedBy         User?      @relation("DealUpdatedBy", fields: [updatedById], references: [id])
+}
+
+model Notification {
+  notificationId String   @id @default(cuid())
+  userId         String
+  type           String
+  title          String
+  message        String
+  entityType     String?
+  entityId       String?
+  isRead         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+}
+
+model Credential {
+  credentialId String   @id @default(cuid())
+  partnerId    String
+  label        String
+  loginUrl     String?
+  username     String
+  password     String
+  softwareType String?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  partner      Partner  @relation(fields: [partnerId], references: [partnerId], onDelete: Cascade)
+
+  @@unique([partnerId, label])
+}
+
+model AuditLog {
+  logId     String   @id @default(cuid())
+  timestamp DateTime @default(now())
+  userId    String
+  entity    String
+  entityId  String
+  action    String
+  details   Json?
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model IntakeLink {
+  intakeLinkId    String             @id @default(cuid())
+  tokenHash       String             @unique
+  createdByUserId String
+  expiresAt       DateTime
+  usedAt          DateTime?
+  note            String?
+  createdAt       DateTime           @default(now())
+  createdBy       User               @relation(fields: [createdByUserId], references: [id])
+  submissions     IntakeSubmission[]
+}
+
+model IntakeSubmission {
+  submissionId       String                 @id @default(cuid())
+  intakeLinkId       String
+  companyName        String
+  websiteDomain      String?
+  contactName        String
+  contactEmail       String?
+  contactPhone       String?
+  preferredContact   String?
+  notes              String?
+  status             IntakeSubmissionStatus @default(Pending)
+  convertedPartnerId String?
+  convertedContactId String?
+  convertedByUserId  String?
+  convertedAt        DateTime?
+  rejectedByUserId   String?
+  rejectedAt         DateTime?
+  rejectionReason    String?
+  submittedAt        DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  contactTelegram    String?
+  brands             Json                   @default("[]")
+  convertedBrandIds  String[]               @default([])
+  contactWhatsapp    String?
+  intakeLink         IntakeLink             @relation(fields: [intakeLinkId], references: [intakeLinkId])
+}
+
 enum PartnerStatus {
   Active
   Pending
@@ -48,270 +290,4 @@ enum IntakeSubmissionStatus {
   Pending
   Converted
   Rejected
-}
-
-model User {
-  id           String     @id @default(cuid())
-  email        String     @unique
-  passwordHash String
-  name         String
-  isAdmin      Boolean    @default(false)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  partners     Partner[]
-  auditLogs    AuditLog[]
-  createdDeals  Deal[]         @relation("DealCreatedBy")
-  updatedDeals  Deal[]         @relation("DealUpdatedBy")
-  notifications Notification[]
-  intakeLinks   IntakeLink[]
-  managedPartners Partner[] @relation("PartnerAccountManager")
-}
-
-model Partner {
-  partnerId     String        @id @default(cuid())
-  name          String
-  websiteDomain String?
-  isDirect      Boolean       @default(false)
-  status        PartnerStatus @default(Pending)
-
-  // SOP fields for direct partners
-  hasContract   Boolean   @default(false)
-  hasLicense    Boolean   @default(false)
-  hasBanking    Boolean   @default(false)
-  contractFileUrl String?
-  licenseFileUrl  String?
-  bankingFileUrl  String?
-  sopNotes      String?
-
-  ownerUserId   String
-  owner         User      @relation(fields: [ownerUserId], references: [id])
-
-  accountManagerUserId String?
-  accountManager       User?     @relation("PartnerAccountManager", fields: [accountManagerUserId], references: [id])
-
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  brands        Brand[]
-  contacts      Contact[]
-  deals         Deal[]
-  credentials   Credential[]
-}
-
-model Brand {
-  brandId          String      @id @default(cuid())
-  partnerId        String
-  partner          Partner     @relation(fields: [partnerId], references: [partnerId], onDelete: Cascade)
-  name             String
-  brandDomain      String?
-  brandIdentifiers   Json?
-  postbacks          String?
-  licenses           String[]         @default([])
-  extraInfo          String?
-  affiliateSoftware  String?
-  status             BrandStatus @default(Active)
-  targetGeos         String[]         @default([])
-
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-
-  deals            Deal[]
-  contacts         Contact[]
-}
-
-model Contact {
-  contactId        String   @id @default(cuid())
-  partnerId        String
-  partner          Partner  @relation(fields: [partnerId], references: [partnerId], onDelete: Cascade)
-  name             String
-  email            String
-  phone            String?
-  role             String?
-  telegram         String?
-  whatsapp         String?
-  preferredContact String?
-  brandId          String?
-  brand            Brand?   @relation(fields: [brandId], references: [brandId])
-  geo              String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([partnerId, email])
-}
-
-model Asset {
-  assetId     String      @id @default(cuid())
-  name        String
-  assetDomain String?     @unique
-  description String?
-  status      AssetStatus @default(Active)
-
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-
-  pages       Page[]
-  deals       Deal[]
-}
-
-model Page {
-  pageId      String     @id @default(cuid())
-  assetId     String
-  asset       Asset      @relation(fields: [assetId], references: [assetId], onDelete: Cascade)
-  name        String
-  path        String?
-  description String?
-  status      PageStatus @default(Active)
-
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-
-  positions   Position[]
-  deals       Deal[]
-
-  @@unique([assetId, name])
-}
-
-model Position {
-  positionId String         @id @default(cuid())
-  pageId     String
-  page       Page           @relation(fields: [pageId], references: [pageId], onDelete: Cascade)
-  name       String
-  details    String?
-  status     PositionStatus @default(Active)
-
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  deals      Deal[]
-
-  @@unique([pageId, name])
-}
-
-model Deal {
-  dealId         String     @id @default(cuid())
-  partnerId      String
-  partner        Partner    @relation(fields: [partnerId], references: [partnerId])
-  brandId        String
-  brand          Brand      @relation(fields: [brandId], references: [brandId])
-  assetId        String
-  asset          Asset      @relation(fields: [assetId], references: [assetId])
-  pageId         String
-  page           Page       @relation(fields: [pageId], references: [pageId])
-  positionId     String
-  position       Position   @relation(fields: [positionId], references: [positionId])
-
-  affiliateLink  String?
-  startDate      DateTime   @default(now())
-  endDate        DateTime?
-  status         DealStatus @default(Live)
-  isDirect       Boolean    @default(false)
-  geo            String     @default("")
-  notes          String?
-  replacementReason String?
-
-  // Financial fields
-  payoutModel      String?
-  payoutValue      String?
-  currency         String?
-  baseline         String?
-  conversionFlow   String?
-  cap              String?
-  holdPeriod       String?
-  hasLocalLicense  Boolean    @default(false)
-
-  // Replacement chain
-  replacedDealId String?    @unique
-  replacedDeal   Deal?      @relation("DealReplacement", fields: [replacedDealId], references: [dealId])
-  replacedBy     Deal?      @relation("DealReplacement")
-
-  createdById    String
-  createdBy      User       @relation("DealCreatedBy", fields: [createdById], references: [id])
-  updatedById    String?
-  updatedBy      User?      @relation("DealUpdatedBy", fields: [updatedById], references: [id])
-
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-}
-
-model Notification {
-  notificationId String   @id @default(cuid())
-  userId         String
-  user           User     @relation(fields: [userId], references: [id])
-  type           String
-  title          String
-  message        String
-  entityType     String?
-  entityId       String?
-  isRead         Boolean  @default(false)
-  createdAt      DateTime @default(now())
-
-  @@index([userId, isRead])
-  @@index([userId, createdAt])
-}
-
-model Credential {
-  credentialId  String   @id @default(cuid())
-  partnerId     String
-  partner       Partner  @relation(fields: [partnerId], references: [partnerId], onDelete: Cascade)
-  label         String
-  loginUrl      String?
-  username      String
-  password      String
-  softwareType  String?
-  notes         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  @@unique([partnerId, label])
-}
-
-model AuditLog {
-  logId     String   @id @default(cuid())
-  timestamp DateTime @default(now())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  entity    String
-  entityId  String
-  action    String
-  details   Json?
-}
-
-model IntakeLink {
-  intakeLinkId    String             @id @default(cuid())
-  tokenHash       String             @unique
-  createdByUserId String
-  createdBy       User               @relation(fields: [createdByUserId], references: [id])
-  expiresAt       DateTime
-  usedAt          DateTime?
-  note            String?
-  createdAt       DateTime           @default(now())
-  submissions     IntakeSubmission[]
-}
-
-model IntakeSubmission {
-  submissionId       String                 @id @default(cuid())
-  intakeLinkId       String
-  intakeLink         IntakeLink             @relation(fields: [intakeLinkId], references: [intakeLinkId])
-  companyName        String
-  websiteDomain      String?
-  brands             Json                   @default("[]")
-  contactName        String
-  contactEmail       String?
-  contactPhone       String?
-  contactTelegram    String?
-  contactWhatsapp    String?
-  preferredContact   String?
-  notes              String?
-  status             IntakeSubmissionStatus  @default(Pending)
-  convertedPartnerId String?
-  convertedBrandIds  String[]               @default([])
-  convertedContactId String?
-  convertedByUserId  String?
-  convertedAt        DateTime?
-  rejectedByUserId   String?
-  rejectedAt         DateTime?
-  rejectionReason    String?
-  submittedAt        DateTime               @default(now())
-  updatedAt          DateTime               @updatedAt
 }

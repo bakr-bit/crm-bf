@@ -78,28 +78,25 @@ export async function POST(
 
     const data = parsed.data;
 
-    // Check unique email per partner
-    const existingContact = await prisma.contact.findUnique({
-      where: {
-        partnerId_email: {
-          partnerId,
-          email: data.email,
-        },
-      },
-    });
+    // Check unique email per partner (only if email provided)
+    if (data.email) {
+      const existingContact = await prisma.contact.findFirst({
+        where: { partnerId, email: data.email },
+      });
 
-    if (existingContact) {
-      return NextResponse.json(
-        { error: "A contact with this email already exists for this partner" },
-        { status: 409 }
-      );
+      if (existingContact) {
+        return NextResponse.json(
+          { error: "A contact with this email already exists for this partner" },
+          { status: 409 }
+        );
+      }
     }
 
     const contact = await prisma.contact.create({
       data: {
         partnerId,
         name: data.name,
-        email: data.email,
+        email: data.email || null,
         phone: data.phone,
         role: data.role,
         telegram: data.telegram,

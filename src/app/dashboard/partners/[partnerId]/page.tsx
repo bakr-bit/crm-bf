@@ -74,7 +74,7 @@ interface Contact {
   contactId: string;
   partnerId: string;
   name: string;
-  email: string;
+  email: string | null;
   phone: string | null;
   role: string | null;
   telegram: string | null;
@@ -334,7 +334,7 @@ export default function PartnerDetailPage() {
     return {
       id: c.contactId,
       name: c.name,
-      email: c.email,
+      email: c.email ?? undefined,
       phone: c.phone ?? undefined,
       role: c.role ?? undefined,
       telegram: c.telegram ?? undefined,
@@ -775,7 +775,7 @@ export default function PartnerDetailPage() {
                           {contact.name}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {contact.email}
+                          {contact.email ?? "-"}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {contact.phone ?? "-"}
