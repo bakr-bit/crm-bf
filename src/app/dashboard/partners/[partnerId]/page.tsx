@@ -54,7 +54,6 @@ interface Brand {
   partnerId: string;
   name: string;
   brandDomain: string | null;
-  trackingDomain: string | null;
   brandIdentifiers: unknown;
   postbacks: string | null;
   licenseInfo: string | null;
@@ -317,7 +316,6 @@ export default function PartnerDetailPage() {
       id: b.brandId,
       name: b.name,
       brandDomain: b.brandDomain ?? undefined,
-      trackingDomain: b.trackingDomain ?? undefined,
       postbacks: b.postbacks ?? undefined,
       licenseInfo: b.licenseInfo ?? undefined,
       extraInfo: b.extraInfo ?? undefined,
@@ -541,7 +539,6 @@ export default function PartnerDetailPage() {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Domain</TableHead>
-                    <TableHead>Tracking Domain</TableHead>
                     <TableHead>Target Geos</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="w-12">Actions</TableHead>
@@ -551,7 +548,7 @@ export default function PartnerDetailPage() {
                   {partner.brands.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={6}
+                        colSpan={5}
                         className="text-center text-muted-foreground"
                       >
                         No brands yet.
@@ -565,9 +562,6 @@ export default function PartnerDetailPage() {
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {brand.brandDomain ?? "-"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {brand.trackingDomain ?? "-"}
                         </TableCell>
                         <TableCell>
                           {(brand.targetGeos?.length ?? 0) === 0 ? (

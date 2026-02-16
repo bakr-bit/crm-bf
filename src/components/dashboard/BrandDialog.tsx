@@ -24,7 +24,6 @@ interface Brand {
   id: string;
   name: string;
   brandDomain?: string;
-  trackingDomain?: string;
   postbacks?: string;
   licenseInfo?: string;
   extraInfo?: string;
@@ -52,7 +51,6 @@ export function BrandDialog({
 
   const [name, setName] = useState("");
   const [brandDomain, setBrandDomain] = useState("");
-  const [trackingDomain, setTrackingDomain] = useState("");
   const [postbacks, setPostbacks] = useState("");
   const [licenseInfo, setLicenseInfo] = useState("");
   const [extraInfo, setExtraInfo] = useState("");
@@ -65,7 +63,6 @@ export function BrandDialog({
     if (brand) {
       setName(brand.name ?? "");
       setBrandDomain(brand.brandDomain ?? "");
-      setTrackingDomain(brand.trackingDomain ?? "");
       setPostbacks(brand.postbacks ?? "");
       setLicenseInfo(brand.licenseInfo ?? "");
       setExtraInfo(brand.extraInfo ?? "");
@@ -75,7 +72,6 @@ export function BrandDialog({
     } else {
       setName("");
       setBrandDomain("");
-      setTrackingDomain("");
       setPostbacks("");
       setLicenseInfo("");
       setExtraInfo("");
@@ -96,7 +92,6 @@ export function BrandDialog({
     const body = {
       name: name.trim(),
       brandDomain: brandDomain.trim() || undefined,
-      trackingDomain: trackingDomain.trim() || undefined,
       postbacks: postbacks.trim() || undefined,
       licenseInfo: licenseInfo.trim() || undefined,
       extraInfo: extraInfo.trim() || undefined,
@@ -161,17 +156,6 @@ export function BrandDialog({
               value={brandDomain}
               onChange={(e) => setBrandDomain(e.target.value)}
               placeholder="brand.com"
-            />
-          </div>
-
-          {/* Tracking Domain */}
-          <div className="grid gap-2">
-            <Label htmlFor="brand-tracking-domain">Tracking Domain</Label>
-            <Input
-              id="brand-tracking-domain"
-              value={trackingDomain}
-              onChange={(e) => setTrackingDomain(e.target.value)}
-              placeholder="tracking.brand.com"
             />
           </div>
 

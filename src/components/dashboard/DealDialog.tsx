@@ -91,6 +91,7 @@ export function DealDialog({
 
   // Other fields
   const [affiliateLink, setAffiliateLink] = useState("");
+  const [trackingDomain, setTrackingDomain] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [endDateNA, setEndDateNA] = useState(false);
@@ -153,6 +154,7 @@ export function DealDialog({
       setPositionId(prefill?.positionId ?? "");
       setPositions([]);
       setAffiliateLink("");
+      setTrackingDomain("");
       setStartDate("");
       setEndDate("");
       setEndDateNA(false);
@@ -277,6 +279,7 @@ export function DealDialog({
       assetId,
       positionId,
       affiliateLink: affiliateLink.trim() || undefined,
+      trackingDomain: trackingDomain.trim() || undefined,
       startDate,
       endDate: endDate || undefined,
       notes: notes.trim() || undefined,
@@ -466,6 +469,17 @@ export function DealDialog({
               value={affiliateLink}
               onChange={(e) => setAffiliateLink(e.target.value)}
               placeholder="https://..."
+            />
+          </div>
+
+          {/* Tracking Domain */}
+          <div className="grid gap-2">
+            <Label htmlFor="deal-tracking-domain">Tracking Domain</Label>
+            <Input
+              id="deal-tracking-domain"
+              value={trackingDomain}
+              onChange={(e) => setTrackingDomain(e.target.value)}
+              placeholder="tracking.brand.com"
             />
           </div>
 

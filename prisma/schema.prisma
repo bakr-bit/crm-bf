@@ -109,7 +109,6 @@ model Brand {
   partner          Partner     @relation(fields: [partnerId], references: [partnerId], onDelete: Cascade)
   name             String
   brandDomain      String?
-  trackingDomain   String?
   brandIdentifiers   Json?
   postbacks          String?
   licenseInfo        String?
@@ -191,6 +190,7 @@ model Deal {
   position       Position   @relation(fields: [positionId], references: [positionId])
 
   affiliateLink  String?
+  trackingDomain String?
   startDate      DateTime   @default(now())
   endDate        DateTime?
   status         DealStatus @default(Live)

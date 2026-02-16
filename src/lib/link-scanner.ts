@@ -11,7 +11,6 @@ export interface BrandInfo {
   partnerId: string;
   name: string;
   brandDomain: string | null;
-  trackingDomain: string | null;
 }
 
 export interface DealInfo {
@@ -19,6 +18,7 @@ export interface DealInfo {
   partnerId: string;
   brandId: string;
   affiliateLink: string | null;
+  trackingDomain: string | null;
   positionId: string;
 }
 
@@ -117,20 +117,6 @@ export function matchBrand(link: ExtractedLink, brands: BrandInfo[]): BrandMatch
   let bestMatch: BrandMatch | null = null;
 
   for (const brand of brands) {
-    // Check tracking domain first (higher confidence)
-    if (brand.trackingDomain) {
-      const normalizedTracking = normalizeDomain(brand.trackingDomain);
-      if (
-        link.domain === normalizedTracking ||
-        link.domain.endsWith(`.${normalizedTracking}`)
-      ) {
-        const confidence = 0.95;
-        if (!bestMatch || confidence > bestMatch.confidence) {
-          bestMatch = { brand, confidence };
-        }
-      }
-    }
-
     // Check brand domain
     if (brand.brandDomain) {
       const normalizedBrand = normalizeDomain(brand.brandDomain);
@@ -156,6 +142,18 @@ export function matchDeal(
   link: ExtractedLink,
   deals: DealInfo[]
 ): DealInfo | null {
+  // Check trackingDomain first
+  for (const deal of deals) {
+    if (!deal.trackingDomain) continue;
+    const normalizedTracking = normalizeDomain(deal.trackingDomain);
+    if (
+      link.domain === normalizedTracking ||
+      link.domain.endsWith(`.${normalizedTracking}`)
+    ) {
+      return deal;
+    }
+  }
+
   for (const deal of deals) {
     if (!deal.affiliateLink) continue;
 

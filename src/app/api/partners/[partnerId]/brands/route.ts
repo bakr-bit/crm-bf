@@ -83,7 +83,6 @@ export async function POST(
         partnerId,
         name: data.name,
         brandDomain: data.brandDomain,
-        trackingDomain: data.trackingDomain,
         brandIdentifiers: data.brandIdentifiers ?? undefined,
         postbacks: data.postbacks,
         licenseInfo: data.licenseInfo,

@@ -65,6 +65,7 @@ export function DealReplacementDialog({
   // Other fields
   const [replacementReason, setReplacementReason] = useState("");
   const [affiliateLink, setAffiliateLink] = useState("");
+  const [trackingDomain, setTrackingDomain] = useState("");
   const [notes, setNotes] = useState("");
 
   const [loading, setLoading] = useState(false);
@@ -90,6 +91,7 @@ export function DealReplacementDialog({
       setBrands([]);
       setReplacementReason("");
       setAffiliateLink("");
+      setTrackingDomain("");
       setNotes("");
     }
   }, [open, fetchPartners]);
@@ -149,6 +151,7 @@ export function DealReplacementDialog({
       brandId,
       replacementReason: replacementReason.trim(),
       affiliateLink: affiliateLink.trim() || undefined,
+      trackingDomain: trackingDomain.trim() || undefined,
       notes: notes.trim() || undefined,
     };
 
@@ -253,6 +256,17 @@ export function DealReplacementDialog({
               value={affiliateLink}
               onChange={(e) => setAffiliateLink(e.target.value)}
               placeholder="https://..."
+            />
+          </div>
+
+          {/* Tracking Domain */}
+          <div className="grid gap-2">
+            <Label htmlFor="replace-tracking-domain">Tracking Domain</Label>
+            <Input
+              id="replace-tracking-domain"
+              value={trackingDomain}
+              onChange={(e) => setTrackingDomain(e.target.value)}
+              placeholder="tracking.brand.com"
             />
           </div>
 

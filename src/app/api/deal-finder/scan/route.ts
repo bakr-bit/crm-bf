@@ -85,17 +85,13 @@ export async function POST(request: Request) {
     const brands = await prisma.brand.findMany({
       where: {
         status: "Active",
-        OR: [
-          { trackingDomain: { not: null } },
-          { brandDomain: { not: null } },
-        ],
+        brandDomain: { not: null },
       },
       select: {
         brandId: true,
         partnerId: true,
         name: true,
         brandDomain: true,
-        trackingDomain: true,
       },
     });
 
@@ -109,6 +105,7 @@ export async function POST(request: Request) {
         partnerId: true,
         brandId: true,
         affiliateLink: true,
+        trackingDomain: true,
         positionId: true,
       },
     });
