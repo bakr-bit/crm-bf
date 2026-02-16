@@ -16,6 +16,7 @@ export const partnerCreateSchema = z.object({
   hasLicense: z.boolean().default(false),
   hasBanking: z.boolean().default(false),
   sopNotes: z.string().optional(),
+  accountManagerUserId: z.string().optional(),
   force: z.boolean().default(false),
 });
 

@@ -42,6 +42,7 @@ interface Partner {
   licenseFileUrl?: string | null;
   bankingFileUrl?: string | null;
   sopNotes?: string;
+  accountManagerUserId?: string;
 }
 
 interface PartnerDialogProps {
@@ -75,8 +76,19 @@ export function PartnerDialog({
   const contractInputRef = useRef<HTMLInputElement>(null);
   const licenseInputRef = useRef<HTMLInputElement>(null);
   const bankingInputRef = useRef<HTMLInputElement>(null);
+  const [accountManagerUserId, setAccountManagerUserId] = useState("");
+  const [users, setUsers] = useState<{id: string; name: string; email: string}[]>([]);
   const [loading, setLoading] = useState(false);
   const [duplicates, setDuplicates] = useState<DuplicateMatch[]>([]);
+
+  useEffect(() => {
+    if (open) {
+      fetch("/api/users")
+        .then((r) => r.json())
+        .then((data) => setUsers(Array.isArray(data) ? data : []))
+        .catch(() => setUsers([]));
+    }
+  }, [open]);
 
   useEffect(() => {
     if (partner) {
@@ -91,6 +103,7 @@ export function PartnerDialog({
       setLicenseFileUrl(partner.licenseFileUrl ?? null);
       setBankingFileUrl(partner.bankingFileUrl ?? null);
       setSopNotes(partner.sopNotes ?? "");
+      setAccountManagerUserId(partner.accountManagerUserId ?? "");
     } else {
       setName("");
       setWebsiteDomain("");
@@ -103,6 +116,7 @@ export function PartnerDialog({
       setLicenseFileUrl(null);
       setBankingFileUrl(null);
       setSopNotes("");
+      setAccountManagerUserId("");
     }
     setDuplicates([]);
     setPendingFiles({});
@@ -198,6 +212,7 @@ export function PartnerDialog({
       websiteDomain: websiteDomain.trim() || undefined,
       isDirect,
       status,
+      accountManagerUserId: accountManagerUserId || undefined,
       force,
       ...(isDirect && {
         hasContract,
@@ -318,6 +333,27 @@ export function PartnerDialog({
                 <SelectItem value="Pending">Pending</SelectItem>
                 <SelectItem value="Inactive">Inactive</SelectItem>
                 <SelectItem value="Archived">Archived</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Account Manager */}
+          <div className="grid gap-2">
+            <Label>Account Manager</Label>
+            <Select
+              value={accountManagerUserId}
+              onValueChange={(val) => setAccountManagerUserId(val === "none" ? "" : val)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="None" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                {users.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.name} ({u.email})
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

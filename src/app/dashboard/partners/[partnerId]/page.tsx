@@ -144,6 +144,8 @@ interface PartnerDetail {
   sopNotes: string | null;
   ownerUserId: string;
   owner: { id: string; name: string } | null;
+  accountManagerUserId: string | null;
+  accountManager: { id: string; name: string } | null;
   createdAt: string;
   updatedAt: string;
   brands: Brand[];
@@ -309,6 +311,7 @@ export default function PartnerDetailPage() {
       licenseFileUrl: p.licenseFileUrl,
       bankingFileUrl: p.bankingFileUrl,
       sopNotes: p.sopNotes ?? undefined,
+      accountManagerUserId: p.accountManagerUserId ?? undefined,
     };
   }
 
@@ -465,6 +468,12 @@ export default function PartnerDetailPage() {
                     Owner
                   </dt>
                   <dd className="text-sm">{partner.owner?.name ?? "Unknown"}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">
+                    Account Manager
+                  </dt>
+                  <dd className="text-sm">{partner.accountManager?.name ?? "Not assigned"}</dd>
                 </div>
               </dl>
 

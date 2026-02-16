@@ -59,6 +59,7 @@ model User {
   updatedDeals  Deal[]         @relation("DealUpdatedBy")
   notifications Notification[]
   intakeLinks   IntakeLink[]
+  managedPartners Partner[] @relation("PartnerAccountManager")
 }
 
 model Partner {
@@ -79,6 +80,9 @@ model Partner {
 
   ownerUserId   String
   owner         User      @relation(fields: [ownerUserId], references: [id])
+
+  accountManagerUserId String?
+  accountManager       User?     @relation("PartnerAccountManager", fields: [accountManagerUserId], references: [id])
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt

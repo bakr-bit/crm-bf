@@ -22,6 +22,7 @@ export async function GET(
       where: { partnerId },
       include: {
         owner: { select: { id: true, name: true } },
+        accountManager: { select: { id: true, name: true } },
         brands: true,
         contacts: true,
         deals: {
