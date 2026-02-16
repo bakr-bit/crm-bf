@@ -19,13 +19,14 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { GeoMultiSelect } from "./GeoMultiSelect";
+import { LicenseMultiSelect } from "./LicenseMultiSelect";
 
 interface Brand {
   id: string;
   name: string;
   brandDomain?: string;
   postbacks?: string;
-  licenseInfo?: string;
+  licenses?: string[];
   extraInfo?: string;
   affiliateSoftware?: string;
   status?: string;
@@ -52,7 +53,7 @@ export function BrandDialog({
   const [name, setName] = useState("");
   const [brandDomain, setBrandDomain] = useState("");
   const [postbacks, setPostbacks] = useState("");
-  const [licenseInfo, setLicenseInfo] = useState("");
+  const [licenses, setLicenses] = useState<string[]>([]);
   const [extraInfo, setExtraInfo] = useState("");
   const [affiliateSoftware, setAffiliateSoftware] = useState("");
   const [status, setStatus] = useState("Active");
@@ -64,7 +65,7 @@ export function BrandDialog({
       setName(brand.name ?? "");
       setBrandDomain(brand.brandDomain ?? "");
       setPostbacks(brand.postbacks ?? "");
-      setLicenseInfo(brand.licenseInfo ?? "");
+      setLicenses(brand.licenses ?? []);
       setExtraInfo(brand.extraInfo ?? "");
       setAffiliateSoftware(brand.affiliateSoftware ?? "");
       setStatus(brand.status ?? "Active");
@@ -73,7 +74,7 @@ export function BrandDialog({
       setName("");
       setBrandDomain("");
       setPostbacks("");
-      setLicenseInfo("");
+      setLicenses([]);
       setExtraInfo("");
       setAffiliateSoftware("");
       setStatus("Active");
@@ -93,7 +94,7 @@ export function BrandDialog({
       name: name.trim(),
       brandDomain: brandDomain.trim() || undefined,
       postbacks: postbacks.trim() || undefined,
-      licenseInfo: licenseInfo.trim() || undefined,
+      licenses,
       extraInfo: extraInfo.trim() || undefined,
       affiliateSoftware: affiliateSoftware.trim() || undefined,
       status,
@@ -176,15 +177,10 @@ export function BrandDialog({
             />
           </div>
 
-          {/* License Info */}
+          {/* Licenses */}
           <div className="grid gap-2">
-            <Label htmlFor="brand-license-info">License Info</Label>
-            <Input
-              id="brand-license-info"
-              value={licenseInfo}
-              onChange={(e) => setLicenseInfo(e.target.value)}
-              placeholder="e.g. MGA, Curacao, UKGC"
-            />
+            <Label>Licenses</Label>
+            <LicenseMultiSelect value={licenses} onChange={setLicenses} />
           </div>
 
           {/* Affiliate Software */}

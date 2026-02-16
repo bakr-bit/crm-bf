@@ -24,7 +24,7 @@ interface IntakeBrand {
   brandName: string;
   brandDomain?: string;
   targetGeos?: string[];
-  licenseInfo?: string;
+  licenses?: string[];
 }
 
 interface Submission {

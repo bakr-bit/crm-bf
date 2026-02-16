@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { GeoFlag } from "@/components/dashboard/GeoFlag";
+import { LICENSE_MAP } from "@/lib/licenses";
 
 // ---------- types ----------
 
@@ -56,7 +57,7 @@ interface Brand {
   brandDomain: string | null;
   brandIdentifiers: unknown;
   postbacks: string | null;
-  licenseInfo: string | null;
+  licenses: string[];
   extraInfo: string | null;
   affiliateSoftware: string | null;
   status: string;
@@ -317,7 +318,7 @@ export default function PartnerDetailPage() {
       name: b.name,
       brandDomain: b.brandDomain ?? undefined,
       postbacks: b.postbacks ?? undefined,
-      licenseInfo: b.licenseInfo ?? undefined,
+      licenses: b.licenses ?? [],
       extraInfo: b.extraInfo ?? undefined,
       affiliateSoftware: b.affiliateSoftware ?? undefined,
       status: b.status,
@@ -539,6 +540,7 @@ export default function PartnerDetailPage() {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Domain</TableHead>
+                    <TableHead>Licenses</TableHead>
                     <TableHead>Target Geos</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="w-12">Actions</TableHead>
@@ -548,7 +550,7 @@ export default function PartnerDetailPage() {
                   {partner.brands.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={5}
+                        colSpan={6}
                         className="text-center text-muted-foreground"
                       >
                         No brands yet.
@@ -562,6 +564,23 @@ export default function PartnerDetailPage() {
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {brand.brandDomain ?? "-"}
+                        </TableCell>
+                        <TableCell>
+                          {(brand.licenses?.length ?? 0) === 0 ? (
+                            <span className="text-muted-foreground">-</span>
+                          ) : (
+                            <div className="flex flex-wrap gap-1">
+                              {(brand.licenses ?? []).map((code) => (
+                                <Badge
+                                  key={code}
+                                  variant="outline"
+                                  className="text-xs"
+                                >
+                                  {LICENSE_MAP[code] ?? code}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell>
                           {(brand.targetGeos?.length ?? 0) === 0 ? (

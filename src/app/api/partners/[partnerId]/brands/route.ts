@@ -85,7 +85,7 @@ export async function POST(
         brandDomain: data.brandDomain,
         brandIdentifiers: data.brandIdentifiers ?? undefined,
         postbacks: data.postbacks,
-        licenseInfo: data.licenseInfo,
+        licenses: data.licenses,
         extraInfo: data.extraInfo,
         affiliateSoftware: data.affiliateSoftware,
         status: data.status,

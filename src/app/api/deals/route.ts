@@ -46,9 +46,9 @@ export async function GET(request: Request) {
       where.partner = { ...(where.partner as Record<string, unknown> ?? {}), ownerUserId };
     }
     if (hasLicense === "yes") {
-      where.brand = { ...(where.brand as Record<string, unknown> ?? {}), licenseInfo: { not: null } };
+      where.brand = { ...(where.brand as Record<string, unknown> ?? {}), licenses: { isEmpty: false } };
     } else if (hasLicense === "no") {
-      where.brand = { ...(where.brand as Record<string, unknown> ?? {}), licenseInfo: null };
+      where.brand = { ...(where.brand as Record<string, unknown> ?? {}), licenses: { isEmpty: true } };
     }
     if (isDirect === "yes") {
       where.isDirect = true;

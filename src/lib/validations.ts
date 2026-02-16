@@ -26,7 +26,7 @@ export const brandCreateSchema = z.object({
   brandDomain: domainTransform,
   brandIdentifiers: z.any().optional(),
   postbacks: z.string().optional(),
-  licenseInfo: z.string().optional(),
+  licenses: z.array(z.string()).default([]),
   extraInfo: z.string().optional(),
   affiliateSoftware: z.string().optional(),
   status: z.enum(["Active", "Inactive", "Archived"]).default("Active"),
@@ -138,7 +138,7 @@ export const intakeBrandSchema = z.object({
   brandName: z.string().min(1, "Brand name is required"),
   brandDomain: domainTransform,
   targetGeos: z.array(z.string().length(2).toUpperCase()).default([]),
-  licenseInfo: z.string().optional(),
+  licenses: z.array(z.string()).default([]),
 });
 
 export const intakeSubmissionCreateSchema = z.object({

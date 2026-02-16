@@ -97,7 +97,7 @@ model Brand {
   brandDomain      String?
   brandIdentifiers   Json?
   postbacks          String?
-  licenseInfo        String?
+  licenses           String[]         @default([])
   extraInfo          String?
   affiliateSoftware  String?
   status             BrandStatus @default(Active)

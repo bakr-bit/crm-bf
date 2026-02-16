@@ -22,12 +22,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { COUNTRY_MAP } from "@/lib/countries";
+import { LICENSE_MAP } from "@/lib/licenses";
 
 interface IntakeBrand {
   brandName: string;
   brandDomain?: string;
   targetGeos?: string[];
-  licenseInfo?: string;
+  licenses?: string[];
 }
 
 interface Submission {
@@ -181,8 +182,20 @@ export function IntakeConvertDialog({
                     <dd>{brand.brandName}</dd>
                     <dt className="text-muted-foreground">Brand Domain</dt>
                     <dd>{brand.brandDomain || "—"}</dd>
-                    <dt className="text-muted-foreground">License Info</dt>
-                    <dd>{brand.licenseInfo || "—"}</dd>
+                    <dt className="text-muted-foreground">Licenses</dt>
+                    <dd>
+                      {(brand.licenses ?? []).length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {(brand.licenses ?? []).map((code) => (
+                            <Badge key={code} variant="secondary" className="text-xs">
+                              {LICENSE_MAP[code] ?? code}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        "—"
+                      )}
+                    </dd>
                     <dt className="text-muted-foreground">Target Geos</dt>
                     <dd>
                       {(brand.targetGeos ?? []).length > 0 ? (

@@ -11,7 +11,7 @@ interface IntakeBrand {
   brandName: string;
   brandDomain?: string;
   targetGeos?: string[];
-  licenseInfo?: string;
+  licenses?: string[];
 }
 
 export async function POST(
@@ -97,7 +97,7 @@ export async function POST(
             name: b.brandName,
             brandDomain: b.brandDomain,
             targetGeos: b.targetGeos ?? [],
-            licenseInfo: b.licenseInfo,
+            licenses: b.licenses ?? [],
           },
         });
         createdBrands.push(brand);

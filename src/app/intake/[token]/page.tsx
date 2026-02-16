@@ -21,17 +21,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { GeoMultiSelect } from "@/components/dashboard/GeoMultiSelect";
+import { LicenseMultiSelect } from "@/components/dashboard/LicenseMultiSelect";
 import { Plus, X } from "lucide-react";
 
 interface BrandEntry {
   brandName: string;
   brandDomain: string;
   targetGeos: string[];
-  licenseInfo: string;
+  licenses: string[];
 }
 
 function emptyBrand(): BrandEntry {
-  return { brandName: "", brandDomain: "", targetGeos: [], licenseInfo: "" };
+  return { brandName: "", brandDomain: "", targetGeos: [], licenses: [] };
 }
 
 type PageState = "loading" | "invalid" | "form" | "submitting" | "success";
@@ -101,7 +102,7 @@ export default function IntakePage() {
             brandName: b.brandName.trim(),
             brandDomain: b.brandDomain.trim() || undefined,
             targetGeos: b.targetGeos,
-            licenseInfo: b.licenseInfo.trim() || undefined,
+            licenses: b.licenses,
           })),
           contactName: contactName.trim(),
           contactEmail: contactEmail.trim(),
@@ -273,13 +274,10 @@ export default function IntakePage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>License Info</Label>
-                        <Input
-                          value={brand.licenseInfo}
-                          onChange={(e) =>
-                            updateBrand(i, "licenseInfo", e.target.value)
-                          }
-                          placeholder="e.g. MGA, Curacao, UKGC"
+                        <Label>Licenses</Label>
+                        <LicenseMultiSelect
+                          value={brand.licenses}
+                          onChange={(val) => updateBrand(i, "licenses", val)}
                         />
                       </div>
                     </div>
