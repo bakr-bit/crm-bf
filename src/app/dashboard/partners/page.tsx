@@ -357,7 +357,7 @@ export default function PartnersPage() {
                       </PopoverContent>
                     </Popover>
                   </TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="size-8">
