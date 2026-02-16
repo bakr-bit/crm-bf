@@ -161,7 +161,6 @@ export async function POST(request: Request) {
           positionId: data.positionId,
           geo: data.geo,
           affiliateLink: data.affiliateLink,
-          trackingDomain: data.trackingDomain,
           startDate: data.startDate,
           endDate: data.endDate,
           notes: data.notes,

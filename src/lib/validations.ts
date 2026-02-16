@@ -83,7 +83,6 @@ export const dealCreateSchema = z.object({
   positionId: z.string().min(1, "Position is required"),
   geo: z.string().length(2).toUpperCase(),
   affiliateLink: z.string().optional(),
-  trackingDomain: domainTransform,
   startDate: z.string().optional().transform((val) => val ? new Date(val) : new Date()),
   endDate: z.string().optional().transform((val) => val ? new Date(val) : undefined),
   notes: z.string().optional(),
@@ -92,7 +91,6 @@ export const dealCreateSchema = z.object({
 
 export const dealUpdateSchema = z.object({
   affiliateLink: z.string().optional(),
-  trackingDomain: domainTransform,
   geo: z.string().length(2).toUpperCase().optional(),
   endDate: z.string().optional().transform((val) => val ? new Date(val) : undefined),
   status: z.enum(DEAL_STATUSES).optional(),
@@ -106,7 +104,6 @@ export const dealReplaceSchema = z.object({
   brandId: z.string().min(1, "Brand is required"),
   geo: z.string().length(2).toUpperCase().optional(),
   affiliateLink: z.string().optional(),
-  trackingDomain: domainTransform,
   replacementReason: z.string().min(1, "Replacement reason is required"),
   notes: z.string().optional(),
   ...dealFinancialFields,

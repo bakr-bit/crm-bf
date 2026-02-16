@@ -18,7 +18,6 @@ export interface DealInfo {
   partnerId: string;
   brandId: string;
   affiliateLink: string | null;
-  trackingDomain: string | null;
   positionId: string;
 }
 
@@ -142,18 +141,6 @@ export function matchDeal(
   link: ExtractedLink,
   deals: DealInfo[]
 ): DealInfo | null {
-  // Check trackingDomain first
-  for (const deal of deals) {
-    if (!deal.trackingDomain) continue;
-    const normalizedTracking = normalizeDomain(deal.trackingDomain);
-    if (
-      link.domain === normalizedTracking ||
-      link.domain.endsWith(`.${normalizedTracking}`)
-    ) {
-      return deal;
-    }
-  }
-
   for (const deal of deals) {
     if (!deal.affiliateLink) continue;
 

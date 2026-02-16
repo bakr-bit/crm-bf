@@ -190,7 +190,6 @@ model Deal {
   position       Position   @relation(fields: [positionId], references: [positionId])
 
   affiliateLink  String?
-  trackingDomain String?
   startDate      DateTime   @default(now())
   endDate        DateTime?
   status         DealStatus @default(Live)

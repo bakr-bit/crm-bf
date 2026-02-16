@@ -105,7 +105,6 @@ export async function POST(request: Request) {
         partnerId: true,
         brandId: true,
         affiliateLink: true,
-        trackingDomain: true,
         positionId: true,
       },
     });

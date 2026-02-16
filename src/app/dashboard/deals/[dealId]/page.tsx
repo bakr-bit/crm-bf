@@ -49,7 +49,6 @@ interface DealDetail {
   assetId: string;
   positionId: string;
   affiliateLink: string | null;
-  trackingDomain: string | null;
   status: string;
   isDirect: boolean;
   geo: string;
@@ -345,14 +344,6 @@ export default function DealDetailPage() {
                   </dt>
                   <dd className="truncate font-mono text-xs">
                     {deal.affiliateLink ?? "-"}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-muted-foreground">
-                    Tracking Domain
-                  </dt>
-                  <dd className="truncate font-mono text-xs">
-                    {deal.trackingDomain ?? "-"}
                   </dd>
                 </div>
                 <div>
