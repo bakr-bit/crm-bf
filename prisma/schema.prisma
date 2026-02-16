@@ -34,6 +34,11 @@ enum AssetStatus {
   Archived
 }
 
+enum PageStatus {
+  Active
+  Archived
+}
+
 enum PositionStatus {
   Active
   Archived
@@ -145,14 +150,32 @@ model Asset {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
+  pages       Page[]
+  deals       Deal[]
+}
+
+model Page {
+  pageId      String     @id @default(cuid())
+  assetId     String
+  asset       Asset      @relation(fields: [assetId], references: [assetId], onDelete: Cascade)
+  name        String
+  path        String?
+  description String?
+  status      PageStatus @default(Active)
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
   positions   Position[]
   deals       Deal[]
+
+  @@unique([assetId, name])
 }
 
 model Position {
   positionId String         @id @default(cuid())
-  assetId    String
-  asset      Asset          @relation(fields: [assetId], references: [assetId], onDelete: Cascade)
+  pageId     String
+  page       Page           @relation(fields: [pageId], references: [pageId], onDelete: Cascade)
   name       String
   path       String?
   details    String?
@@ -163,7 +186,7 @@ model Position {
 
   deals      Deal[]
 
-  @@unique([assetId, name])
+  @@unique([pageId, name])
 }
 
 model Deal {
@@ -174,6 +197,8 @@ model Deal {
   brand          Brand      @relation(fields: [brandId], references: [brandId])
   assetId        String
   asset          Asset      @relation(fields: [assetId], references: [assetId])
+  pageId         String
+  page           Page       @relation(fields: [pageId], references: [pageId])
   positionId     String
   position       Position   @relation(fields: [positionId], references: [positionId])
 

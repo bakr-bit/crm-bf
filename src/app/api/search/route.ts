@@ -71,7 +71,7 @@ export async function GET(request: Request) {
           name: true,
           assetDomain: true,
           _count: {
-            select: { positions: true },
+            select: { pages: true },
           },
         },
         take: 5,

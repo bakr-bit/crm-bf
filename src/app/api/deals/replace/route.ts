@@ -82,12 +82,13 @@ export async function POST(request: Request) {
         dealStatus = "Approved";
       }
 
-      // Create new deal on same asset/position with new partner/brand
+      // Create new deal on same asset/page/position with new partner/brand
       const newDeal = await tx.deal.create({
         data: {
           partnerId: data.partnerId,
           brandId: data.brandId,
           assetId: existingDeal.assetId,
+          pageId: existingDeal.pageId,
           positionId: existingDeal.positionId,
           geo: data.geo ?? existingDeal.geo,
           affiliateLink: data.affiliateLink,
@@ -111,6 +112,7 @@ export async function POST(request: Request) {
           partner: true,
           brand: true,
           asset: true,
+          page: true,
           position: true,
         },
       });

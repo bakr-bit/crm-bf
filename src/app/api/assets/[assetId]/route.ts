@@ -21,14 +21,20 @@ export async function GET(
     const asset = await prisma.asset.findUnique({
       where: { assetId },
       include: {
-        positions: {
+        pages: {
           where: { status: "Active" },
+          orderBy: { createdAt: "asc" },
           include: {
-            deals: {
-              where: { status: { in: OCCUPYING_STATUSES } },
+            positions: {
+              where: { status: "Active" },
               include: {
-                partner: true,
-                brand: true,
+                deals: {
+                  where: { status: { in: OCCUPYING_STATUSES } },
+                  include: {
+                    partner: true,
+                    brand: true,
+                  },
+                },
               },
             },
           },

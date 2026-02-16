@@ -14,16 +14,22 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const geo = searchParams.get("geo")?.toUpperCase() || null;
 
-    // Find all active positions with their assets and occupying deals
+    // Find all active positions with their pages/assets and occupying deals
     const positions = await prisma.position.findMany({
       where: { status: "Active" },
       include: {
-        asset: {
+        page: {
           select: {
-            assetId: true,
+            pageId: true,
             name: true,
-            assetDomain: true,
-            status: true,
+            asset: {
+              select: {
+                assetId: true,
+                name: true,
+                assetDomain: true,
+                status: true,
+              },
+            },
           },
         },
         deals: {
@@ -38,15 +44,18 @@ export async function GET(request: Request) {
         },
       },
       orderBy: [
-        { asset: { name: "asc" } },
+        { page: { asset: { name: "asc" } } },
         { name: "asc" },
       ],
     });
 
-    // Filter to only active assets
-    const activePositions = positions.filter(
-      (p) => p.asset.status === "Active"
-    );
+    // Filter to only active assets and reshape for backward compatibility
+    const activePositions = positions
+      .filter((p) => p.page.asset.status === "Active")
+      .map((p) => ({
+        ...p,
+        asset: p.page.asset,
+      }));
 
     // If geo filter is set, only return positions that are open for that geo
     if (geo) {

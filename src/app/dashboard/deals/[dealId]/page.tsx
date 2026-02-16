@@ -47,6 +47,7 @@ interface DealDetail {
   partnerId: string;
   brandId: string;
   assetId: string;
+  pageId: string;
   positionId: string;
   affiliateLink: string | null;
   status: string;
@@ -68,6 +69,7 @@ interface DealDetail {
   partner: { partnerId: string; name: string };
   brand: { brandId: string; name: string };
   asset: { assetId: string; name: string };
+  page: { pageId: string; name: string };
   position: { positionId: string; name: string };
   createdBy: DealUser | null;
   updatedBy: DealUser | null;
@@ -331,6 +333,12 @@ export default function DealDetailPage() {
                       {deal.asset.name}
                     </Link>
                   </dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">
+                    Page
+                  </dt>
+                  <dd className="text-sm">{deal.page.name}</dd>
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-muted-foreground">

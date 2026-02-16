@@ -13,52 +13,50 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
-interface Position {
+interface Page {
   id: string;
   name: string;
   path?: string;
-  details?: string;
+  description?: string;
 }
 
-interface PositionDialogProps {
+interface PageDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   assetId: string;
-  pageId: string;
-  position?: Position;
+  page?: Page;
   onSuccess: () => void;
 }
 
-export function PositionDialog({
+export function PageDialog({
   open,
   onOpenChange,
   assetId,
-  pageId,
-  position,
+  page,
   onSuccess,
-}: PositionDialogProps) {
-  const isEdit = Boolean(position);
+}: PageDialogProps) {
+  const isEdit = Boolean(page);
 
   const [name, setName] = useState("");
   const [path, setPath] = useState("");
-  const [details, setDetails] = useState("");
+  const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (position) {
-      setName(position.name ?? "");
-      setPath(position.path ?? "");
-      setDetails(position.details ?? "");
+    if (page) {
+      setName(page.name ?? "");
+      setPath(page.path ?? "");
+      setDescription(page.description ?? "");
     } else {
       setName("");
       setPath("");
-      setDetails("");
+      setDescription("");
     }
-  }, [position, open]);
+  }, [page, open]);
 
   async function handleSubmit() {
     if (!name.trim()) {
-      toast.error("Position name is required.");
+      toast.error("Page name is required.");
       return;
     }
 
@@ -67,13 +65,13 @@ export function PositionDialog({
     const body = {
       name: name.trim(),
       path: path.trim() || undefined,
-      details: details.trim() || undefined,
+      description: description.trim() || undefined,
     };
 
     try {
       const url = isEdit
-        ? `/api/assets/${assetId}/pages/${pageId}/positions/${position!.id}`
-        : `/api/assets/${assetId}/pages/${pageId}/positions`;
+        ? `/api/assets/${assetId}/pages/${page!.id}`
+        : `/api/assets/${assetId}/pages`;
       const method = isEdit ? "PUT" : "POST";
 
       const res = await fetch(url, {
@@ -84,10 +82,10 @@ export function PositionDialog({
 
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        throw new Error(data?.error ?? "Failed to save position.");
+        throw new Error(data?.error ?? "Failed to save page.");
       }
 
-      toast.success(isEdit ? "Position updated." : "Position created.");
+      toast.success(isEdit ? "Page updated." : "Page created.");
       onOpenChange(false);
       onSuccess();
     } catch (err: unknown) {
@@ -104,41 +102,41 @@ export function PositionDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {isEdit ? "Edit Position" : "Create Position"}
+            {isEdit ? "Edit Page" : "Create Page"}
           </DialogTitle>
         </DialogHeader>
 
         <div className="grid gap-4 py-2">
           {/* Name */}
           <div className="grid gap-2">
-            <Label htmlFor="position-name">Name *</Label>
+            <Label htmlFor="page-name">Name *</Label>
             <Input
-              id="position-name"
+              id="page-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Position name"
+              placeholder="Page name"
             />
           </div>
 
           {/* Path */}
           <div className="grid gap-2">
-            <Label htmlFor="position-path">Path</Label>
+            <Label htmlFor="page-path">Path</Label>
             <Input
-              id="position-path"
+              id="page-path"
               value={path}
               onChange={(e) => setPath(e.target.value)}
               placeholder="/best-sites"
             />
           </div>
 
-          {/* Details */}
+          {/* Description */}
           <div className="grid gap-2">
-            <Label htmlFor="position-details">Details</Label>
+            <Label htmlFor="page-description">Description</Label>
             <Textarea
-              id="position-details"
-              value={details}
-              onChange={(e) => setDetails(e.target.value)}
-              placeholder="Position details..."
+              id="page-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Page description..."
               rows={3}
             />
           </div>

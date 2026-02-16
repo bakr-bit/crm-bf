@@ -36,15 +36,22 @@ export async function GET(request: Request) {
       include: {
         _count: {
           select: {
-            positions: true,
+            pages: true,
           },
         },
-        positions: {
+        pages: {
+          where: { status: "Active" },
           select: {
-            positionId: true,
-            deals: {
-              where: { status: { in: OCCUPYING_STATUSES } },
-              select: { dealId: true },
+            pageId: true,
+            positions: {
+              where: { status: "Active" },
+              select: {
+                positionId: true,
+                deals: {
+                  where: { status: { in: OCCUPYING_STATUSES } },
+                  select: { dealId: true },
+                },
+              },
             },
           },
         },
@@ -52,13 +59,16 @@ export async function GET(request: Request) {
     });
 
     const result = assets.map((asset) => {
-      const activePositionCount = asset.positions.filter(
+      const allPositions = asset.pages.flatMap((p) => p.positions);
+      const totalPositionCount = allPositions.length;
+      const activePositionCount = allPositions.filter(
         (p) => p.deals.length > 0
       ).length;
 
-      const { positions, ...rest } = asset;
+      const { pages, ...rest } = asset;
       return {
         ...rest,
+        _count: { positions: totalPositionCount },
         activePositionCount,
       };
     });

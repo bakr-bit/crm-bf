@@ -134,10 +134,11 @@ export default function DealsPage() {
   const router = useRouter();
 
   const prefillAssetId = searchParams.get("assetId") ?? undefined;
+  const prefillPageId = searchParams.get("pageId") ?? undefined;
   const prefillPositionId = searchParams.get("positionId") ?? undefined;
   const prefill =
-    prefillAssetId || prefillPositionId
-      ? { assetId: prefillAssetId, positionId: prefillPositionId }
+    prefillAssetId || prefillPageId || prefillPositionId
+      ? { assetId: prefillAssetId, pageId: prefillPageId, positionId: prefillPositionId }
       : undefined;
 
   // ---------- fetch filter data ----------

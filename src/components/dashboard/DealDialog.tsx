@@ -42,6 +42,11 @@ interface Asset {
   name: string;
 }
 
+interface Page {
+  pageId: string;
+  name: string;
+}
+
 interface Position {
   positionId: string;
   name: string;
@@ -54,6 +59,7 @@ interface DealDialogProps {
   onSuccess: () => void;
   prefill?: {
     assetId?: string;
+    pageId?: string;
     positionId?: string;
   };
 }
@@ -79,9 +85,12 @@ export function DealDialog({
   const [brandId, setBrandId] = useState("");
   const [loadingBrands, setLoadingBrands] = useState(false);
 
-  // Asset / Position cascading state
+  // Asset / Page / Position cascading state
   const [assets, setAssets] = useState<Asset[]>([]);
   const [assetId, setAssetId] = useState("");
+  const [pages, setPages] = useState<Page[]>([]);
+  const [pageId, setPageId] = useState("");
+  const [loadingPages, setLoadingPages] = useState(false);
   const [positions, setPositions] = useState<Position[]>([]);
   const [positionId, setPositionId] = useState("");
   const [loadingPositions, setLoadingPositions] = useState(false);
@@ -150,7 +159,9 @@ export function DealDialog({
       setBrands([]);
       setGeo("");
       setAssetId(prefill?.assetId ?? "");
+      setPageId(prefill?.pageId ?? "");
       setPositionId(prefill?.positionId ?? "");
+      setPages([]);
       setPositions([]);
       setAffiliateLink("");
       setStartDate("");
@@ -198,11 +209,51 @@ export function DealDialog({
     };
   }, [partnerId]);
 
-  // ---------- fetch positions when asset changes ----------
+  // ---------- fetch pages when asset changes ----------
   useEffect(() => {
     if (!assetId) {
+      setPages([]);
+      setPageId(prefill?.pageId ?? "");
       setPositions([]);
       setPositionId(prefill?.positionId ?? "");
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingPages(true);
+    if (!prefill?.pageId) {
+      setPageId("");
+    }
+    setPositions([]);
+    if (!prefill?.positionId) {
+      setPositionId("");
+    }
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/assets/${assetId}/pages`);
+        if (!res.ok) throw new Error("Failed to fetch pages");
+        const json: Page[] = await res.json();
+        if (!cancelled) setPages(json);
+      } catch {
+        if (!cancelled) setPages([]);
+      } finally {
+        if (!cancelled) setLoadingPages(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [assetId, prefill?.pageId, prefill?.positionId]);
+
+  // ---------- fetch positions when page changes ----------
+  useEffect(() => {
+    if (!assetId || !pageId) {
+      setPositions([]);
+      if (!prefill?.positionId) {
+        setPositionId("");
+      }
       return;
     }
 
@@ -214,7 +265,7 @@ export function DealDialog({
 
     (async () => {
       try {
-        const res = await fetch(`/api/assets/${assetId}/positions`);
+        const res = await fetch(`/api/assets/${assetId}/pages/${pageId}/positions`);
         if (!res.ok) throw new Error("Failed to fetch positions");
         const json: Position[] = await res.json();
         if (!cancelled) setPositions(json);
@@ -228,9 +279,9 @@ export function DealDialog({
     return () => {
       cancelled = true;
     };
-  }, [assetId, prefill?.positionId]);
+  }, [assetId, pageId, prefill?.positionId]);
 
-  // ---------- prefill: auto-load positions for prefilled asset ----------
+  // ---------- prefill: auto-load for prefilled asset ----------
   useEffect(() => {
     if (open && prefill?.assetId) {
       setAssetId(prefill.assetId);
@@ -259,6 +310,10 @@ export function DealDialog({
       toast.error("Please select an asset.");
       return;
     }
+    if (!pageId) {
+      toast.error("Please select a page.");
+      return;
+    }
     if (!positionId) {
       toast.error("Please select a position.");
       return;
@@ -275,6 +330,7 @@ export function DealDialog({
       brandId,
       geo,
       assetId,
+      pageId,
       positionId,
       affiliateLink: affiliateLink.trim() || undefined,
       startDate,
@@ -417,19 +473,48 @@ export function DealDialog({
             </Select>
           </div>
 
-          {/* Position */}
+          {/* Page */}
           <div className="grid gap-2">
-            <Label>Position *</Label>
+            <Label>Page *</Label>
             <Select
-              value={positionId}
-              onValueChange={setPositionId}
-              disabled={!assetId || loadingPositions || (isPrefilled && Boolean(prefill?.positionId))}
+              value={pageId}
+              onValueChange={setPageId}
+              disabled={!assetId || loadingPages || (isPrefilled && Boolean(prefill?.pageId))}
             >
               <SelectTrigger className="w-full">
                 <SelectValue
                   placeholder={
                     !assetId
                       ? "Select an asset first"
+                      : loadingPages
+                        ? "Loading pages..."
+                        : "Select a page"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {pages.map((p) => (
+                  <SelectItem key={p.pageId} value={p.pageId}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Position */}
+          <div className="grid gap-2">
+            <Label>Position *</Label>
+            <Select
+              value={positionId}
+              onValueChange={setPositionId}
+              disabled={!pageId || loadingPositions || (isPrefilled && Boolean(prefill?.positionId))}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue
+                  placeholder={
+                    !pageId
+                      ? "Select a page first"
                       : loadingPositions
                         ? "Loading positions..."
                         : "Select a position"

@@ -6,6 +6,12 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/ui/tabs";
+import {
   Table,
   TableBody,
   TableCell,
@@ -21,8 +27,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { AssetDialog } from "@/components/dashboard/AssetDialog";
+import { PageDialog } from "@/components/dashboard/PageDialog";
 import { PositionDialog } from "@/components/dashboard/PositionDialog";
-import { ArrowLeft, Pencil, Plus, MoreHorizontal, Download } from "lucide-react";
+import { ArrowLeft, Pencil, Plus, MoreHorizontal, Download, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { OCCUPYING_STATUSES } from "@/lib/deal-status";
 import type { DealStatusType } from "@/lib/deal-status";
@@ -53,13 +60,22 @@ interface PositionDeal {
 
 interface Position {
   positionId: string;
-  assetId: string;
+  pageId: string;
   name: string;
   path: string | null;
   details: string | null;
   createdAt: string;
   updatedAt: string;
   deals: PositionDeal[];
+}
+
+interface Page {
+  pageId: string;
+  assetId: string;
+  name: string;
+  path: string | null;
+  description: string | null;
+  positions: Position[];
 }
 
 interface AssetDetail {
@@ -69,7 +85,7 @@ interface AssetDetail {
   description: string | null;
   createdAt: string;
   updatedAt: string;
-  positions: Position[];
+  pages: Page[];
 }
 
 // ---------- component ----------
@@ -83,10 +99,13 @@ export default function AssetDetailPage() {
 
   // Dialogs
   const [assetDialogOpen, setAssetDialogOpen] = useState(false);
+  const [pageDialogOpen, setPageDialogOpen] = useState(false);
+  const [editingPage, setEditingPage] = useState<Page | undefined>(undefined);
   const [positionDialogOpen, setPositionDialogOpen] = useState(false);
   const [editingPosition, setEditingPosition] = useState<Position | undefined>(
     undefined
   );
+  const [activePageId, setActivePageId] = useState<string>("");
 
   const fetchAsset = useCallback(async () => {
     try {
@@ -94,29 +113,56 @@ export default function AssetDetailPage() {
       if (!res.ok) throw new Error("Failed to fetch asset");
       const json: AssetDetail = await res.json();
       setAsset(json);
+      // Set active tab to first page if not already set
+      if (!activePageId && json.pages.length > 0) {
+        setActivePageId(json.pages[0].pageId);
+      }
     } catch (err) {
       console.error("Asset detail fetch error:", err);
       toast.error("Failed to load asset.");
     } finally {
       setLoading(false);
     }
-  }, [assetId]);
+  }, [assetId, activePageId]);
 
   useEffect(() => {
     fetchAsset();
   }, [fetchAsset]);
 
   // Delete (archive) a position
-  async function handleDeletePosition(positionId: string) {
+  async function handleDeletePosition(pageId: string, positionId: string) {
     try {
-      const res = await fetch(`/api/assets/${assetId}/positions/${positionId}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(
+        `/api/assets/${assetId}/pages/${pageId}/positions/${positionId}`,
+        { method: "DELETE" }
+      );
       if (!res.ok) {
         const data = await res.json().catch(() => null);
         throw new Error(data?.error ?? "Failed to delete position.");
       }
       toast.success("Position deleted.");
+      fetchAsset();
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "An unexpected error occurred.";
+      toast.error(message);
+    }
+  }
+
+  // Delete (archive) a page
+  async function handleDeletePage(pageId: string) {
+    try {
+      const res = await fetch(
+        `/api/assets/${assetId}/pages/${pageId}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Failed to delete page.");
+      }
+      toast.success("Page archived.");
+      // Switch to first remaining page
+      setActivePageId("");
       fetchAsset();
     } catch (err) {
       const message =
@@ -156,6 +202,16 @@ export default function AssetDetailPage() {
     };
   }
 
+  // Map page to PageDialog expected shape
+  function toPageDialogShape(p: Page) {
+    return {
+      id: p.pageId,
+      name: p.name,
+      path: p.path ?? undefined,
+      description: p.description ?? undefined,
+    };
+  }
+
   // Map position to PositionDialog expected shape
   function toPositionDialogShape(p: Position) {
     return {
@@ -166,7 +222,7 @@ export default function AssetDetailPage() {
     };
   }
 
-  // Determine the active deal for a position (the API filters for occupying statuses)
+  // Determine the active deal for a position
   function getActiveDeal(position: Position): PositionDeal | undefined {
     return position.deals.find((d) =>
       OCCUPYING_STATUSES.includes(d.status as DealStatusType)
@@ -177,6 +233,7 @@ export default function AssetDetailPage() {
     if (!asset) return;
 
     const headers = [
+      "Page",
       "Position Name",
       "Path",
       "Details",
@@ -187,19 +244,22 @@ export default function AssetDetailPage() {
       "Deal Status",
     ];
 
-    const rows = asset.positions.map((position) => {
-      const activeDeal = getActiveDeal(position);
-      return [
-        position.name,
-        position.path ?? "",
-        position.details ?? "",
-        activeDeal ? "Occupied" : "Available",
-        activeDeal?.brand.name ?? "",
-        activeDeal?.partner.name ?? "",
-        activeDeal?.geo ?? "",
-        activeDeal?.status ?? "",
-      ];
-    });
+    const rows = asset.pages.flatMap((page) =>
+      page.positions.map((position) => {
+        const activeDeal = getActiveDeal(position);
+        return [
+          page.name,
+          position.name,
+          position.path ?? "",
+          position.details ?? "",
+          activeDeal ? "Occupied" : "Available",
+          activeDeal?.brand.name ?? "",
+          activeDeal?.partner.name ?? "",
+          activeDeal?.geo ?? "",
+          activeDeal?.status ?? "",
+        ];
+      })
+    );
 
     const escapeCsvField = (field: string) => {
       if (field.includes(",") || field.includes('"') || field.includes("\n")) {
@@ -247,6 +307,8 @@ export default function AssetDetailPage() {
     );
   }
 
+  const activePage = asset.pages.find((p) => p.pageId === activePageId);
+
   return (
     <div className="space-y-6 p-6">
       {/* Back link */}
@@ -262,14 +324,25 @@ export default function AssetDetailPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>{asset.name}</CardTitle>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setAssetDialogOpen(true)}
-          >
-            <Pencil className="mr-2 size-4" />
-            Edit
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleExportCsv}
+              disabled={asset.pages.flatMap((p) => p.positions).length === 0}
+            >
+              <Download className="mr-2 size-4" />
+              Export CSV
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setAssetDialogOpen(true)}
+            >
+              <Pencil className="mr-2 size-4" />
+              Edit
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <dl className="grid gap-4 sm:grid-cols-2">
@@ -289,157 +362,221 @@ export default function AssetDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Positions Section */}
+      {/* Pages Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Positions</h2>
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleExportCsv}
-              disabled={!asset.positions.length}
-            >
-              <Download className="mr-2 size-4" />
-              Export CSV
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => {
-                setEditingPosition(undefined);
-                setPositionDialogOpen(true);
-              }}
-            >
-              <Plus className="mr-2 size-4" />
-              Add Position
-            </Button>
-          </div>
+          <h2 className="text-lg font-semibold">Pages</h2>
+          <Button
+            size="sm"
+            onClick={() => {
+              setEditingPage(undefined);
+              setPageDialogOpen(true);
+            }}
+          >
+            <Plus className="mr-2 size-4" />
+            Add Page
+          </Button>
         </div>
 
-        <div className="rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Path</TableHead>
-                <TableHead>Details</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-12">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {asset.positions.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={5}
-                    className="text-center text-muted-foreground"
-                  >
-                    No positions yet.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                asset.positions.map((position) => {
-                  const activeDeal = getActiveDeal(position);
-                  const isOccupied = Boolean(activeDeal);
+        {asset.pages.length === 0 ? (
+          <Card>
+            <CardContent className="py-8 text-center text-muted-foreground">
+              No pages yet. Add a page to start managing positions.
+            </CardContent>
+          </Card>
+        ) : (
+          <Tabs
+            value={activePageId}
+            onValueChange={setActivePageId}
+          >
+            <TabsList className="flex-wrap h-auto">
+              {asset.pages.map((page) => (
+                <TabsTrigger key={page.pageId} value={page.pageId}>
+                  {page.name}
+                  <span className="ml-1.5 text-xs text-muted-foreground">
+                    ({page.positions.length})
+                  </span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
 
-                  return (
-                    <TableRow key={position.positionId}>
-                      <TableCell className="font-medium">
-                        {position.name}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm text-muted-foreground">
-                        {position.path ?? "-"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {position.details ?? "-"}
-                      </TableCell>
-                      <TableCell>
-                        {isOccupied ? (
-                          <span className="text-sm">
-                            <StatusBadge status="Active" variant="deal" />
-                            <span className="ml-2 text-muted-foreground">
-                              {activeDeal!.brand.name}
-                            </span>
-                          </span>
-                        ) : (
-                          <span className="text-sm text-green-600">
-                            Available
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="size-8"
-                            >
-                              <MoreHorizontal className="size-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setEditingPosition(position);
-                                setPositionDialogOpen(true);
-                              }}
-                            >
-                              Edit Position
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              variant="destructive"
-                              onClick={() =>
-                                handleDeletePosition(position.positionId)
-                              }
-                            >
-                              Delete Position
-                            </DropdownMenuItem>
+            {asset.pages.map((page) => (
+              <TabsContent key={page.pageId} value={page.pageId}>
+                {/* Page info bar */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="text-sm text-muted-foreground">
+                    {page.path && (
+                      <span className="font-mono mr-3">{page.path}</span>
+                    )}
+                    {page.description && <span>{page.description}</span>}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setEditingPage(page);
+                        setPageDialogOpen(true);
+                      }}
+                    >
+                      <Pencil className="mr-2 size-4" />
+                      Edit Page
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDeletePage(page.pageId)}
+                    >
+                      <Trash2 className="mr-2 size-4" />
+                      Archive Page
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setActivePageId(page.pageId);
+                        setEditingPosition(undefined);
+                        setPositionDialogOpen(true);
+                      }}
+                    >
+                      <Plus className="mr-2 size-4" />
+                      Add Position
+                    </Button>
+                  </div>
+                </div>
 
-                            {isOccupied ? (
-                              <>
-                                <DropdownMenuItem asChild>
-                                  <Link
-                                    href={`/dashboard/deals?dealId=${activeDeal!.dealId}`}
-                                  >
-                                    View Deal
-                                  </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  variant="destructive"
-                                  onClick={() =>
-                                    handleEndDeal(activeDeal!.dealId)
-                                  }
-                                >
-                                  End Deal
-                                </DropdownMenuItem>
-                                <DropdownMenuItem asChild>
-                                  <Link
-                                    href={`/dashboard/deals?replace=${activeDeal!.dealId}`}
-                                  >
-                                    Replace Deal
-                                  </Link>
-                                </DropdownMenuItem>
-                              </>
-                            ) : (
-                              <DropdownMenuItem asChild>
-                                <Link
-                                  href={`/dashboard/deals?assetId=${assetId}&positionId=${position.positionId}`}
-                                >
-                                  Create Deal
-                                </Link>
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                {/* Positions table */}
+                <div className="rounded-lg border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Path</TableHead>
+                        <TableHead>Details</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="w-12">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {page.positions.length === 0 ? (
+                        <TableRow>
+                          <TableCell
+                            colSpan={5}
+                            className="text-center text-muted-foreground"
+                          >
+                            No positions yet.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        page.positions.map((position) => {
+                          const activeDeal = getActiveDeal(position);
+                          const isOccupied = Boolean(activeDeal);
+
+                          return (
+                            <TableRow key={position.positionId}>
+                              <TableCell className="font-medium">
+                                {position.name}
+                              </TableCell>
+                              <TableCell className="font-mono text-sm text-muted-foreground">
+                                {position.path ?? "-"}
+                              </TableCell>
+                              <TableCell className="text-muted-foreground">
+                                {position.details ?? "-"}
+                              </TableCell>
+                              <TableCell>
+                                {isOccupied ? (
+                                  <span className="text-sm">
+                                    <StatusBadge status="Active" variant="deal" />
+                                    <span className="ml-2 text-muted-foreground">
+                                      {activeDeal!.brand.name}
+                                    </span>
+                                  </span>
+                                ) : (
+                                  <span className="text-sm text-green-600">
+                                    Available
+                                  </span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="size-8"
+                                    >
+                                      <MoreHorizontal className="size-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        setActivePageId(page.pageId);
+                                        setEditingPosition(position);
+                                        setPositionDialogOpen(true);
+                                      }}
+                                    >
+                                      Edit Position
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      variant="destructive"
+                                      onClick={() =>
+                                        handleDeletePosition(
+                                          page.pageId,
+                                          position.positionId
+                                        )
+                                      }
+                                    >
+                                      Delete Position
+                                    </DropdownMenuItem>
+
+                                    {isOccupied ? (
+                                      <>
+                                        <DropdownMenuItem asChild>
+                                          <Link
+                                            href={`/dashboard/deals?dealId=${activeDeal!.dealId}`}
+                                          >
+                                            View Deal
+                                          </Link>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          variant="destructive"
+                                          onClick={() =>
+                                            handleEndDeal(activeDeal!.dealId)
+                                          }
+                                        >
+                                          End Deal
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem asChild>
+                                          <Link
+                                            href={`/dashboard/deals?replace=${activeDeal!.dealId}`}
+                                          >
+                                            Replace Deal
+                                          </Link>
+                                        </DropdownMenuItem>
+                                      </>
+                                    ) : (
+                                      <DropdownMenuItem asChild>
+                                        <Link
+                                          href={`/dashboard/deals?assetId=${assetId}&pageId=${page.pageId}&positionId=${position.positionId}`}
+                                        >
+                                          Create Deal
+                                        </Link>
+                                      </DropdownMenuItem>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </TabsContent>
+            ))}
+          </Tabs>
+        )}
       </div>
 
       {/* Dialogs */}
@@ -450,10 +587,19 @@ export default function AssetDetailPage() {
         onSuccess={fetchAsset}
       />
 
+      <PageDialog
+        open={pageDialogOpen}
+        onOpenChange={setPageDialogOpen}
+        assetId={assetId}
+        page={editingPage ? toPageDialogShape(editingPage) : undefined}
+        onSuccess={fetchAsset}
+      />
+
       <PositionDialog
         open={positionDialogOpen}
         onOpenChange={setPositionDialogOpen}
         assetId={assetId}
+        pageId={activePageId}
         position={
           editingPosition ? toPositionDialogShape(editingPosition) : undefined
         }

@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions, isValidApiKey } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
-import { positionCreateSchema } from "@/lib/validations";
+import { pageCreateSchema } from "@/lib/validations";
 
 export async function GET(
   request: Request,
@@ -31,26 +31,26 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const includeArchived = searchParams.get("includeArchived") === "true";
 
-    const positionWhere: Record<string, unknown> = { assetId };
+    const pageWhere: Record<string, unknown> = { assetId };
     if (!includeArchived) {
-      positionWhere.status = "Active";
+      pageWhere.status = "Active";
     }
 
-    const positions = await prisma.position.findMany({
-      where: positionWhere,
-      orderBy: { createdAt: "desc" },
+    const pages = await prisma.page.findMany({
+      where: pageWhere,
+      orderBy: { createdAt: "asc" },
       include: {
         _count: {
-          select: { deals: true },
+          select: { positions: true },
         },
       },
     });
 
-    return NextResponse.json(positions);
+    return NextResponse.json(pages);
   } catch (error) {
-    console.error("Positions list error:", error);
+    console.error("Pages list error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch positions" },
+      { error: "Failed to fetch pages" },
       { status: 500 }
     );
   }
@@ -69,7 +69,7 @@ export async function POST(
     const userId = session!.user.id;
     const { assetId } = await params;
     const body = await request.json();
-    const parsed = positionCreateSchema.safeParse(body);
+    const parsed = pageCreateSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -92,7 +92,7 @@ export async function POST(
     const data = parsed.data;
 
     // Check unique name per asset
-    const existingPosition = await prisma.position.findUnique({
+    const existingPage = await prisma.page.findUnique({
       where: {
         assetId_name: {
           assetId,
@@ -101,34 +101,35 @@ export async function POST(
       },
     });
 
-    if (existingPosition) {
+    if (existingPage) {
       return NextResponse.json(
-        { error: "A position with this name already exists for this asset" },
+        { error: "A page with this name already exists for this asset" },
         { status: 409 }
       );
     }
 
-    const position = await prisma.position.create({
+    const page = await prisma.page.create({
       data: {
         assetId,
         name: data.name,
-        details: data.details,
+        path: data.path,
+        description: data.description,
       },
     });
 
     await logAudit({
       userId,
-      entity: "Position",
-      entityId: position.positionId,
+      entity: "Page",
+      entityId: page.pageId,
       action: "CREATE",
-      details: { name: position.name, assetId },
+      details: { name: page.name, assetId },
     });
 
-    return NextResponse.json(position, { status: 201 });
+    return NextResponse.json(page, { status: 201 });
   } catch (error) {
-    console.error("Position create error:", error);
+    console.error("Page create error:", error);
     return NextResponse.json(
-      { error: "Failed to create position" },
+      { error: "Failed to create page" },
       { status: 500 }
     );
   }

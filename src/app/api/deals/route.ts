@@ -74,6 +74,7 @@ export async function GET(request: Request) {
         },
         brand: true,
         asset: true,
+        page: true,
         position: true,
       },
     });
@@ -158,6 +159,7 @@ export async function POST(request: Request) {
           partnerId: data.partnerId,
           brandId: data.brandId,
           assetId: data.assetId,
+          pageId: data.pageId,
           positionId: data.positionId,
           geo: data.geo,
           affiliateLink: data.affiliateLink,
@@ -180,6 +182,7 @@ export async function POST(request: Request) {
           partner: true,
           brand: true,
           asset: true,
+          page: true,
           position: true,
         },
       });
@@ -195,6 +198,7 @@ export async function POST(request: Request) {
             partnerId: data.partnerId,
             brandId: data.brandId,
             assetId: data.assetId,
+            pageId: data.pageId,
             positionId: data.positionId,
             geo: data.geo,
             status: dealStatus,

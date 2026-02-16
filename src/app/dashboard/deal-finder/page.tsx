@@ -30,6 +30,15 @@ interface OpenPosition {
   positionId: string;
   name: string;
   details: string | null;
+  page: {
+    pageId: string;
+    name: string;
+    asset: {
+      assetId: string;
+      name: string;
+      assetDomain: string | null;
+    };
+  };
   asset: {
     assetId: string;
     name: string;
@@ -236,7 +245,7 @@ export default function DealFinderPage() {
                         <TableCell>
                           <Button size="sm" variant="outline" asChild>
                             <Link
-                              href={`/dashboard/deals?assetId=${asset.assetId}&positionId=${pos.positionId}`}
+                              href={`/dashboard/deals?assetId=${asset.assetId}&pageId=${pos.page.pageId}&positionId=${pos.positionId}`}
                             >
                               Create Deal
                             </Link>

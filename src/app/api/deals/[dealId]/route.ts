@@ -24,6 +24,7 @@ export async function GET(
         partner: true,
         brand: true,
         asset: true,
+        page: true,
         position: true,
         createdBy: {
           select: { id: true, name: true, email: true },
@@ -117,6 +118,7 @@ export async function PUT(
         partner: true,
         brand: true,
         asset: true,
+        page: true,
         position: true,
       },
     });

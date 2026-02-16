@@ -57,6 +57,14 @@ export const assetCreateSchema = z.object({
 
 export const assetUpdateSchema = assetCreateSchema.partial();
 
+export const pageCreateSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  path: z.string().optional(),
+  description: z.string().optional(),
+});
+
+export const pageUpdateSchema = pageCreateSchema.partial();
+
 export const positionCreateSchema = z.object({
   name: z.string().min(1, "Name is required"),
   path: z.string().optional(),
@@ -81,6 +89,7 @@ export const dealCreateSchema = z.object({
   partnerId: z.string().min(1, "Partner is required"),
   brandId: z.string().min(1, "Brand is required"),
   assetId: z.string().min(1, "Asset is required"),
+  pageId: z.string().min(1, "Page is required"),
   positionId: z.string().min(1, "Position is required"),
   geo: z.string().length(2).toUpperCase(),
   affiliateLink: z.string().optional(),
