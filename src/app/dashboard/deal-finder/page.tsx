@@ -19,71 +19,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ScanItemActionDialog } from "@/components/dashboard/ScanItemActionDialog";
 import { toast } from "sonner";
-import {
-  Search,
-  Loader2,
-  CheckCircle2,
-  AlertTriangle,
-  XCircle,
-  ArrowRightLeft,
-  LayoutGrid,
-} from "lucide-react";
+import { Loader2, CheckCircle2 } from "lucide-react";
 import { COUNTRIES } from "@/lib/countries";
 
-// ---------- Scanner types ----------
-
-interface Asset {
-  assetId: string;
-  name: string;
-  assetDomain: string | null;
-}
-
-interface ScanItem {
-  itemId: string;
-  type: "Verified" | "NewUnmatched" | "Missing" | "Replacement";
-  action: "Pending" | "Ignored" | "Confirmed";
-  foundUrl: string | null;
-  foundAnchor: string | null;
-  matchedDealId: string | null;
-  matchedDeal?: {
-    dealId: string;
-    partner: { name: string };
-    brand: { name: string };
-    position: { name: string };
-  } | null;
-  matchedBrandId: string | null;
-  matchedBrand?: {
-    brandId: string;
-    partnerId: string;
-    name: string;
-    partner: { partnerId: string; name: string };
-  } | null;
-  confidence: number | null;
-  notes: string | null;
-}
-
-interface ScanResult {
-  scanId: string;
-  assetId: string;
-  scannedUrl: string;
-  scannedAt: string;
-  totalLinks: number;
-  items: ScanItem[];
-  asset?: { name: string; assetDomain: string | null };
-}
-
-interface ScanHistoryItem {
-  scanId: string;
-  scannedAt: string;
-  asset: { name: string; assetDomain: string | null };
-  _count: { items: number };
-}
-
-// ---------- Open Positions types ----------
+// ---------- types ----------
 
 interface OpenPosition {
   positionId: string;
@@ -103,71 +44,15 @@ interface OpenPosition {
   }[];
 }
 
-// ---------- constants ----------
-
-const TYPE_CONFIG = {
-  Verified: {
-    color: "bg-green-100 text-green-800",
-    icon: CheckCircle2,
-    label: "Verified",
-  },
-  NewUnmatched: {
-    color: "bg-blue-100 text-blue-800",
-    icon: AlertTriangle,
-    label: "New",
-  },
-  Missing: {
-    color: "bg-red-100 text-red-800",
-    icon: XCircle,
-    label: "Missing",
-  },
-  Replacement: {
-    color: "bg-yellow-100 text-yellow-800",
-    icon: ArrowRightLeft,
-    label: "Replacement",
-  },
-};
-
 // ---------- component ----------
 
 export default function DealFinderPage() {
-  // Scanner state
-  const [assets, setAssets] = useState<Asset[]>([]);
-  const [selectedAsset, setSelectedAsset] = useState("");
-  const [scanning, setScanning] = useState(false);
-  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
-  const [scanHistory, setScanHistory] = useState<ScanHistoryItem[]>([]);
-  const [actionItem, setActionItem] = useState<ScanItem | null>(null);
-  const [actionDialogOpen, setActionDialogOpen] = useState(false);
-
-  // Open Positions state
   const [geoFilter, setGeoFilter] = useState("");
   const [openPositions, setOpenPositions] = useState<OpenPosition[]>([]);
-  const [openPosLoading, setOpenPosLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  // Load assets
-  useEffect(() => {
-    fetch("/api/assets")
-      .then((r) => r.json())
-      .then((data: Asset[]) => {
-        setAssets(data.filter((a) => a.assetDomain));
-      })
-      .catch(() => {});
-  }, []);
-
-  // Load scan history when asset changes
-  useEffect(() => {
-    if (selectedAsset) {
-      fetch(`/api/deal-finder/scans?assetId=${selectedAsset}`)
-        .then((r) => r.json())
-        .then((data: ScanHistoryItem[]) => setScanHistory(data))
-        .catch(() => {});
-    }
-  }, [selectedAsset, scanResult]);
-
-  // Load open positions
   const fetchOpenPositions = useCallback(async () => {
-    setOpenPosLoading(true);
+    setLoading(true);
     try {
       const params = new URLSearchParams();
       if (geoFilter) params.set("geo", geoFilter);
@@ -178,117 +63,13 @@ export default function DealFinderPage() {
     } catch {
       toast.error("Failed to load open positions");
     } finally {
-      setOpenPosLoading(false);
+      setLoading(false);
     }
   }, [geoFilter]);
 
   useEffect(() => {
     fetchOpenPositions();
   }, [fetchOpenPositions]);
-
-  // Scanner handlers
-  async function handleScan() {
-    if (!selectedAsset) {
-      toast.error("Please select an asset");
-      return;
-    }
-
-    setScanning(true);
-    setScanResult(null);
-
-    try {
-      const res = await fetch("/api/deal-finder/scan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ assetId: selectedAsset }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.error ?? "Scan failed");
-      }
-
-      const result = await res.json();
-      setScanResult(result);
-      toast.success("Scan completed");
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "An unexpected error occurred";
-      toast.error(message);
-    } finally {
-      setScanning(false);
-    }
-  }
-
-  async function loadScan(scanId: string) {
-    try {
-      const res = await fetch(`/api/deal-finder/scans?scanId=${scanId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setScanResult(data);
-      }
-    } catch {
-      toast.error("Failed to load scan");
-    }
-  }
-
-  async function handleIgnore(itemId: string) {
-    try {
-      const res = await fetch("/api/deal-finder/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itemId, action: "Ignored" }),
-      });
-      if (!res.ok) throw new Error("Failed to ignore item");
-      toast.success("Item ignored");
-      if (scanResult) loadScan(scanResult.scanId);
-    } catch {
-      toast.error("Failed to ignore item");
-    }
-  }
-
-  async function handleEndDeal(itemId: string) {
-    try {
-      const res = await fetch("/api/deal-finder/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itemId, action: "Confirmed" }),
-      });
-      if (!res.ok) throw new Error("Failed to end deal");
-      toast.success("Deal ended");
-      if (scanResult) loadScan(scanResult.scanId);
-    } catch {
-      toast.error("Failed to end deal");
-    }
-  }
-
-  async function handleConfirm(itemId: string) {
-    try {
-      const res = await fetch("/api/deal-finder/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itemId, action: "Confirmed" }),
-      });
-      if (!res.ok) throw new Error("Failed to confirm");
-      toast.success("Confirmed");
-      if (scanResult) loadScan(scanResult.scanId);
-    } catch {
-      toast.error("Failed to confirm item");
-    }
-  }
-
-  const summary = scanResult
-    ? {
-        verified: scanResult.items.filter((i) => i.type === "Verified").length,
-        newUnmatched: scanResult.items.filter(
-          (i) => i.type === "NewUnmatched"
-        ).length,
-        missing: scanResult.items.filter((i) => i.type === "Missing").length,
-        replacements: scanResult.items.filter(
-          (i) => i.type === "Replacement"
-        ).length,
-      }
-    : null;
 
   // Group open positions by asset
   const positionsByAsset = openPositions.reduce<
@@ -302,7 +83,6 @@ export default function DealFinderPage() {
     return acc;
   }, {});
 
-  // Count truly open positions (no deals at all)
   const totalOpen = openPositions.filter((p) => p.deals.length === 0).length;
   const totalOccupied = openPositions.filter((p) => p.deals.length > 0).length;
 
@@ -312,396 +92,155 @@ export default function DealFinderPage() {
       <div>
         <h1 className="text-2xl font-bold">Deal Finder</h1>
         <p className="mt-1 text-sm text-zinc-500">
-          Find open positions across your assets or scan for external affiliate
-          links
+          Find open positions across your assets
         </p>
       </div>
 
-      <Tabs defaultValue="open-positions">
-        <TabsList>
-          <TabsTrigger value="open-positions">
-            <LayoutGrid className="mr-2 h-4 w-4" />
-            Open Positions
-          </TabsTrigger>
-          <TabsTrigger value="scanner">
-            <Search className="mr-2 h-4 w-4" />
-            Scanner
-          </TabsTrigger>
-        </TabsList>
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        <Select
+          value={geoFilter || "__all"}
+          onValueChange={(v) => setGeoFilter(v === "__all" ? "" : v)}
+        >
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Filter by geo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all">All Geos</SelectItem>
+            {COUNTRIES.map((c) => (
+              <SelectItem key={c.code} value={c.code}>
+                {c.code} — {c.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-        {/* ========== Open Positions Tab ========== */}
-        <TabsContent value="open-positions" className="space-y-4 mt-4">
-          {/* Filters */}
-          <div className="flex flex-wrap items-center gap-3">
-            <Select
-              value={geoFilter || "__all"}
-              onValueChange={(v) => setGeoFilter(v === "__all" ? "" : v)}
-            >
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filter by geo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all">All Geos</SelectItem>
-                {COUNTRIES.map((c) => (
-                  <SelectItem key={c.code} value={c.code}>
-                    {c.code} — {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        {geoFilter && (
+          <Badge variant="secondary" className="text-sm">
+            Showing positions open for {geoFilter}
+          </Badge>
+        )}
+      </div>
 
-            {geoFilter && (
-              <Badge variant="secondary" className="text-sm">
-                Showing positions open for {geoFilter}
-              </Badge>
-            )}
-          </div>
-
-          {/* Summary */}
-          <div className="grid grid-cols-3 gap-4">
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-sm text-zinc-500">Open Positions</div>
-                <div className="mt-1 text-2xl font-bold text-green-600">
-                  {totalOpen}
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-sm text-zinc-500">Occupied</div>
-                <div className="mt-1 text-2xl font-bold text-blue-600">
-                  {totalOccupied}
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-sm text-zinc-500">Total Positions</div>
-                <div className="mt-1 text-2xl font-bold">
-                  {openPositions.length}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Positions grouped by asset */}
-          {openPosLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
+      {/* Summary */}
+      <div className="grid grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-sm text-zinc-500">Open Positions</div>
+            <div className="mt-1 text-2xl font-bold text-green-600">
+              {totalOpen}
             </div>
-          ) : Object.keys(positionsByAsset).length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-16">
-                <CheckCircle2 className="h-12 w-12 text-green-500" />
-                <h3 className="mt-4 text-lg font-medium">
-                  No positions found
-                </h3>
-                <p className="mt-1 text-sm text-zinc-500">
-                  {geoFilter
-                    ? `No positions are open for ${geoFilter}`
-                    : "No active positions exist"}
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            Object.values(positionsByAsset).map(({ asset, positions }) => (
-              <div key={asset.assetId} className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-semibold">{asset.name}</h3>
-                  {asset.assetDomain && (
-                    <span className="text-xs text-zinc-400">
-                      {asset.assetDomain}
-                    </span>
-                  )}
-                </div>
-                <div className="rounded-lg border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Position</TableHead>
-                        <TableHead>Details</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Current Deals</TableHead>
-                        <TableHead className="w-32">Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {positions.map((pos) => {
-                        const isOpen = pos.deals.length === 0;
-                        return (
-                          <TableRow key={pos.positionId}>
-                            <TableCell className="font-medium">
-                              {pos.name}
-                            </TableCell>
-                            <TableCell className="text-muted-foreground text-sm">
-                              {pos.details ?? "-"}
-                            </TableCell>
-                            <TableCell>
-                              {isOpen ? (
-                                <span className="text-sm font-medium text-green-600">
-                                  Open
-                                </span>
-                              ) : (
-                                <span className="text-sm text-blue-600">
-                                  Occupied
-                                </span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {pos.deals.length > 0 ? (
-                                <div className="flex flex-wrap gap-1">
-                                  {pos.deals.map((d) => (
-                                    <Badge
-                                      key={d.dealId}
-                                      variant="outline"
-                                      className="text-xs"
-                                    >
-                                      {d.brand.name} ({d.geo}) —{" "}
-                                      {d.partner.name}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              ) : (
-                                <span className="text-zinc-400 text-sm">
-                                  None
-                                </span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <Button size="sm" variant="outline" asChild>
-                                <Link
-                                  href={`/dashboard/deals?assetId=${asset.assetId}&positionId=${pos.positionId}`}
-                                >
-                                  Create Deal
-                                </Link>
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            ))
-          )}
-        </TabsContent>
-
-        {/* ========== Scanner Tab ========== */}
-        <TabsContent value="scanner" className="space-y-6 mt-4">
-          {/* Controls */}
-          <div className="flex flex-wrap items-center gap-3">
-            <Select value={selectedAsset} onValueChange={setSelectedAsset}>
-              <SelectTrigger className="w-64">
-                <SelectValue placeholder="Select an asset to scan" />
-              </SelectTrigger>
-              <SelectContent>
-                {assets.map((a) => (
-                  <SelectItem key={a.assetId} value={a.assetId}>
-                    {a.name} ({a.assetDomain})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Button onClick={handleScan} disabled={scanning || !selectedAsset}>
-              {scanning ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Scanning...
-                </>
-              ) : (
-                <>
-                  <Search className="mr-2 h-4 w-4" />
-                  Scan Now
-                </>
-              )}
-            </Button>
-
-            {scanHistory.length > 0 && (
-              <Select onValueChange={loadScan}>
-                <SelectTrigger className="w-56">
-                  <SelectValue placeholder="Load previous scan" />
-                </SelectTrigger>
-                <SelectContent>
-                  {scanHistory.map((s) => (
-                    <SelectItem key={s.scanId} value={s.scanId}>
-                      {new Date(s.scannedAt).toLocaleDateString()}{" "}
-                      {new Date(s.scannedAt).toLocaleTimeString()} (
-                      {s._count.items} items)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-
-          {/* Summary Cards */}
-          {summary && (
-            <div className="grid grid-cols-4 gap-4">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-sm text-zinc-500">Verified</div>
-                  <div className="mt-1 text-2xl font-bold text-green-600">
-                    {summary.verified}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-sm text-zinc-500">New Links</div>
-                  <div className="mt-1 text-2xl font-bold text-blue-600">
-                    {summary.newUnmatched}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-sm text-zinc-500">Missing</div>
-                  <div className="mt-1 text-2xl font-bold text-red-600">
-                    {summary.missing}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-sm text-zinc-500">Replacements</div>
-                  <div className="mt-1 text-2xl font-bold text-yellow-600">
-                    {summary.replacements}
-                  </div>
-                </CardContent>
-              </Card>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-sm text-zinc-500">Occupied</div>
+            <div className="mt-1 text-2xl font-bold text-blue-600">
+              {totalOccupied}
             </div>
-          )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-sm text-zinc-500">Total Positions</div>
+            <div className="mt-1 text-2xl font-bold">
+              {openPositions.length}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-          {/* Scan info */}
-          {scanResult && (
-            <p className="text-sm text-zinc-500">
-              Scanned {scanResult.scannedUrl} — {scanResult.totalLinks} total
-              links found, {scanResult.items.length} classified items
+      {/* Positions grouped by asset */}
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
+        </div>
+      ) : Object.keys(positionsByAsset).length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <CheckCircle2 className="h-12 w-12 text-green-500" />
+            <h3 className="mt-4 text-lg font-medium">
+              No positions found
+            </h3>
+            <p className="mt-1 text-sm text-zinc-500">
+              {geoFilter
+                ? `No positions are open for ${geoFilter}`
+                : "No active positions exist"}
             </p>
-          )}
-
-          {/* Results Table */}
-          {scanResult && scanResult.items.length > 0 ? (
+          </CardContent>
+        </Card>
+      ) : (
+        Object.values(positionsByAsset).map(({ asset, positions }) => (
+          <div key={asset.assetId} className="space-y-2">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold">{asset.name}</h3>
+              {asset.assetDomain && (
+                <span className="text-xs text-zinc-400">
+                  {asset.assetDomain}
+                </span>
+              )}
+            </div>
             <div className="rounded-lg border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-28">Type</TableHead>
-                    <TableHead>Found URL</TableHead>
-                    <TableHead>Brand</TableHead>
-                    <TableHead>Matched Deal</TableHead>
-                    <TableHead className="w-24">Confidence</TableHead>
-                    <TableHead>Notes</TableHead>
-                    <TableHead className="w-36">Action</TableHead>
+                    <TableHead>Position</TableHead>
+                    <TableHead>Details</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Current Deals</TableHead>
+                    <TableHead className="w-32">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {scanResult.items.map((item) => {
-                    const config = TYPE_CONFIG[item.type];
-                    const Icon = config.icon;
+                  {positions.map((pos) => {
+                    const isOpen = pos.deals.length === 0;
                     return (
-                      <TableRow key={item.itemId}>
+                      <TableRow key={pos.positionId}>
+                        <TableCell className="font-medium">
+                          {pos.name}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {pos.details ?? "-"}
+                        </TableCell>
                         <TableCell>
-                          <Badge
-                            variant="secondary"
-                            className={config.color}
-                          >
-                            <Icon className="mr-1 h-3 w-3" />
-                            {config.label}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="max-w-xs truncate text-xs">
-                          {item.foundUrl ? (
-                            <span title={item.foundUrl}>{item.foundUrl}</span>
-                          ) : (
-                            <span className="text-zinc-400">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {item.matchedBrand?.name ??
-                            item.matchedDeal?.brand.name ?? (
-                              <span className="text-zinc-400">Unknown</span>
-                            )}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {item.matchedDeal ? (
-                            <span>
-                              {item.matchedDeal.partner.name} /{" "}
-                              {item.matchedDeal.position.name}
+                          {isOpen ? (
+                            <span className="text-sm font-medium text-green-600">
+                              Open
                             </span>
                           ) : (
-                            <span className="text-zinc-400">—</span>
+                            <span className="text-sm text-blue-600">
+                              Occupied
+                            </span>
                           )}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {item.confidence !== null
-                            ? `${Math.round(item.confidence * 100)}%`
-                            : "—"}
-                        </TableCell>
-                        <TableCell className="max-w-xs truncate text-xs text-zinc-500">
-                          {item.notes ?? "—"}
                         </TableCell>
                         <TableCell>
-                          {item.action !== "Pending" ? (
-                            <Badge
-                              variant="outline"
-                              className={
-                                item.action === "Confirmed"
-                                  ? "border-green-200 text-green-700"
-                                  : "border-zinc-200 text-zinc-500"
-                              }
-                            >
-                              {item.action}
-                            </Badge>
-                          ) : (
-                            <div className="flex gap-1">
-                              {item.type === "NewUnmatched" && (
-                                <Button
-                                  size="sm"
-                                  variant="default"
-                                  className="h-7 text-xs"
-                                  onClick={() => {
-                                    setActionItem(item);
-                                    setActionDialogOpen(true);
-                                  }}
-                                >
-                                  Create Deal
-                                </Button>
-                              )}
-                              {item.type === "Missing" && (
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  className="h-7 text-xs"
-                                  onClick={() => handleEndDeal(item.itemId)}
-                                >
-                                  End Deal
-                                </Button>
-                              )}
-                              {(item.type === "Verified" ||
-                                item.type === "Replacement") && (
-                                <Button
-                                  size="sm"
+                          {pos.deals.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {pos.deals.map((d) => (
+                                <Badge
+                                  key={d.dealId}
                                   variant="outline"
-                                  className="h-7 text-xs"
-                                  onClick={() => handleConfirm(item.itemId)}
+                                  className="text-xs"
                                 >
-                                  Confirm
-                                </Button>
-                              )}
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 text-xs text-zinc-400"
-                                onClick={() => handleIgnore(item.itemId)}
-                              >
-                                Ignore
-                              </Button>
+                                  {d.brand.name} ({d.geo}) —{" "}
+                                  {d.partner.name}
+                                </Badge>
+                              ))}
                             </div>
+                          ) : (
+                            <span className="text-zinc-400 text-sm">
+                              None
+                            </span>
                           )}
+                        </TableCell>
+                        <TableCell>
+                          <Button size="sm" variant="outline" asChild>
+                            <Link
+                              href={`/dashboard/deals?assetId=${asset.assetId}&positionId=${pos.positionId}`}
+                            >
+                              Create Deal
+                            </Link>
+                          </Button>
                         </TableCell>
                       </TableRow>
                     );
@@ -709,46 +248,9 @@ export default function DealFinderPage() {
                 </TableBody>
               </Table>
             </div>
-          ) : scanResult ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-16">
-                <CheckCircle2 className="h-12 w-12 text-green-500" />
-                <h3 className="mt-4 text-lg font-medium">
-                  No affiliate links found
-                </h3>
-                <p className="mt-1 text-sm text-zinc-500">
-                  The scan did not detect any affiliate links on this page
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-16">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100">
-                  <Search className="h-6 w-6 text-zinc-400" />
-                </div>
-                <h3 className="mt-4 text-lg font-medium">
-                  Select an asset and scan
-                </h3>
-                <p className="mt-1 text-sm text-zinc-500">
-                  Choose an asset with a domain to scan for affiliate links
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-      </Tabs>
-
-      {/* Create Deal Dialog */}
-      <ScanItemActionDialog
-        open={actionDialogOpen}
-        onOpenChange={setActionDialogOpen}
-        item={actionItem}
-        assetId={selectedAsset}
-        onSuccess={() => {
-          if (scanResult) loadScan(scanResult.scanId);
-        }}
-      />
+          </div>
+        ))
+      )}
     </div>
   );
 }

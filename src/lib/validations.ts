@@ -109,18 +109,6 @@ export const dealReplaceSchema = z.object({
   ...dealFinancialFields,
 });
 
-export const scanAssetSchema = z.object({
-  assetId: z.string().min(1, "Asset is required"),
-});
-
-export const confirmScanItemSchema = z.object({
-  itemId: z.string().min(1, "Item ID is required"),
-  action: z.enum(["Confirmed", "Ignored"]),
-  partnerId: z.string().optional(),
-  brandId: z.string().optional(),
-  positionId: z.string().optional(),
-});
-
 // Admin user creation schema
 export const adminCreateUserSchema = z.object({
   name: z.string().min(1, "Name is required"),

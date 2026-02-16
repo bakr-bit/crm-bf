@@ -39,19 +39,6 @@ enum PositionStatus {
   Archived
 }
 
-enum ScanItemType {
-  Verified
-  NewUnmatched
-  Missing
-  Replacement
-}
-
-enum ScanItemAction {
-  Pending
-  Ignored
-  Confirmed
-}
-
 enum IntakeSubmissionStatus {
   Pending
   Converted
@@ -71,7 +58,6 @@ model User {
   createdDeals  Deal[]         @relation("DealCreatedBy")
   updatedDeals  Deal[]         @relation("DealUpdatedBy")
   notifications Notification[]
-  scanResults   ScanResult[]
   intakeLinks   IntakeLink[]
 }
 
@@ -122,7 +108,6 @@ model Brand {
 
   deals            Deal[]
   contacts         Contact[]
-  scanItems        ScanResultItem[]
 }
 
 model Contact {
@@ -158,7 +143,6 @@ model Asset {
 
   positions   Position[]
   deals       Deal[]
-  scanResults ScanResult[]
 }
 
 model Position {
@@ -220,8 +204,6 @@ model Deal {
 
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
-
-  scanItems      ScanResultItem[]
 }
 
 model Notification {
@@ -238,35 +220,6 @@ model Notification {
 
   @@index([userId, isRead])
   @@index([userId, createdAt])
-}
-
-model ScanResult {
-  scanId     String           @id @default(cuid())
-  assetId    String
-  asset      Asset            @relation(fields: [assetId], references: [assetId])
-  scannedUrl String
-  scannedAt  DateTime         @default(now())
-  totalLinks Int
-  userId     String
-  user       User             @relation(fields: [userId], references: [id])
-  items      ScanResultItem[]
-}
-
-model ScanResultItem {
-  itemId         String         @id @default(cuid())
-  scanId         String
-  scan           ScanResult     @relation(fields: [scanId], references: [scanId], onDelete: Cascade)
-  type           ScanItemType
-  action         ScanItemAction @default(Pending)
-  foundUrl       String?
-  foundAnchor    String?
-  matchedDealId  String?
-  matchedDeal    Deal?          @relation(fields: [matchedDealId], references: [dealId])
-  matchedBrandId String?
-  matchedBrand   Brand?         @relation(fields: [matchedBrandId], references: [brandId])
-  confidence     Float?
-  notes          String?
-  createdAt      DateTime       @default(now())
 }
 
 model Credential {
