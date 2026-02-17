@@ -41,6 +41,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { GeoFlag } from "@/components/dashboard/GeoFlag";
+import { GeoMultiSelect } from "@/components/dashboard/GeoMultiSelect";
 import { ArrowLeft, Pencil, Plus, MoreHorizontal, Download, Trash2, Search, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -143,6 +144,10 @@ export default function AssetDetailPage() {
   );
   const [activePageId, setActivePageId] = useState<string>("");
   const [pageSearch, setPageSearch] = useState("");
+
+  // Inline geos editing
+  const [editingGeos, setEditingGeos] = useState(false);
+  const [editingGeosValue, setEditingGeosValue] = useState<string[]>([]);
 
   // Inline postback editing
   const [editingPostbackBrandId, setEditingPostbackBrandId] = useState<string | null>(null);
@@ -410,6 +415,26 @@ export default function AssetDetailPage() {
     }
   }
 
+  async function handleSaveGeos() {
+    try {
+      const res = await fetch(`/api/assets/${assetId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ geos: editingGeosValue }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Failed to update geos.");
+      }
+      toast.success("Geos updated.");
+      setEditingGeos(false);
+      fetchAsset();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "An unexpected error occurred.";
+      toast.error(message);
+    }
+  }
+
   async function handleSavePostback(brandId: string) {
     try {
       const res = await fetch(`/api/brands/${brandId}`, {
@@ -565,18 +590,39 @@ export default function AssetDetailPage() {
               </dt>
               <dd className="text-sm">{asset.description ?? "Not set"}</dd>
             </div>
-            {asset.geos.length > 0 && (
-              <div className="sm:col-span-2">
-                <dt className="text-sm font-medium text-muted-foreground mb-1">
-                  Target Geos
-                </dt>
-                <dd className="flex flex-wrap gap-1.5">
-                  {asset.geos.map((g) => (
-                    <GeoFlag key={g} geo={g} showLabel />
-                  ))}
-                </dd>
-              </div>
-            )}
+            <div className="sm:col-span-2">
+              <dt className="text-sm font-medium text-muted-foreground mb-1">
+                Target Geos
+              </dt>
+              <dd>
+                {editingGeos ? (
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1">
+                      <GeoMultiSelect value={editingGeosValue} onChange={setEditingGeosValue} />
+                    </div>
+                    <Button size="sm" onClick={handleSaveGeos}>Save</Button>
+                    <Button size="sm" variant="outline" onClick={() => setEditingGeos(false)}>Cancel</Button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="flex flex-wrap gap-1.5 cursor-pointer hover:opacity-70 transition-opacity"
+                    onClick={() => {
+                      setEditingGeosValue(asset.geos);
+                      setEditingGeos(true);
+                    }}
+                  >
+                    {asset.geos.length > 0 ? (
+                      asset.geos.map((g) => (
+                        <GeoFlag key={g} geo={g} showLabel />
+                      ))
+                    ) : (
+                      <span className="text-sm text-muted-foreground">Click to add geos</span>
+                    )}
+                  </button>
+                )}
+              </dd>
+            </div>
           </dl>
         </CardContent>
       </Card>
