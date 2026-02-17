@@ -158,7 +158,7 @@ export default function AssetDetailPage() {
   const [wishlistName, setWishlistName] = useState("");
   const [wishlistDesc, setWishlistDesc] = useState("");
   const [wishlistNotes, setWishlistNotes] = useState("");
-  const [wishlistAssignee, setWishlistAssignee] = useState<string>("");
+  const [wishlistAssignee, setWishlistAssignee] = useState<string>("__none");
   const [wishlistAdding, setWishlistAdding] = useState(false);
   const [editingWishlistId, setEditingWishlistId] = useState<string | null>(null);
   const [editingWishlistName, setEditingWishlistName] = useState("");
@@ -316,7 +316,7 @@ export default function AssetDetailPage() {
           name: wishlistName.trim(),
           description: wishlistDesc.trim() || undefined,
           notes: wishlistNotes.trim() || undefined,
-          assignedToUserId: wishlistAssignee || undefined,
+          assignedToUserId: (wishlistAssignee && wishlistAssignee !== "__none") ? wishlistAssignee : undefined,
         }),
       });
       if (!res.ok) {
@@ -327,7 +327,7 @@ export default function AssetDetailPage() {
       setWishlistName("");
       setWishlistDesc("");
       setWishlistNotes("");
-      setWishlistAssignee("");
+      setWishlistAssignee("__none");
       fetchWishlist();
     } catch (err) {
       const message = err instanceof Error ? err.message : "An unexpected error occurred.";
@@ -373,7 +373,7 @@ export default function AssetDetailPage() {
           name: editingWishlistName.trim(),
           description: editingWishlistDesc.trim() || undefined,
           notes: editingWishlistNotes.trim() || undefined,
-          assignedToUserId: editingWishlistAssignee || null,
+          assignedToUserId: (editingWishlistAssignee && editingWishlistAssignee !== "__none") ? editingWishlistAssignee : null,
         }),
       });
       if (!res.ok) {
@@ -997,7 +997,7 @@ export default function AssetDetailPage() {
                 <SelectValue placeholder="Unassigned" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Unassigned</SelectItem>
+                <SelectItem value="__none">Unassigned</SelectItem>
                 {users.map((u) => (
                   <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
                 ))}
@@ -1084,7 +1084,7 @@ export default function AssetDetailPage() {
                             <SelectValue placeholder="Unassigned" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Unassigned</SelectItem>
+                            <SelectItem value="__none">Unassigned</SelectItem>
                             {users.map((u) => (
                               <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
                             ))}
@@ -1140,7 +1140,7 @@ export default function AssetDetailPage() {
                                 setEditingWishlistName(item.name);
                                 setEditingWishlistDesc(item.description ?? "");
                                 setEditingWishlistNotes(item.notes ?? "");
-                                setEditingWishlistAssignee(item.assignedToUserId ?? "");
+                                setEditingWishlistAssignee(item.assignedToUserId ?? "__none");
                               }}
                             >
                               Edit
