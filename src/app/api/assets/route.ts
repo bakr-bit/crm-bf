@@ -124,6 +124,7 @@ export async function POST(request: Request) {
         name: data.name,
         assetDomain: data.assetDomain,
         description: data.description,
+        geos: data.geos,
       },
     });
 

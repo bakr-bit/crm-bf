@@ -55,6 +55,9 @@ export async function PUT(request: Request, { params }: Params) {
     if (parsed.data.name !== undefined) updateData.name = parsed.data.name;
     if (parsed.data.description !== undefined) updateData.description = parsed.data.description;
 
+    if (parsed.data.notes !== undefined) updateData.notes = parsed.data.notes;
+    if (parsed.data.assignedToUserId !== undefined) updateData.assignedToUserId = parsed.data.assignedToUserId;
+
     if (parsed.data.contacted !== undefined) {
       updateData.contacted = parsed.data.contacted;
       if (parsed.data.contacted) {
@@ -71,6 +74,7 @@ export async function PUT(request: Request, { params }: Params) {
       data: updateData,
       include: {
         contactedBy: { select: { id: true, name: true } },
+        assignedTo: { select: { id: true, name: true } },
       },
     });
 

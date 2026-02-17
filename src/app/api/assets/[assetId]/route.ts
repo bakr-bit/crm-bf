@@ -167,25 +167,29 @@ export async function DELETE(
 
     if (activeDeals > 0) {
       return NextResponse.json(
-        { error: "Cannot archive asset with active deals", activeDeals },
+        { error: "Cannot delete asset with active deals. End or replace all active deals first.", activeDeals },
         { status: 409 }
       );
     }
 
-    const asset = await prisma.asset.update({
+    // Delete inactive deals referencing this asset so the asset can be deleted
+    await prisma.deal.deleteMany({
       where: { assetId },
-      data: { status: "Archived" },
+    });
+
+    await prisma.asset.delete({
+      where: { assetId },
     });
 
     await logAudit({
       userId,
       entity: "Asset",
       entityId: assetId,
-      action: "ARCHIVE",
-      details: { name: existing.name, previousStatus: existing.status },
+      action: "DELETE",
+      details: { name: existing.name },
     });
 
-    return NextResponse.json(asset);
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Asset delete error:", error);
     return NextResponse.json(

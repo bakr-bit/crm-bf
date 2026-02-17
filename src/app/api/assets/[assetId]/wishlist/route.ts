@@ -22,6 +22,7 @@ export async function GET(
       orderBy: [{ contacted: "asc" }, { createdAt: "desc" }],
       include: {
         contactedBy: { select: { id: true, name: true } },
+        assignedTo: { select: { id: true, name: true } },
       },
     });
 
@@ -79,9 +80,12 @@ export async function POST(
         assetId,
         name: parsed.data.name,
         description: parsed.data.description,
+        notes: parsed.data.notes,
+        assignedToUserId: parsed.data.assignedToUserId,
       },
       include: {
         contactedBy: { select: { id: true, name: true } },
+        assignedTo: { select: { id: true, name: true } },
       },
     });
 

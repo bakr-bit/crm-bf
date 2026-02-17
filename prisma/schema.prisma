@@ -20,6 +20,7 @@ model User {
   intakeLinks     IntakeLink[]
   notifications   Notification[]
   managedPartners    Partner[]      @relation("PartnerAccountManager")
+  assignedWishlist   WishlistItem[] @relation("WishlistAssigned")
   wishlistContacted  WishlistItem[] @relation("WishlistContacted")
 }
 
@@ -89,6 +90,7 @@ model Asset {
   name          String
   assetDomain   String?        @unique
   description   String?
+  geos          String[]       @default([])
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   status        AssetStatus    @default(Active)
@@ -254,14 +256,17 @@ model WishlistItem {
   assetId           String
   name              String
   description       String?
+  notes             String?
   contacted         Boolean   @default(false)
   contactedAt       DateTime?
   contactedByUserId String?
+  assignedToUserId  String?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
   asset       Asset @relation(fields: [assetId], references: [assetId], onDelete: Cascade)
   contactedBy User? @relation("WishlistContacted", fields: [contactedByUserId], references: [id])
+  assignedTo  User? @relation("WishlistAssigned", fields: [assignedToUserId], references: [id])
 
   @@unique([assetId, name])
 }

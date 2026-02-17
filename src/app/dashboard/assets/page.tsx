@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { AssetDialog } from "@/components/dashboard/AssetDialog";
+import { GeoFlag } from "@/components/dashboard/GeoFlag";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -15,6 +16,7 @@ interface Asset {
   name: string;
   assetDomain: string | null;
   description: string | null;
+  geos: string[];
   createdAt: string;
   updatedAt: string;
   _count: {
@@ -110,6 +112,13 @@ export default function AssetsPage() {
                     <p className="text-sm text-muted-foreground">
                       {asset.assetDomain ?? "No domain"}
                     </p>
+                    {asset.geos && asset.geos.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {asset.geos.map((g) => (
+                          <GeoFlag key={g} geo={g} showLabel={false} />
+                        ))}
+                      </div>
+                    )}
                     <div className="flex gap-4 text-sm">
                       <span>
                         <span className="font-semibold">{totalPositions}</span>{" "}

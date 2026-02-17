@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { GeoMultiSelect } from "@/components/dashboard/GeoMultiSelect";
 import { toast } from "sonner";
 
 interface Asset {
@@ -18,6 +19,7 @@ interface Asset {
   name: string;
   assetDomain?: string;
   description?: string;
+  geos?: string[];
 }
 
 interface AssetDialogProps {
@@ -38,6 +40,7 @@ export function AssetDialog({
   const [name, setName] = useState("");
   const [assetDomain, setAssetDomain] = useState("");
   const [description, setDescription] = useState("");
+  const [geos, setGeos] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -45,10 +48,12 @@ export function AssetDialog({
       setName(asset.name ?? "");
       setAssetDomain(asset.assetDomain ?? "");
       setDescription(asset.description ?? "");
+      setGeos(asset.geos ?? []);
     } else {
       setName("");
       setAssetDomain("");
       setDescription("");
+      setGeos([]);
     }
   }, [asset, open]);
 
@@ -64,6 +69,7 @@ export function AssetDialog({
       name: name.trim(),
       assetDomain: assetDomain.trim() || undefined,
       description: description.trim() || undefined,
+      geos,
     };
 
     try {
@@ -135,6 +141,12 @@ export function AssetDialog({
               placeholder="Describe this asset..."
               rows={3}
             />
+          </div>
+
+          {/* Geos */}
+          <div className="grid gap-2">
+            <Label>Target Geos</Label>
+            <GeoMultiSelect value={geos} onChange={setGeos} />
           </div>
         </div>
 

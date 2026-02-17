@@ -55,6 +55,7 @@ export const assetCreateSchema = z.object({
   name: z.string().min(1, "Name is required"),
   assetDomain: domainTransform,
   description: z.string().optional(),
+  geos: z.array(z.string().length(2).toUpperCase()).default([]),
 });
 
 export const assetUpdateSchema = assetCreateSchema.partial();
@@ -124,6 +125,8 @@ export const dealReplaceSchema = z.object({
 export const wishlistItemCreateSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
+  notes: z.string().optional(),
+  assignedToUserId: z.string().optional().nullable(),
 });
 
 export const wishlistItemUpdateSchema = wishlistItemCreateSchema.partial().extend({

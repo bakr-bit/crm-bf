@@ -26,7 +26,23 @@ import { PageDialog } from "@/components/dashboard/PageDialog";
 import { PositionDialog } from "@/components/dashboard/PositionDialog";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { GeoFlag } from "@/components/dashboard/GeoFlag";
 import { ArrowLeft, Pencil, Plus, MoreHorizontal, Download, Trash2, Search, Star } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { OCCUPYING_STATUSES } from "@/lib/deal-status";
 import type { DealStatusType } from "@/lib/deal-status";
@@ -36,6 +52,7 @@ import type { DealStatusType } from "@/lib/deal-status";
 interface DealBrand {
   brandId: string;
   name: string;
+  postbacks: string | null;
 }
 
 interface DealPartner {
@@ -79,9 +96,15 @@ interface AssetDetail {
   name: string;
   assetDomain: string | null;
   description: string | null;
+  geos: string[];
   createdAt: string;
   updatedAt: string;
   pages: Page[];
+}
+
+interface UserOption {
+  id: string;
+  name: string;
 }
 
 interface WishlistItem {
@@ -89,9 +112,12 @@ interface WishlistItem {
   assetId: string;
   name: string;
   description: string | null;
+  notes: string | null;
   contacted: boolean;
   contactedAt: string | null;
   contactedBy: { id: string; name: string } | null;
+  assignedToUserId: string | null;
+  assignedTo: { id: string; name: string } | null;
   createdAt: string;
 }
 
@@ -101,8 +127,11 @@ export default function AssetDetailPage() {
   const params = useParams<{ assetId: string }>();
   const assetId = params.assetId;
 
+  const router = useRouter();
   const [asset, setAsset] = useState<AssetDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [activeDealCount, setActiveDealCount] = useState<number | null>(null);
 
   // Dialogs
   const [assetDialogOpen, setAssetDialogOpen] = useState(false);
@@ -115,14 +144,23 @@ export default function AssetDetailPage() {
   const [activePageId, setActivePageId] = useState<string>("");
   const [pageSearch, setPageSearch] = useState("");
 
+  // Inline postback editing
+  const [editingPostbackBrandId, setEditingPostbackBrandId] = useState<string | null>(null);
+  const [editingPostbackValue, setEditingPostbackValue] = useState("");
+
   // Wishlist state
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
   const [wishlistName, setWishlistName] = useState("");
   const [wishlistDesc, setWishlistDesc] = useState("");
+  const [wishlistNotes, setWishlistNotes] = useState("");
+  const [wishlistAssignee, setWishlistAssignee] = useState<string>("");
   const [wishlistAdding, setWishlistAdding] = useState(false);
   const [editingWishlistId, setEditingWishlistId] = useState<string | null>(null);
   const [editingWishlistName, setEditingWishlistName] = useState("");
   const [editingWishlistDesc, setEditingWishlistDesc] = useState("");
+  const [editingWishlistNotes, setEditingWishlistNotes] = useState("");
+  const [editingWishlistAssignee, setEditingWishlistAssignee] = useState<string>("");
+  const [users, setUsers] = useState<UserOption[]>([]);
 
   const fetchWishlist = useCallback(async () => {
     try {
@@ -159,6 +197,7 @@ export default function AssetDetailPage() {
   useEffect(() => {
     fetchAsset();
     fetchWishlist();
+    fetch("/api/users").then((r) => r.ok ? r.json() : []).then(setUsers).catch(() => {});
   }, [fetchAsset, fetchWishlist]);
 
   // Delete (archive) a position
@@ -231,6 +270,7 @@ export default function AssetDetailPage() {
       name: a.name,
       assetDomain: a.assetDomain ?? undefined,
       description: a.description ?? undefined,
+      geos: a.geos,
     };
   }
 
@@ -267,7 +307,12 @@ export default function AssetDetailPage() {
       const res = await fetch(`/api/assets/${assetId}/wishlist`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: wishlistName.trim(), description: wishlistDesc.trim() || undefined }),
+        body: JSON.stringify({
+          name: wishlistName.trim(),
+          description: wishlistDesc.trim() || undefined,
+          notes: wishlistNotes.trim() || undefined,
+          assignedToUserId: wishlistAssignee || undefined,
+        }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
@@ -276,6 +321,8 @@ export default function AssetDetailPage() {
       toast.success("Added to wishlist.");
       setWishlistName("");
       setWishlistDesc("");
+      setWishlistNotes("");
+      setWishlistAssignee("");
       fetchWishlist();
     } catch (err) {
       const message = err instanceof Error ? err.message : "An unexpected error occurred.";
@@ -320,6 +367,8 @@ export default function AssetDetailPage() {
         body: JSON.stringify({
           name: editingWishlistName.trim(),
           description: editingWishlistDesc.trim() || undefined,
+          notes: editingWishlistNotes.trim() || undefined,
+          assignedToUserId: editingWishlistAssignee || null,
         }),
       });
       if (!res.ok) {
@@ -329,6 +378,52 @@ export default function AssetDetailPage() {
       toast.success("Wishlist item updated.");
       setEditingWishlistId(null);
       fetchWishlist();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "An unexpected error occurred.";
+      toast.error(message);
+    }
+  }
+
+  async function handleOpenDeleteDialog() {
+    if (!asset) return;
+    // Count active deals across all pages/positions
+    const count = asset.pages.reduce((sum, page) =>
+      sum + page.positions.reduce((pSum, pos) =>
+        pSum + pos.deals.filter((d) => OCCUPYING_STATUSES.includes(d.status as DealStatusType)).length, 0), 0);
+    setActiveDealCount(count);
+    setDeleteDialogOpen(true);
+  }
+
+  async function handleDeleteAsset() {
+    try {
+      const res = await fetch(`/api/assets/${assetId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Failed to delete asset.");
+      }
+      toast.success("Asset deleted.");
+      router.push("/dashboard/assets");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "An unexpected error occurred.";
+      toast.error(message);
+      setDeleteDialogOpen(false);
+    }
+  }
+
+  async function handleSavePostback(brandId: string) {
+    try {
+      const res = await fetch(`/api/brands/${brandId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postbacks: editingPostbackValue }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Failed to update postback.");
+      }
+      toast.success("Postback updated.");
+      setEditingPostbackBrandId(null);
+      fetchAsset();
     } catch (err) {
       const message = err instanceof Error ? err.message : "An unexpected error occurred.";
       toast.error(message);
@@ -446,6 +541,14 @@ export default function AssetDetailPage() {
               <Pencil className="mr-2 size-4" />
               Edit
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleOpenDeleteDialog}
+            >
+              <Trash2 className="mr-2 size-4" />
+              Delete
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -462,6 +565,18 @@ export default function AssetDetailPage() {
               </dt>
               <dd className="text-sm">{asset.description ?? "Not set"}</dd>
             </div>
+            {asset.geos.length > 0 && (
+              <div className="sm:col-span-2">
+                <dt className="text-sm font-medium text-muted-foreground mb-1">
+                  Target Geos
+                </dt>
+                <dd className="flex flex-wrap gap-1.5">
+                  {asset.geos.map((g) => (
+                    <GeoFlag key={g} geo={g} showLabel />
+                  ))}
+                </dd>
+              </div>
+            )}
           </dl>
         </CardContent>
       </Card>
@@ -624,6 +739,7 @@ export default function AssetDetailPage() {
                           <TableHead>Name</TableHead>
                           <TableHead>Details</TableHead>
                           <TableHead>Status</TableHead>
+                          <TableHead>Postback</TableHead>
                           <TableHead className="w-12">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -631,7 +747,7 @@ export default function AssetDetailPage() {
                         {activePage.positions.length === 0 ? (
                           <TableRow>
                             <TableCell
-                              colSpan={4}
+                              colSpan={5}
                               className="text-center text-muted-foreground"
                             >
                               No positions yet.
@@ -662,6 +778,42 @@ export default function AssetDetailPage() {
                                     <span className="text-sm text-green-600">
                                       Available
                                     </span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-sm">
+                                  {activeDeal && editingPostbackBrandId === activeDeal.brand.brandId ? (
+                                    <div className="flex items-center gap-1">
+                                      <Input
+                                        value={editingPostbackValue}
+                                        onChange={(e) => setEditingPostbackValue(e.target.value)}
+                                        className="h-7 text-sm"
+                                        autoFocus
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter") handleSavePostback(activeDeal.brand.brandId);
+                                          if (e.key === "Escape") setEditingPostbackBrandId(null);
+                                        }}
+                                      />
+                                      <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => handleSavePostback(activeDeal.brand.brandId)}>
+                                        Save
+                                      </Button>
+                                      <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setEditingPostbackBrandId(null)}>
+                                        Cancel
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      className="text-muted-foreground hover:text-foreground hover:underline cursor-pointer text-left"
+                                      onClick={() => {
+                                        if (activeDeal) {
+                                          setEditingPostbackBrandId(activeDeal.brand.brandId);
+                                          setEditingPostbackValue(activeDeal.brand.postbacks ?? "");
+                                        }
+                                      }}
+                                      disabled={!activeDeal}
+                                    >
+                                      {activeDeal?.brand.postbacks || "-"}
+                                    </button>
                                   )}
                                 </TableCell>
                                 <TableCell>
@@ -764,7 +916,7 @@ export default function AssetDetailPage() {
         </div>
 
         {/* Add form */}
-        <div className="flex items-end gap-3">
+        <div className="flex items-end gap-3 flex-wrap">
           <div className="flex-1 max-w-xs">
             <label className="text-sm font-medium mb-1 block">Brand Name</label>
             <Input
@@ -776,16 +928,35 @@ export default function AssetDetailPage() {
               }}
             />
           </div>
-          <div className="flex-1 max-w-sm">
+          <div className="flex-1 max-w-xs">
             <label className="text-sm font-medium mb-1 block">Description</label>
             <Input
-              placeholder="Optional notes..."
+              placeholder="Optional..."
               value={wishlistDesc}
               onChange={(e) => setWishlistDesc(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleAddWishlistItem();
-              }}
             />
+          </div>
+          <div className="flex-1 max-w-xs">
+            <label className="text-sm font-medium mb-1 block">Notes</label>
+            <Input
+              placeholder="Optional..."
+              value={wishlistNotes}
+              onChange={(e) => setWishlistNotes(e.target.value)}
+            />
+          </div>
+          <div className="w-40">
+            <label className="text-sm font-medium mb-1 block">Assign To</label>
+            <Select value={wishlistAssignee} onValueChange={setWishlistAssignee}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Unassigned" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Unassigned</SelectItem>
+                {users.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <Button
             size="sm"
@@ -805,6 +976,8 @@ export default function AssetDetailPage() {
                 <TableHead className="w-10">Contacted</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Description</TableHead>
+                <TableHead>Notes</TableHead>
+                <TableHead>Assigned To</TableHead>
                 <TableHead>Contacted By</TableHead>
                 <TableHead className="w-12">Actions</TableHead>
               </TableRow>
@@ -812,7 +985,7 @@ export default function AssetDetailPage() {
             <TableBody>
               {wishlistItems.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground">
                     No wishlist items yet. Add brands you want to work with.
                   </TableCell>
                 </TableRow>
@@ -845,6 +1018,34 @@ export default function AssetDetailPage() {
                         />
                       ) : (
                         item.description ?? "-"
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {editingWishlistId === item.wishlistItemId ? (
+                        <Input
+                          value={editingWishlistNotes}
+                          onChange={(e) => setEditingWishlistNotes(e.target.value)}
+                          className="h-8"
+                        />
+                      ) : (
+                        item.notes ?? "-"
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {editingWishlistId === item.wishlistItemId ? (
+                        <Select value={editingWishlistAssignee} onValueChange={setEditingWishlistAssignee}>
+                          <SelectTrigger className="h-8 w-32">
+                            <SelectValue placeholder="Unassigned" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Unassigned</SelectItem>
+                            {users.map((u) => (
+                              <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        item.assignedTo?.name ?? "-"
                       )}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
@@ -892,6 +1093,8 @@ export default function AssetDetailPage() {
                                 setEditingWishlistId(item.wishlistItemId);
                                 setEditingWishlistName(item.name);
                                 setEditingWishlistDesc(item.description ?? "");
+                                setEditingWishlistNotes(item.notes ?? "");
+                                setEditingWishlistAssignee(item.assignedToUserId ?? "");
                               }}
                             >
                               Edit
@@ -940,6 +1143,35 @@ export default function AssetDetailPage() {
         }
         onSuccess={fetchAsset}
       />
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Asset</DialogTitle>
+            {activeDealCount && activeDealCount > 0 ? (
+              <DialogDescription>
+                <strong>{asset.name}</strong> cannot be deleted because it has{" "}
+                <strong>{activeDealCount} active {activeDealCount === 1 ? "deal" : "deals"}</strong>.
+                End or replace all active deals on this asset before deleting it.
+              </DialogDescription>
+            ) : (
+              <DialogDescription>
+                Are you sure you want to permanently delete <strong>{asset.name}</strong>? All pages, positions, and inactive deals on this asset will also be deleted. This cannot be undone.
+              </DialogDescription>
+            )}
+          </DialogHeader>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              {activeDealCount && activeDealCount > 0 ? "Close" : "Cancel"}
+            </Button>
+            {!activeDealCount || activeDealCount === 0 ? (
+              <Button variant="destructive" onClick={handleDeleteAsset}>
+                Delete
+              </Button>
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
