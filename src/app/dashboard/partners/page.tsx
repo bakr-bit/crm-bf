@@ -58,6 +58,7 @@ interface Partner {
   lastInvoicedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  accountManager?: { id: string; name: string | null; email: string } | null;
   _count: {
     brands: number;
     contacts: number;
@@ -273,6 +274,7 @@ export default function PartnersPage() {
               <TableHead>Brands</TableHead>
               <TableHead>Active Deals</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Assignee</TableHead>
               <TableHead>Last Invoiced</TableHead>
               <TableHead>Credentials</TableHead>
               <TableHead className="w-12">Actions</TableHead>
@@ -282,7 +284,7 @@ export default function PartnersPage() {
             {partners.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={9}
+                  colSpan={10}
                   className="text-center text-muted-foreground"
                 >
                   No partners found.
@@ -304,6 +306,9 @@ export default function PartnersPage() {
                   <TableCell>{partner._count.deals}</TableCell>
                   <TableCell>
                     <StatusBadge status={partner.status} variant="partner" />
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {partner.accountManager?.name ?? "-"}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {partner.lastInvoicedAt

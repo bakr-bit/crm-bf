@@ -415,6 +415,7 @@ export default function DealsPage() {
               <TableHead>Position</TableHead>
               <TableHead>Geo</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Assignee</TableHead>
               <TableHead>Start Date</TableHead>
               <TableHead>End Date</TableHead>
               <TableHead className="w-12">Actions</TableHead>
@@ -424,7 +425,7 @@ export default function DealsPage() {
             {deals.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={9}
+                  colSpan={10}
                   className="text-center text-muted-foreground"
                 >
                   No deals found.
@@ -462,6 +463,9 @@ export default function DealsPage() {
                   <TableCell><GeoFlag geo={deal.geo} /></TableCell>
                   <TableCell>
                     <StatusBadge status={deal.status} variant="deal" />
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {deal.partner.accountManager?.name ?? "-"}
                   </TableCell>
                   <TableCell>{formatDate(deal.startDate)}</TableCell>
                   <TableCell>{formatDate(deal.endDate)}</TableCell>

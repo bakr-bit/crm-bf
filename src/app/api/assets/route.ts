@@ -125,6 +125,7 @@ export async function POST(request: Request) {
         assetDomain: data.assetDomain,
         description: data.description,
         geos: data.geos,
+        status: "Active",
       },
     });
 

@@ -42,6 +42,9 @@ export async function GET(request: Request) {
       where,
       orderBy: { createdAt: "desc" },
       include: {
+        accountManager: {
+          select: { id: true, name: true, email: true },
+        },
         _count: {
           select: {
             brands: true,
