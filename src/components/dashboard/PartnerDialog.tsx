@@ -72,6 +72,14 @@ export function PartnerDialog({
   const [loading, setLoading] = useState(false);
   const [duplicates, setDuplicates] = useState<DuplicateMatch[]>([]);
 
+  // Brand creation step state
+  const [showBrandStep, setShowBrandStep] = useState(false);
+  const [createdPartnerId, setCreatedPartnerId] = useState("");
+  const [brandName, setBrandName] = useState("");
+  const [brandDomain, setBrandDomain] = useState("");
+  const [brandAffiliateSoftware, setBrandAffiliateSoftware] = useState("");
+  const [brandLoading, setBrandLoading] = useState(false);
+
   useEffect(() => {
     if (open) {
       fetch("/api/users")
@@ -106,7 +114,20 @@ export function PartnerDialog({
       setAccountManagerUserId("");
     }
     setDuplicates([]);
+    setShowBrandStep(false);
+    setCreatedPartnerId("");
+    setBrandName("");
+    setBrandDomain("");
+    setBrandAffiliateSoftware("");
   }, [partner, open]);
+
+  function handleClose(openState: boolean) {
+    if (!openState && showBrandStep) {
+      // If closing during brand step, still trigger success (partner was already created)
+      onSuccess();
+    }
+    onOpenChange(openState);
+  }
 
   async function handleSubmit(force = false) {
     if (!name.trim()) {
@@ -154,9 +175,18 @@ export function PartnerDialog({
         throw new Error(data?.error ?? "Failed to save partner.");
       }
 
+      const responseData = await res.json();
       toast.success(isEdit ? "Partner updated." : "Partner created.");
-      onOpenChange(false);
-      onSuccess();
+
+      if (!isEdit && responseData.partnerId) {
+        // After creating, show brand creation step
+        setCreatedPartnerId(responseData.partnerId);
+        setShowBrandStep(true);
+        onSuccess(); // Refresh parent list
+      } else {
+        onOpenChange(false);
+        onSuccess();
+      }
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "An unexpected error occurred.";
@@ -164,6 +194,100 @@ export function PartnerDialog({
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleCreateBrand() {
+    if (!brandName.trim()) {
+      toast.error("Brand name is required.");
+      return;
+    }
+
+    setBrandLoading(true);
+    try {
+      const res = await fetch(`/api/partners/${createdPartnerId}/brands`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: brandName.trim(),
+          brandDomain: brandDomain.trim() || undefined,
+          affiliateSoftware: brandAffiliateSoftware.trim() || undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Failed to create brand.");
+      }
+
+      toast.success("Brand created.");
+      onOpenChange(false);
+      onSuccess();
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "An unexpected error occurred.";
+      toast.error(message);
+    } finally {
+      setBrandLoading(false);
+    }
+  }
+
+  if (showBrandStep) {
+    return (
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Add a Brand?</DialogTitle>
+          </DialogHeader>
+
+          <p className="text-sm text-muted-foreground">
+            Would you like to add the first brand for this partner?
+          </p>
+
+          <div className="grid gap-4 py-2">
+            <div className="grid gap-2">
+              <Label htmlFor="brand-name">Brand Name *</Label>
+              <Input
+                id="brand-name"
+                value={brandName}
+                onChange={(e) => setBrandName(e.target.value)}
+                placeholder="Brand name"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="brand-domain">Brand Domain</Label>
+              <Input
+                id="brand-domain"
+                value={brandDomain}
+                onChange={(e) => setBrandDomain(e.target.value)}
+                placeholder="example.com"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="brand-software">Affiliate Software</Label>
+              <Input
+                id="brand-software"
+                value={brandAffiliateSoftware}
+                onChange={(e) => setBrandAffiliateSoftware(e.target.value)}
+                placeholder="e.g. Income Access, NetRefer"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => handleClose(false)}
+              disabled={brandLoading}
+            >
+              Skip
+            </Button>
+            <Button onClick={handleCreateBrand} disabled={brandLoading || !brandName.trim()}>
+              {brandLoading ? "Creating..." : "Create Brand"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
   }
 
   return (
