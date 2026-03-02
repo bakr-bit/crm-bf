@@ -218,6 +218,7 @@ model IntakeLink {
   createdByUserId String
   expiresAt       DateTime
   usedAt          DateTime?
+  maxUses         Int                @default(1)
   note            String?
   createdAt       DateTime           @default(now())
   createdBy       User               @relation(fields: [createdByUserId], references: [id])
@@ -276,7 +277,6 @@ enum PartnerStatus {
   EstablishedContact
   PlatformSignedUp
   AwaitingKYC
-  AvailableForAsset
   AwaitingPostback
   Active
 }

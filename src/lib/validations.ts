@@ -157,6 +157,7 @@ export const credentialUpdateSchema = credentialCreateSchema.partial();
 export const intakeLinkCreateSchema = z.object({
   note: z.string().optional(),
   expiresInDays: z.number().int().min(1).max(30).default(7),
+  maxUses: z.number().int().min(1).max(1000).default(1),
 });
 
 export const intakeBrandSchema = z.object({
