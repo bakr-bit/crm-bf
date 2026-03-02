@@ -11,13 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "sonner";
 
 interface Credential {
@@ -207,18 +200,13 @@ export function CredentialDialog({
 
           {/* Software Type */}
           <div className="grid gap-2">
-            <Label>Software Type</Label>
-            <Select value={softwareType} onValueChange={setSoftwareType}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Income Access">Income Access</SelectItem>
-                <SelectItem value="NetRefer">NetRefer</SelectItem>
-                <SelectItem value="MyAffiliates">MyAffiliates</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label htmlFor="cred-software-type">Software Type</Label>
+            <Input
+              id="cred-software-type"
+              value={softwareType}
+              onChange={(e) => setSoftwareType(e.target.value)}
+              placeholder="e.g. Income Access, NetRefer, MyAffiliates"
+            />
           </div>
 
           {/* Notes */}
