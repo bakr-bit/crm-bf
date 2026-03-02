@@ -42,11 +42,13 @@ import {
 } from "@/components/ui/dialog";
 import { GeoFlag } from "@/components/dashboard/GeoFlag";
 import { GeoMultiSelect } from "@/components/dashboard/GeoMultiSelect";
-import { ArrowLeft, Pencil, Plus, MoreHorizontal, Download, Trash2, Search, Star } from "lucide-react";
+import { ArrowLeft, Pencil, Plus, MoreHorizontal, Download, Trash2, Search, Star, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { OCCUPYING_STATUSES } from "@/lib/deal-status";
 import type { DealStatusType } from "@/lib/deal-status";
+import { AdminOnlyBanner } from "@/components/dashboard/AdminOnlyBanner";
+import { useCurrentUser } from "@/hooks/use-current-user";
 
 // ---------- types ----------
 
@@ -98,6 +100,7 @@ interface AssetDetail {
   assetDomain: string | null;
   description: string | null;
   geos: string[];
+  adminOnly: boolean;
   createdAt: string;
   updatedAt: string;
   pages: Page[];
@@ -129,6 +132,7 @@ export default function AssetDetailPage() {
   const assetId = params.assetId;
 
   const router = useRouter();
+  const currentUser = useCurrentUser();
   const [asset, setAsset] = useState<AssetDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -455,6 +459,21 @@ export default function AssetDetailPage() {
     }
   }
 
+  async function handleToggleAdminOnly(value: boolean) {
+    try {
+      const res = await fetch(`/api/assets/${assetId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adminOnly: value }),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+      toast.success(value ? "Asset set to admin-only." : "Asset visible to all users.");
+      fetchAsset();
+    } catch {
+      toast.error("Failed to update admin-only status.");
+    }
+  }
+
   function handleExportCsv() {
     if (!asset) return;
 
@@ -544,10 +563,30 @@ export default function AssetDetailPage() {
         Back to Assets
       </Link>
 
+      {currentUser?.isAdmin && asset.adminOnly && (
+        <AdminOnlyBanner
+          entityType="asset"
+          adminOnly={asset.adminOnly}
+          onToggle={handleToggleAdminOnly}
+        />
+      )}
+
       {/* Asset Info Card */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>{asset.name}</CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle>{asset.name}</CardTitle>
+            {currentUser?.isAdmin && !asset.adminOnly && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleToggleAdminOnly(true)}
+              >
+                <Lock className="mr-2 size-3" />
+                Make Admin Only
+              </Button>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <Button
               size="sm"

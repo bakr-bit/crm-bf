@@ -58,6 +58,14 @@ export async function GET(
       );
     }
 
+    const isAdmin = session?.user?.isAdmin ?? false;
+    if (!isAdmin && deal.adminOnly) {
+      return NextResponse.json(
+        { error: "Deal not found" },
+        { status: 404 }
+      );
+    }
+
     return NextResponse.json(deal);
   } catch (error) {
     console.error("Deal get error:", error);

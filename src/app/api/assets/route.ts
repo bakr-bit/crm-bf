@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { assetCreateSchema } from "@/lib/validations";
 import { OCCUPYING_STATUSES } from "@/lib/deal-status";
+import { adminOnlyFilter } from "@/lib/admin-only";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -17,7 +18,10 @@ export async function GET(request: Request) {
     const search = searchParams.get("search");
     const includeArchived = searchParams.get("includeArchived") === "true";
 
-    const where: Record<string, unknown> = {};
+    const isAdmin = session?.user?.isAdmin ?? false;
+    const where: Record<string, unknown> = {
+      ...adminOnlyFilter(isAdmin),
+    };
 
     if (!includeArchived) {
       where.status = "Active";

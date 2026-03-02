@@ -21,9 +21,11 @@ import {
 } from "@/components/ui/table";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { DealReplacementDialog } from "@/components/dashboard/DealReplacementDialog";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { GeoFlag } from "@/components/dashboard/GeoFlag";
+import { AdminOnlyBanner } from "@/components/dashboard/AdminOnlyBanner";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { OCCUPYING_STATUSES, DEAL_STATUS_LABELS } from "@/lib/deal-status";
 import type { DealStatusType } from "@/lib/deal-status";
 
@@ -51,6 +53,7 @@ interface DealDetail {
   positionId: string;
   affiliateLink: string | null;
   status: string;
+  adminOnly: boolean;
   isDirect: boolean;
   geo: string;
   startDate: string;
@@ -112,6 +115,7 @@ export default function DealDetailPage() {
   const params = useParams<{ dealId: string }>();
   const dealId = params.dealId;
 
+  const currentUser = useCurrentUser();
   const [deal, setDeal] = useState<DealDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
@@ -158,6 +162,21 @@ export default function DealDetailPage() {
   }, [fetchDeal]);
 
   // ---------- actions ----------
+
+  async function handleToggleAdminOnly(value: boolean) {
+    try {
+      const res = await fetch(`/api/deals/${dealId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adminOnly: value }),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+      toast.success(value ? "Deal set to admin-only." : "Deal visible to all users.");
+      fetchDeal();
+    } catch {
+      toast.error("Failed to update admin-only status.");
+    }
+  }
 
   async function handleEndDeal() {
     if (!deal) return;
@@ -262,6 +281,14 @@ export default function DealDetailPage() {
         Back to Deals
       </Link>
 
+      {currentUser?.isAdmin && deal.adminOnly && (
+        <AdminOnlyBanner
+          entityType="deal"
+          adminOnly={deal.adminOnly}
+          onToggle={handleToggleAdminOnly}
+        />
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -269,6 +296,16 @@ export default function DealDetailPage() {
             {deal.brand.name} on {deal.asset.name}
           </h1>
           <StatusBadge status={deal.status} variant="deal" />
+          {currentUser?.isAdmin && !deal.adminOnly && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleToggleAdminOnly(true)}
+            >
+              <Lock className="mr-2 size-3" />
+              Make Admin Only
+            </Button>
+          )}
         </div>
         {OCCUPYING_STATUSES.includes(deal.status as DealStatusType) && (
           <div className="flex items-center gap-2">

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { partnerUpdateSchema } from "@/lib/validations";
 import { findDuplicatePartners } from "@/lib/dedup";
+import { adminOnlyFilter } from "@/lib/admin-only";
 
 export async function GET(
   request: Request,
@@ -48,6 +49,15 @@ export async function GET(
     });
 
     if (!partner) {
+      return NextResponse.json(
+        { error: "Partner not found" },
+        { status: 404 }
+      );
+    }
+
+    // Non-admins cannot see admin-only partners
+    const isAdmin = session?.user?.isAdmin ?? false;
+    if (!isAdmin && partner.adminOnly) {
       return NextResponse.json(
         { error: "Partner not found" },
         { status: 404 }

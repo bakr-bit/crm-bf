@@ -6,6 +6,7 @@ import { logAudit } from "@/lib/audit";
 import { dealCreateSchema } from "@/lib/validations";
 import { createNotificationForAllUsers } from "@/lib/notifications";
 import { OCCUPYING_STATUSES } from "@/lib/deal-status";
+import { adminOnlyFilter } from "@/lib/admin-only";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -26,7 +27,11 @@ export async function GET(request: Request) {
     const isDirect = searchParams.get("isDirect");
     const includeInactive = searchParams.get("includeInactive") === "true";
 
-    const where: Record<string, unknown> = {};
+    const isAdmin = session?.user?.isAdmin ?? false;
+    const adminFilter = adminOnlyFilter(isAdmin);
+    const where: Record<string, unknown> = {
+      ...adminFilter,
+    };
 
     if (status) {
       where.status = status;
@@ -65,6 +70,13 @@ export async function GET(request: Request) {
         { partner: { name: { contains: search, mode: "insensitive" } } },
         { asset: { name: { contains: search, mode: "insensitive" } } },
       ];
+    }
+
+    // Filter out deals whose related entities are admin-only (for non-admins)
+    if (!isAdmin) {
+      where.partner = { ...(where.partner as Record<string, unknown> ?? {}), ...adminFilter };
+      where.brand = { ...(where.brand as Record<string, unknown> ?? {}), ...adminFilter };
+      where.asset = { ...(where.asset as Record<string, unknown> ?? {}), ...adminFilter };
     }
 
     const deals = await prisma.deal.findMany({

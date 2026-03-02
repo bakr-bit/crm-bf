@@ -46,9 +46,12 @@ import {
   Upload,
   FileText,
   Paperclip,
+  Lock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { GeoFlag } from "@/components/dashboard/GeoFlag";
+import { AdminOnlyBanner } from "@/components/dashboard/AdminOnlyBanner";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { LICENSE_MAP } from "@/lib/licenses";
 import { COUNTRY_MAP } from "@/lib/countries";
 
@@ -147,6 +150,7 @@ interface PartnerDetail {
   lastInvoicedAt: string | null;
   accountManagerUserId: string | null;
   accountManager: { id: string; name: string } | null;
+  adminOnly: boolean;
   createdAt: string;
   updatedAt: string;
   brands: Brand[];
@@ -161,6 +165,7 @@ export default function PartnerDetailPage() {
   const params = useParams<{ partnerId: string }>();
   const partnerId = params.partnerId;
 
+  const currentUser = useCurrentUser();
   const [partner, setPartner] = useState<PartnerDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -298,6 +303,22 @@ export default function PartnerDetailPage() {
     }
     await navigator.clipboard.writeText(password);
     toast.success("Password copied to clipboard.");
+  }
+
+  // Admin-only toggle
+  async function handleToggleAdminOnly(value: boolean) {
+    try {
+      const res = await fetch(`/api/partners/${partnerId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adminOnly: value }),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+      toast.success(value ? "Partner set to admin-only." : "Partner visible to all users.");
+      fetchPartner();
+    } catch {
+      toast.error("Failed to update admin-only status.");
+    }
   }
 
   // Dialog helpers
@@ -496,7 +517,26 @@ export default function PartnerDetailPage() {
       <div className="flex items-center gap-3">
         <h1 className="text-2xl font-bold">{partner.name}</h1>
         <StatusBadge status={partner.status} variant="partner" />
+        {currentUser?.isAdmin && !partner.adminOnly && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="ml-auto"
+            onClick={() => handleToggleAdminOnly(true)}
+          >
+            <Lock className="mr-2 size-3" />
+            Make Admin Only
+          </Button>
+        )}
       </div>
+
+      {currentUser?.isAdmin && partner.adminOnly && (
+        <AdminOnlyBanner
+          entityType="partner"
+          adminOnly={partner.adminOnly}
+          onToggle={handleToggleAdminOnly}
+        />
+      )}
 
       {/* Tabs */}
       <Tabs defaultValue="info">

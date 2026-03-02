@@ -6,6 +6,7 @@ import { logAudit } from "@/lib/audit";
 import { partnerCreateSchema } from "@/lib/validations";
 import { findDuplicatePartners } from "@/lib/dedup";
 import { createNotificationForAllUsers } from "@/lib/notifications";
+import { adminOnlyFilter } from "@/lib/admin-only";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -19,7 +20,10 @@ export async function GET(request: Request) {
     const status = searchParams.get("status");
     const isDirect = searchParams.get("isDirect");
 
-    const where: Record<string, unknown> = {};
+    const isAdmin = session?.user?.isAdmin ?? false;
+    const where: Record<string, unknown> = {
+      ...adminOnlyFilter(isAdmin),
+    };
 
     if (search) {
       where.OR = [

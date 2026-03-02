@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { AssetDialog } from "@/components/dashboard/AssetDialog";
 import { GeoFlag } from "@/components/dashboard/GeoFlag";
-import { Plus } from "lucide-react";
+import { Plus, Lock } from "lucide-react";
 import { toast } from "sonner";
 
 // ---------- types ----------
@@ -17,6 +17,7 @@ interface Asset {
   assetDomain: string | null;
   description: string | null;
   geos: string[];
+  adminOnly: boolean;
   createdAt: string;
   updatedAt: string;
   _count: {
@@ -106,7 +107,10 @@ export default function AssetsPage() {
               >
                 <Card className="relative hover:bg-muted/50 transition-colors">
                   <CardHeader>
-                    <CardTitle className="text-base">{asset.name}</CardTitle>
+                    <CardTitle className="flex items-center gap-1.5 text-base">
+                      {asset.adminOnly && <Lock className="size-3.5 text-blue-600" />}
+                      {asset.name}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     <p className="text-sm text-muted-foreground">

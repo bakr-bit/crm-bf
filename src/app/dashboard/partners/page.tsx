@@ -39,7 +39,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { MoreHorizontal, Plus, Search, Eye, Copy } from "lucide-react";
+import { MoreHorizontal, Plus, Search, Eye, Copy, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { PARTNER_STATUSES, PARTNER_STATUS_LABELS } from "@/lib/partner-status";
 
@@ -56,6 +56,7 @@ interface Partner {
   hasBanking: boolean;
   sopNotes: string | null;
   lastInvoicedAt: string | null;
+  adminOnly: boolean;
   createdAt: string;
   updatedAt: string;
   accountManager?: { id: string; name: string | null; email: string } | null;
@@ -294,9 +295,12 @@ export default function PartnersPage() {
               partners.map((partner) => (
                 <TableRow key={partner.partnerId} className="cursor-pointer hover:bg-muted/50" onClick={() => window.location.href = `/dashboard/partners/${partner.partnerId}`}>
                   <TableCell className="font-medium">
-                    <Link href={`/dashboard/partners/${partner.partnerId}`} className="text-primary underline-offset-4 hover:underline" onClick={(e) => e.stopPropagation()}>
-                      {partner.name}
-                    </Link>
+                    <div className="flex items-center gap-1.5">
+                      {partner.adminOnly && <Lock className="size-3.5 text-blue-600" />}
+                      <Link href={`/dashboard/partners/${partner.partnerId}`} className="text-primary underline-offset-4 hover:underline" onClick={(e) => e.stopPropagation()}>
+                        {partner.name}
+                      </Link>
+                    </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {partner.websiteDomain ?? "-"}

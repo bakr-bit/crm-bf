@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { assetUpdateSchema } from "@/lib/validations";
 import { OCCUPYING_STATUSES } from "@/lib/deal-status";
+import { adminOnlyFilter } from "@/lib/admin-only";
 
 export async function GET(
   request: Request,
@@ -43,6 +44,14 @@ export async function GET(
     });
 
     if (!asset) {
+      return NextResponse.json(
+        { error: "Asset not found" },
+        { status: 404 }
+      );
+    }
+
+    const isAdmin = session?.user?.isAdmin ?? false;
+    if (!isAdmin && asset.adminOnly) {
       return NextResponse.json(
         { error: "Asset not found" },
         { status: 404 }

@@ -22,7 +22,9 @@ export const partnerCreateSchema = z.object({
   force: z.boolean().default(false),
 });
 
-export const partnerUpdateSchema = partnerCreateSchema.partial();
+export const partnerUpdateSchema = partnerCreateSchema.partial().extend({
+  adminOnly: z.boolean().optional(),
+});
 
 export const brandCreateSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -36,7 +38,9 @@ export const brandCreateSchema = z.object({
   targetGeos: z.array(z.string().length(2).toUpperCase()).default([]),
 });
 
-export const brandUpdateSchema = brandCreateSchema.partial();
+export const brandUpdateSchema = brandCreateSchema.partial().extend({
+  adminOnly: z.boolean().optional(),
+});
 
 export const contactCreateSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -58,7 +62,9 @@ export const assetCreateSchema = z.object({
   geos: z.array(z.string().length(2).toUpperCase()).default([]),
 });
 
-export const assetUpdateSchema = assetCreateSchema.partial();
+export const assetUpdateSchema = assetCreateSchema.partial().extend({
+  adminOnly: z.boolean().optional(),
+});
 
 export const pageCreateSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -107,6 +113,7 @@ export const dealUpdateSchema = z.object({
   endDate: z.string().optional().transform((val) => val ? new Date(val) : undefined),
   status: z.enum(DEAL_STATUSES).optional(),
   notes: z.string().optional(),
+  adminOnly: z.boolean().optional(),
   ...dealFinancialFields,
 });
 

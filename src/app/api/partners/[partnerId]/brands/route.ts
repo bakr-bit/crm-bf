@@ -4,6 +4,7 @@ import { authOptions, isValidApiKey } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { brandCreateSchema } from "@/lib/validations";
+import { adminOnlyFilter } from "@/lib/admin-only";
 
 export async function GET(
   request: Request,
@@ -28,8 +29,9 @@ export async function GET(
       );
     }
 
+    const isAdmin = session?.user?.isAdmin ?? false;
     const brands = await prisma.brand.findMany({
-      where: { partnerId },
+      where: { partnerId, ...adminOnlyFilter(isAdmin) },
       orderBy: { createdAt: "desc" },
     });
 

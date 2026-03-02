@@ -28,7 +28,7 @@ import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { DealDialog } from "@/components/dashboard/DealDialog";
 import { DealReplacementDialog } from "@/components/dashboard/DealReplacementDialog";
 import { Input } from "@/components/ui/input";
-import { MoreHorizontal, Plus, Search } from "lucide-react";
+import { MoreHorizontal, Plus, Search, Lock } from "lucide-react";
 import Link from "next/link";
 import { COUNTRIES } from "@/lib/countries";
 import { GeoFlag } from "@/components/dashboard/GeoFlag";
@@ -49,6 +49,7 @@ interface Deal {
   positionId: string;
   affiliateLink: string | null;
   status: string;
+  adminOnly: boolean;
   startDate: string;
   endDate: string | null;
   geo: string;
@@ -441,13 +442,16 @@ export default function DealsPage() {
                   }
                 >
                   <TableCell className="font-medium">
-                    <Link
-                      href={`/dashboard/partners/${deal.partnerId}`}
-                      className="hover:underline"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {deal.brand.name}
-                    </Link>
+                    <div className="flex items-center gap-1.5">
+                      {deal.adminOnly && <Lock className="size-3.5 text-blue-600" />}
+                      <Link
+                        href={`/dashboard/partners/${deal.partnerId}`}
+                        className="hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {deal.brand.name}
+                      </Link>
+                    </div>
                   </TableCell>
                   <TableCell>
                     <Link

@@ -40,6 +40,7 @@ model Partner {
   bankingFileUrl       String?
   contractFileUrl      String?
   licenseFileUrl       String?
+  adminOnly            Boolean       @default(false)
   accountManagerUserId String?
   brands               Brand[]
   contacts             Contact[]
@@ -55,6 +56,7 @@ model Brand {
   brandDomain       String?
   brandIdentifiers  Json?
   status            BrandStatus @default(Active)
+  adminOnly         Boolean     @default(false)
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
   targetGeos        String[]    @default([])
@@ -94,6 +96,7 @@ model Asset {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   status        AssetStatus    @default(Active)
+  adminOnly     Boolean        @default(false)
   deals         Deal[]
   pages         Page[]
   wishlistItems WishlistItem[]
@@ -139,6 +142,7 @@ model Deal {
   startDate         DateTime   @default(now())
   endDate           DateTime?
   status            DealStatus @default(Live)
+  adminOnly         Boolean    @default(false)
   isDirect          Boolean    @default(false)
   notes             String?
   replacedDealId    String?    @unique
