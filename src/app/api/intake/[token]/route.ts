@@ -14,6 +14,7 @@ export async function GET(
 
     const link = await prisma.intakeLink.findUnique({
       where: { tokenHash },
+      include: { _count: { select: { submissions: true } } },
     });
 
     if (!link) {
@@ -23,16 +24,16 @@ export async function GET(
       );
     }
 
-    if (link.usedAt) {
+    if (new Date() > link.expiresAt) {
       return NextResponse.json(
-        { valid: false, error: "This link has already been used" },
+        { valid: false, error: "This link has expired" },
         { status: 410 }
       );
     }
 
-    if (new Date() > link.expiresAt) {
+    if (link._count.submissions >= link.maxUses) {
       return NextResponse.json(
-        { valid: false, error: "This link has expired" },
+        { valid: false, error: "This link has reached its maximum number of uses" },
         { status: 410 }
       );
     }
@@ -57,6 +58,7 @@ export async function POST(
 
     const link = await prisma.intakeLink.findUnique({
       where: { tokenHash },
+      include: { _count: { select: { submissions: true } } },
     });
 
     if (!link) {
@@ -66,16 +68,16 @@ export async function POST(
       );
     }
 
-    if (link.usedAt) {
+    if (new Date() > link.expiresAt) {
       return NextResponse.json(
-        { error: "This link has already been used" },
+        { error: "This link has expired" },
         { status: 410 }
       );
     }
 
-    if (new Date() > link.expiresAt) {
+    if (link._count.submissions >= link.maxUses) {
       return NextResponse.json(
-        { error: "This link has expired" },
+        { error: "This link has reached its maximum number of uses" },
         { status: 410 }
       );
     }
@@ -107,6 +109,7 @@ export async function POST(
         },
       });
 
+      // Update usedAt as a "last used" timestamp
       await tx.intakeLink.update({
         where: { intakeLinkId: link.intakeLinkId },
         data: { usedAt: new Date() },

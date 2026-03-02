@@ -35,6 +35,7 @@ export async function POST(request: Request) {
         createdByUserId: userId,
         expiresAt,
         note: parsed.data.note,
+        maxUses: parsed.data.maxUses,
       },
     });
 

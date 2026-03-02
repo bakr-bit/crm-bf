@@ -50,6 +50,7 @@ interface IntakeLink {
   intakeLinkId: string;
   expiresAt: string;
   usedAt: string | null;
+  maxUses: number;
   note: string | null;
   createdAt: string;
   createdBy: { name: string };
@@ -63,7 +64,7 @@ const statusColors: Record<string, string> = {
 };
 
 function getLinkStatus(link: IntakeLink) {
-  if (link.usedAt) return { label: "Used", className: "bg-green-100 text-green-800" };
+  if (link._count.submissions >= link.maxUses) return { label: "Fully Used", className: "bg-green-100 text-green-800" };
   if (new Date(link.expiresAt) < new Date()) return { label: "Expired", className: "bg-red-100 text-red-800" };
   return { label: "Active", className: "bg-blue-100 text-blue-800" };
 }
@@ -236,7 +237,7 @@ export default function IntakePage() {
                           {new Date(link.expiresAt).toLocaleDateString()}
                         </TableCell>
                         <TableCell className="text-sm">
-                          {link._count.submissions}
+                          {link._count.submissions} / {link.maxUses}
                         </TableCell>
                         <TableCell>
                           <Badge variant="secondary" className={status.className}>

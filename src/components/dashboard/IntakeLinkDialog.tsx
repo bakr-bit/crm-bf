@@ -33,15 +33,19 @@ export function IntakeLinkDialog({
 }: IntakeLinkDialogProps) {
   const [note, setNote] = useState("");
   const [expiresInDays, setExpiresInDays] = useState("7");
+  const [maxUses, setMaxUses] = useState("1");
   const [loading, setLoading] = useState(false);
   const [generatedUrl, setGeneratedUrl] = useState("");
+  const [generatedMaxUses, setGeneratedMaxUses] = useState(1);
   const [copied, setCopied] = useState(false);
 
   function handleClose(open: boolean) {
     if (!open) {
       setNote("");
       setExpiresInDays("7");
+      setMaxUses("1");
       setGeneratedUrl("");
+      setGeneratedMaxUses(1);
       setCopied(false);
     }
     onOpenChange(open);
@@ -50,6 +54,8 @@ export function IntakeLinkDialog({
   async function handleGenerate() {
     setLoading(true);
 
+    const parsedMaxUses = parseInt(maxUses) || 1;
+
     try {
       const res = await fetch("/api/intake-links", {
         method: "POST",
@@ -57,6 +63,7 @@ export function IntakeLinkDialog({
         body: JSON.stringify({
           note: note.trim() || undefined,
           expiresInDays: parseInt(expiresInDays),
+          maxUses: parsedMaxUses,
         }),
       });
 
@@ -67,6 +74,7 @@ export function IntakeLinkDialog({
 
       const data = await res.json();
       setGeneratedUrl(data.url);
+      setGeneratedMaxUses(parsedMaxUses);
       toast.success("Sign up link generated.");
       onSuccess();
     } catch (err) {
@@ -119,6 +127,21 @@ export function IntakeLinkDialog({
               </Select>
             </div>
 
+            <div className="grid gap-2">
+              <Label htmlFor="intake-max-uses">Max Uses</Label>
+              <Input
+                id="intake-max-uses"
+                type="number"
+                min={1}
+                max={1000}
+                value={maxUses}
+                onChange={(e) => setMaxUses(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Number of times this link can be used to submit a form.
+              </p>
+            </div>
+
             <div className="flex justify-end gap-2">
               <Button
                 variant="outline"
@@ -135,7 +158,10 @@ export function IntakeLinkDialog({
         ) : (
           <div className="grid gap-4 py-2">
             <p className="text-sm text-muted-foreground">
-              Share this link with the partner. It can only be used once.
+              Share this link with the partner. It can be used{" "}
+              {generatedMaxUses === 1
+                ? "once"
+                : `up to ${generatedMaxUses} times`}.
             </p>
             <div className="flex gap-2">
               <Input value={generatedUrl} readOnly className="font-mono text-xs" />
