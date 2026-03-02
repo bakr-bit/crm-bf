@@ -75,7 +75,7 @@ export default function DealFinderPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold">Deal Finder</h1>
+        <h1 className="text-2xl font-bold">Brands</h1>
         <p className="mt-1 text-sm text-zinc-500">
           Browse brands by target geo
         </p>

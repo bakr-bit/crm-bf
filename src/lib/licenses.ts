@@ -28,6 +28,7 @@ export const LICENSES: License[] = [
   { code: "LVA", name: "Latvia (IAUI)" },
   { code: "PHI", name: "Philippines (PAGCOR)" },
   { code: "BRA", name: "Brazil (SPA/MF)" },
+  { code: "ANO", name: "Anjouan (ALC)" },
 ];
 
 /** Maps legacy license codes to ISO country codes */
@@ -54,6 +55,7 @@ export const LEGACY_LICENSE_TO_COUNTRY: Record<string, string> = {
   LVA: "LV",
   PHI: "PH",
   BRA: "BR",
+  ANO: "KM",
 };
 
 /**
