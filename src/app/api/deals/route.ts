@@ -112,6 +112,7 @@ export async function POST(request: Request) {
     }
 
     const data = parsed.data;
+    const forceInactive = body.forceInactive === true;
 
     const deal = await prisma.$transaction(async (tx) => {
       // 1. Verify brand belongs to partner
@@ -127,19 +128,28 @@ export async function POST(request: Request) {
         throw new Error("BRAND_PARTNER_MISMATCH");
       }
 
-      // 2. Check position not occupied by an occupying deal
-      const existingActiveDeal = await tx.deal.findFirst({
-        where: {
-          positionId: data.positionId,
-          status: { in: OCCUPYING_STATUSES },
-        },
+      // 2. Check if this is an N/A position
+      const position = await tx.position.findUnique({
+        where: { positionId: data.positionId },
       });
 
-      if (existingActiveDeal) {
-        throw new Error("POSITION_OCCUPIED");
+      const isNAPosition = position?.name === "N/A";
+
+      // 3. Check position not occupied by an occupying deal (skip for N/A positions)
+      if (!isNAPosition) {
+        const existingActiveDeal = await tx.deal.findFirst({
+          where: {
+            positionId: data.positionId,
+            status: { in: OCCUPYING_STATUSES },
+          },
+        });
+
+        if (existingActiveDeal) {
+          throw new Error("POSITION_OCCUPIED");
+        }
       }
 
-      // 3. Check if partner isDirect and SOP incomplete
+      // 4. Check if partner isDirect and SOP incomplete
       const partner = await tx.partner.findUnique({
         where: { partnerId: data.partnerId },
       });
@@ -148,16 +158,19 @@ export async function POST(request: Request) {
         throw new Error("PARTNER_NOT_FOUND");
       }
 
-      let dealStatus: "Live" | "Approved" = "Live";
+      let dealStatus: "Live" | "Approved" | "Inactive" = "Live";
 
-      if (
+      // Force Inactive for N/A positions
+      if (isNAPosition || forceInactive) {
+        dealStatus = "Inactive";
+      } else if (
         partner.isDirect &&
         !(partner.hasContract && partner.hasLicense && partner.hasBanking)
       ) {
         dealStatus = "Approved";
       }
 
-      // 4. Create deal
+      // 5. Create deal
       const newDeal = await tx.deal.create({
         data: {
           partnerId: data.partnerId,

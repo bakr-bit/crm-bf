@@ -119,14 +119,35 @@ export async function POST(request: Request) {
       }
     }
 
-    const asset = await prisma.asset.create({
-      data: {
-        name: data.name,
-        assetDomain: data.assetDomain,
-        description: data.description,
-        geos: data.geos,
-        status: "Active",
-      },
+    const asset = await prisma.$transaction(async (tx) => {
+      const newAsset = await tx.asset.create({
+        data: {
+          name: data.name,
+          assetDomain: data.assetDomain,
+          description: data.description,
+          geos: data.geos,
+          status: "Active",
+        },
+      });
+
+      // Auto-create Homepage page
+      const homepage = await tx.page.create({
+        data: {
+          assetId: newAsset.assetId,
+          name: "Homepage",
+          path: "/",
+        },
+      });
+
+      // Auto-create N/A position on Homepage
+      await tx.position.create({
+        data: {
+          pageId: homepage.pageId,
+          name: "N/A",
+        },
+      });
+
+      return newAsset;
     });
 
     await logAudit({

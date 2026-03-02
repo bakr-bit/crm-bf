@@ -100,6 +100,9 @@ export function DealDialog({
   // Geo
   const [geo, setGeo] = useState("");
 
+  // Status override for N/A positions
+  const [forceInactive, setForceInactive] = useState(false);
+
   // Other fields
   const [affiliateLink, setAffiliateLink] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -299,6 +302,14 @@ export function DealDialog({
     }
   }, [open, prefill?.assetId]);
 
+  // ---------- N/A position detection ----------
+  const selectedPosition = positions.find((p) => p.positionId === positionId);
+  const isNAPosition = selectedPosition?.name === "N/A";
+
+  useEffect(() => {
+    setForceInactive(isNAPosition);
+  }, [isNAPosition]);
+
   // ---------- SOP warning ----------
   const selectedPartner = partners.find((p) => p.partnerId === partnerId);
   const showSopWarning = selectedPartner ? isSopIncomplete(selectedPartner) : false;
@@ -355,6 +366,7 @@ export function DealDialog({
       cap: cap.trim() || undefined,
       holdPeriod: holdPeriod.trim() || undefined,
       hasLocalLicense,
+      forceInactive,
     };
 
     try {
@@ -394,6 +406,13 @@ export function DealDialog({
             <div className="rounded-md border border-yellow-300 bg-yellow-50 p-3 text-sm text-yellow-800">
               This partner has incomplete SOP. Deal will be set to Approved
               status (pending full implementation).
+            </div>
+          )}
+
+          {/* N/A Position Info */}
+          {forceInactive && (
+            <div className="rounded-md border border-blue-300 bg-blue-50 p-3 text-sm text-blue-800">
+              N/A position selected — this deal will be created with Inactive status.
             </div>
           )}
 

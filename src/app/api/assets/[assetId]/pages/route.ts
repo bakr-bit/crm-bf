@@ -108,13 +108,25 @@ export async function POST(
       );
     }
 
-    const page = await prisma.page.create({
-      data: {
-        assetId,
-        name: data.name,
-        path: data.path,
-        description: data.description,
-      },
+    const page = await prisma.$transaction(async (tx) => {
+      const newPage = await tx.page.create({
+        data: {
+          assetId,
+          name: data.name,
+          path: data.path,
+          description: data.description,
+        },
+      });
+
+      // Auto-create N/A position on the new page
+      await tx.position.create({
+        data: {
+          pageId: newPage.pageId,
+          name: "N/A",
+        },
+      });
+
+      return newPage;
     });
 
     await logAudit({
