@@ -28,6 +28,7 @@ export async function GET(
           include: {
             positions: {
               where: { status: "Active" },
+              orderBy: { sortOrder: "asc" },
               include: {
                 deals: {
                   where: { status: { in: OCCUPYING_STATUSES } },

@@ -38,7 +38,7 @@ export async function GET(
 
     const positions = await prisma.position.findMany({
       where: positionWhere,
-      orderBy: { createdAt: "desc" },
+      orderBy: { sortOrder: "asc" },
       include: {
         _count: {
           select: { deals: true },
@@ -108,11 +108,19 @@ export async function POST(
       );
     }
 
+    // Auto-assign next sortOrder
+    const maxSort = await prisma.position.aggregate({
+      where: { pageId },
+      _max: { sortOrder: true },
+    });
+    const nextSortOrder = (maxSort._max.sortOrder ?? -1) + 1;
+
     const position = await prisma.position.create({
       data: {
         pageId,
         name: data.name,
         details: data.details,
+        sortOrder: nextSortOrder,
       },
     });
 

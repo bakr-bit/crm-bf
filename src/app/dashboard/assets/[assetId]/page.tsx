@@ -42,11 +42,28 @@ import {
 } from "@/components/ui/dialog";
 import { GeoFlag } from "@/components/dashboard/GeoFlag";
 import { GeoMultiSelect } from "@/components/dashboard/GeoMultiSelect";
-import { ArrowLeft, Pencil, Plus, MoreHorizontal, Download, Trash2, Search, Star, Lock } from "lucide-react";
+import { ArrowLeft, Pencil, Plus, MoreHorizontal, Download, Trash2, Search, Star, Lock, GripVertical } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { OCCUPYING_STATUSES } from "@/lib/deal-status";
 import type { DealStatusType } from "@/lib/deal-status";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { AdminOnlyBanner } from "@/components/dashboard/AdminOnlyBanner";
 import { useCurrentUser } from "@/hooks/use-current-user";
 
@@ -80,6 +97,7 @@ interface Position {
   pageId: string;
   name: string;
   details: string | null;
+  sortOrder: number;
   createdAt: string;
   updatedAt: string;
   deals: PositionDeal[];
@@ -123,6 +141,299 @@ interface WishlistItem {
   assignedToUserId: string | null;
   assignedTo: { id: string; name: string } | null;
   createdAt: string;
+}
+
+// ---------- sortable row ----------
+
+function SortablePositionRow({
+  position,
+  children,
+}: {
+  position: Position;
+  children: React.ReactNode;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: position.positionId });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <TableRow ref={setNodeRef} style={style}>
+      <TableCell className="w-8 cursor-grab" {...attributes} {...listeners}>
+        <GripVertical className="size-4 text-muted-foreground" />
+      </TableCell>
+      {children}
+    </TableRow>
+  );
+}
+
+// ---------- positions table with DnD ----------
+
+function PositionsTable({
+  positions: initialPositions,
+  activePage,
+  assetId,
+  getActiveDeal,
+  editingPostbackBrandId,
+  editingPostbackValue,
+  setEditingPostbackBrandId,
+  setEditingPostbackValue,
+  handleSavePostback,
+  setEditingPosition,
+  setPositionDialogOpen,
+  handleDeletePosition,
+  handleEndDeal,
+  fetchAsset,
+}: {
+  positions: Position[];
+  activePage: Page;
+  assetId: string;
+  getActiveDeal: (position: Position) => PositionDeal | undefined;
+  editingPostbackBrandId: string | null;
+  editingPostbackValue: string;
+  setEditingPostbackBrandId: (id: string | null) => void;
+  setEditingPostbackValue: (v: string) => void;
+  handleSavePostback: (brandId: string) => void;
+  setEditingPosition: (p: Position | undefined) => void;
+  setPositionDialogOpen: (open: boolean) => void;
+  handleDeletePosition: (pageId: string, positionId: string) => void;
+  handleEndDeal: (dealId: string) => void;
+  fetchAsset: () => void;
+}) {
+  const [positions, setPositions] = useState<Position[]>(initialPositions);
+
+  // Sync with parent when positions change (e.g. after refetch)
+  useEffect(() => {
+    setPositions(initialPositions);
+  }, [initialPositions]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = positions.findIndex((p) => p.positionId === active.id);
+    const newIndex = positions.findIndex((p) => p.positionId === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    // Optimistic update
+    const reordered = arrayMove(positions, oldIndex, newIndex).map((p, i) => ({
+      ...p,
+      name: String(i + 1),
+      sortOrder: i,
+    }));
+    setPositions(reordered);
+
+    try {
+      const res = await fetch(
+        `/api/assets/${assetId}/pages/${activePage.pageId}/positions/reorder`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orderedIds: reordered.map((p) => p.positionId),
+          }),
+        }
+      );
+      if (!res.ok) throw new Error("Failed to reorder");
+      fetchAsset();
+    } catch {
+      toast.error("Failed to reorder positions.");
+      fetchAsset();
+    }
+  }
+
+  return (
+    <div className="rounded-lg border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-8" />
+            <TableHead>Name</TableHead>
+            <TableHead>Details</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Postback</TableHead>
+            <TableHead className="w-12">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {positions.length === 0 ? (
+            <TableRow>
+              <TableCell
+                colSpan={6}
+                className="text-center text-muted-foreground"
+              >
+                No positions yet.
+              </TableCell>
+            </TableRow>
+          ) : (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={positions.map((p) => p.positionId)}
+                strategy={verticalListSortingStrategy}
+              >
+                {positions.map((position) => {
+                  const activeDeal = getActiveDeal(position);
+                  const isOccupied = Boolean(activeDeal);
+
+                  return (
+                    <SortablePositionRow
+                      key={position.positionId}
+                      position={position}
+                    >
+                      <TableCell className="font-medium">
+                        {position.name}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {position.details ?? "-"}
+                      </TableCell>
+                      <TableCell>
+                        {isOccupied ? (
+                          <span className="text-sm">
+                            <StatusBadge status="Active" variant="deal" />
+                            <span className="ml-2 text-muted-foreground">
+                              {activeDeal!.brand.name}
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="text-sm text-green-600">
+                            Available
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {activeDeal && editingPostbackBrandId === activeDeal.brand.brandId ? (
+                          <div className="flex items-center gap-1">
+                            <Input
+                              value={editingPostbackValue}
+                              onChange={(e) => setEditingPostbackValue(e.target.value)}
+                              className="h-7 text-sm"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleSavePostback(activeDeal.brand.brandId);
+                                if (e.key === "Escape") setEditingPostbackBrandId(null);
+                              }}
+                            />
+                            <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => handleSavePostback(activeDeal.brand.brandId)}>
+                              Save
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setEditingPostbackBrandId(null)}>
+                              Cancel
+                            </Button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            className="text-muted-foreground hover:text-foreground hover:underline cursor-pointer text-left"
+                            onClick={() => {
+                              if (activeDeal) {
+                                setEditingPostbackBrandId(activeDeal.brand.brandId);
+                                setEditingPostbackValue(activeDeal.brand.postbacks ?? "");
+                              }
+                            }}
+                            disabled={!activeDeal}
+                          >
+                            {activeDeal?.brand.postbacks || "-"}
+                          </button>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8"
+                            >
+                              <MoreHorizontal className="size-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setEditingPosition(position);
+                                setPositionDialogOpen(true);
+                              }}
+                            >
+                              Edit Position
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onClick={() =>
+                                handleDeletePosition(
+                                  activePage.pageId,
+                                  position.positionId
+                                )
+                              }
+                            >
+                              Delete Position
+                            </DropdownMenuItem>
+
+                            {isOccupied ? (
+                              <>
+                                <DropdownMenuItem asChild>
+                                  <Link
+                                    href={`/dashboard/deals?dealId=${activeDeal!.dealId}`}
+                                  >
+                                    View Deal
+                                  </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  variant="destructive"
+                                  onClick={() =>
+                                    handleEndDeal(activeDeal!.dealId)
+                                  }
+                                >
+                                  End Deal
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                  <Link
+                                    href={`/dashboard/deals?replace=${activeDeal!.dealId}`}
+                                  >
+                                    Replace Deal
+                                  </Link>
+                                </DropdownMenuItem>
+                              </>
+                            ) : (
+                              <DropdownMenuItem asChild>
+                                <Link
+                                  href={`/dashboard/deals?assetId=${assetId}&pageId=${activePage.pageId}&positionId=${position.positionId}`}
+                                >
+                                  Create Deal
+                                </Link>
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </SortablePositionRow>
+                  );
+                })}
+              </SortableContext>
+            </DndContext>
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
 }
 
 // ---------- component ----------
@@ -817,166 +1128,22 @@ export default function AssetDetailPage() {
                   </div>
 
                   {/* Positions table */}
-                  <div className="rounded-lg border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Details</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Postback</TableHead>
-                          <TableHead className="w-12">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {activePage.positions.length === 0 ? (
-                          <TableRow>
-                            <TableCell
-                              colSpan={5}
-                              className="text-center text-muted-foreground"
-                            >
-                              No positions yet.
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          activePage.positions.map((position) => {
-                            const activeDeal = getActiveDeal(position);
-                            const isOccupied = Boolean(activeDeal);
-
-                            return (
-                              <TableRow key={position.positionId}>
-                                <TableCell className="font-medium">
-                                  {position.name}
-                                </TableCell>
-                                <TableCell className="text-muted-foreground">
-                                  {position.details ?? "-"}
-                                </TableCell>
-                                <TableCell>
-                                  {isOccupied ? (
-                                    <span className="text-sm">
-                                      <StatusBadge status="Active" variant="deal" />
-                                      <span className="ml-2 text-muted-foreground">
-                                        {activeDeal!.brand.name}
-                                      </span>
-                                    </span>
-                                  ) : (
-                                    <span className="text-sm text-green-600">
-                                      Available
-                                    </span>
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-sm">
-                                  {activeDeal && editingPostbackBrandId === activeDeal.brand.brandId ? (
-                                    <div className="flex items-center gap-1">
-                                      <Input
-                                        value={editingPostbackValue}
-                                        onChange={(e) => setEditingPostbackValue(e.target.value)}
-                                        className="h-7 text-sm"
-                                        autoFocus
-                                        onKeyDown={(e) => {
-                                          if (e.key === "Enter") handleSavePostback(activeDeal.brand.brandId);
-                                          if (e.key === "Escape") setEditingPostbackBrandId(null);
-                                        }}
-                                      />
-                                      <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => handleSavePostback(activeDeal.brand.brandId)}>
-                                        Save
-                                      </Button>
-                                      <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setEditingPostbackBrandId(null)}>
-                                        Cancel
-                                      </Button>
-                                    </div>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      className="text-muted-foreground hover:text-foreground hover:underline cursor-pointer text-left"
-                                      onClick={() => {
-                                        if (activeDeal) {
-                                          setEditingPostbackBrandId(activeDeal.brand.brandId);
-                                          setEditingPostbackValue(activeDeal.brand.postbacks ?? "");
-                                        }
-                                      }}
-                                      disabled={!activeDeal}
-                                    >
-                                      {activeDeal?.brand.postbacks || "-"}
-                                    </button>
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="size-8"
-                                      >
-                                        <MoreHorizontal className="size-4" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      <DropdownMenuItem
-                                        onClick={() => {
-                                          setEditingPosition(position);
-                                          setPositionDialogOpen(true);
-                                        }}
-                                      >
-                                        Edit Position
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        variant="destructive"
-                                        onClick={() =>
-                                          handleDeletePosition(
-                                            activePage.pageId,
-                                            position.positionId
-                                          )
-                                        }
-                                      >
-                                        Delete Position
-                                      </DropdownMenuItem>
-
-                                      {isOccupied ? (
-                                        <>
-                                          <DropdownMenuItem asChild>
-                                            <Link
-                                              href={`/dashboard/deals?dealId=${activeDeal!.dealId}`}
-                                            >
-                                              View Deal
-                                            </Link>
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem
-                                            variant="destructive"
-                                            onClick={() =>
-                                              handleEndDeal(activeDeal!.dealId)
-                                            }
-                                          >
-                                            End Deal
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem asChild>
-                                            <Link
-                                              href={`/dashboard/deals?replace=${activeDeal!.dealId}`}
-                                            >
-                                              Replace Deal
-                                            </Link>
-                                          </DropdownMenuItem>
-                                        </>
-                                      ) : (
-                                        <DropdownMenuItem asChild>
-                                          <Link
-                                            href={`/dashboard/deals?assetId=${assetId}&pageId=${activePage.pageId}&positionId=${position.positionId}`}
-                                          >
-                                            Create Deal
-                                          </Link>
-                                        </DropdownMenuItem>
-                                      )}
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
+                  <PositionsTable
+                    positions={activePage.positions}
+                    activePage={activePage}
+                    assetId={assetId}
+                    getActiveDeal={getActiveDeal}
+                    editingPostbackBrandId={editingPostbackBrandId}
+                    editingPostbackValue={editingPostbackValue}
+                    setEditingPostbackBrandId={setEditingPostbackBrandId}
+                    setEditingPostbackValue={setEditingPostbackValue}
+                    handleSavePostback={handleSavePostback}
+                    setEditingPosition={setEditingPosition}
+                    setPositionDialogOpen={setPositionDialogOpen}
+                    handleDeletePosition={handleDeletePosition}
+                    handleEndDeal={handleEndDeal}
+                    fetchAsset={fetchAsset}
+                  />
                 </>
               ) : (
                 <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">

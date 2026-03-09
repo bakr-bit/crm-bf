@@ -126,6 +126,7 @@ model Position {
   updatedAt  DateTime       @updatedAt
   status     PositionStatus @default(Active)
   pageId     String
+  sortOrder  Int            @default(0)
   deals      Deal[]
   page       Page           @relation(fields: [pageId], references: [pageId], onDelete: Cascade)
 
