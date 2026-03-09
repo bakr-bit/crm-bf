@@ -24,6 +24,7 @@ import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { AssetDialog } from "@/components/dashboard/AssetDialog";
 import { PageDialog } from "@/components/dashboard/PageDialog";
 import { PositionDialog } from "@/components/dashboard/PositionDialog";
+import { EditDealDialog } from "@/components/dashboard/EditDealDialog";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -194,6 +195,7 @@ function PositionsTable({
   handleDeletePosition,
   handleEndDeal,
   fetchAsset,
+  onEditDeal,
 }: {
   positions: Position[];
   activePage: Page;
@@ -209,6 +211,7 @@ function PositionsTable({
   handleDeletePosition: (pageId: string, positionId: string) => void;
   handleEndDeal: (dealId: string) => void;
   fetchAsset: () => void;
+  onEditDeal: (dealId: string) => void;
 }) {
   const [positions, setPositions] = useState<Position[]>(initialPositions);
 
@@ -397,6 +400,11 @@ function PositionsTable({
                                   </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
+                                  onClick={() => onEditDeal(activeDeal!.dealId)}
+                                >
+                                  Edit Deal
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
                                   variant="destructive"
                                   onClick={() =>
                                     handleEndDeal(activeDeal!.dealId)
@@ -459,6 +467,8 @@ export default function AssetDetailPage() {
   );
   const [activePageId, setActivePageId] = useState<string>("");
   const [pageSearch, setPageSearch] = useState("");
+  const [editDealDialogOpen, setEditDealDialogOpen] = useState(false);
+  const [editingDealId, setEditingDealId] = useState<string>("");
 
   // Inline geos editing
   const [editingGeos, setEditingGeos] = useState(false);
@@ -1143,6 +1153,10 @@ export default function AssetDetailPage() {
                     handleDeletePosition={handleDeletePosition}
                     handleEndDeal={handleEndDeal}
                     fetchAsset={fetchAsset}
+                    onEditDeal={(dealId) => {
+                      setEditingDealId(dealId);
+                      setEditDealDialogOpen(true);
+                    }}
                   />
                 </>
               ) : (
@@ -1393,6 +1407,13 @@ export default function AssetDetailPage() {
         position={
           editingPosition ? toPositionDialogShape(editingPosition) : undefined
         }
+        onSuccess={fetchAsset}
+      />
+
+      <EditDealDialog
+        open={editDealDialogOpen}
+        onOpenChange={setEditDealDialogOpen}
+        dealId={editingDealId}
         onSuccess={fetchAsset}
       />
 
