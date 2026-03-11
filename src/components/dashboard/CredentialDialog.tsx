@@ -147,6 +147,7 @@ export function CredentialDialog({
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               placeholder="e.g. Income Access"
+              autoComplete="off"
             />
           </div>
 
@@ -158,6 +159,7 @@ export function CredentialDialog({
               value={loginUrl}
               onChange={(e) => setLoginUrl(e.target.value)}
               placeholder="https://..."
+              autoComplete="off"
             />
           </div>
 
@@ -169,6 +171,7 @@ export function CredentialDialog({
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Username"
+              autoComplete="off"
             />
           </div>
 
@@ -177,10 +180,12 @@ export function CredentialDialog({
             <Label htmlFor="cred-email">Email</Label>
             <Input
               id="cred-email"
-              type="email"
+              type="text"
+              inputMode="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="email@example.com"
+              autoComplete="off"
             />
           </div>
 
@@ -191,10 +196,12 @@ export function CredentialDialog({
             </Label>
             <Input
               id="cred-password"
-              type="password"
+              type="text"
+              className="[-webkit-text-security:disc]"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder={isEdit ? "Leave blank to keep current" : "Password"}
+              autoComplete="off"
             />
           </div>
 
