@@ -98,7 +98,6 @@ interface Credential {
   softwareType: string | null;
   notes: string | null;
   geo: string | null;
-  trackingLinks: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -378,7 +377,6 @@ export default function PartnerDetailPage() {
       softwareType: c.softwareType ?? undefined,
       notes: c.notes ?? undefined,
       geo: c.geo,
-      trackingLinks: c.trackingLinks,
     };
   }
 
@@ -896,7 +894,6 @@ export default function PartnerDetailPage() {
                     <TableHead>Username</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Password</TableHead>
-                    <TableHead>Tracking Links</TableHead>
                     <TableHead className="w-12">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -904,7 +901,7 @@ export default function PartnerDetailPage() {
                   {partner.credentials.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={9}
+                        colSpan={8}
                         className="text-center text-muted-foreground"
                       >
                         No credentials yet.
@@ -978,26 +975,6 @@ export default function PartnerDetailPage() {
                               <Copy className="size-3.5" />
                             </Button>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          {cred.trackingLinks.length > 0 ? (
-                            <div className="space-y-1 max-w-xs">
-                              {cred.trackingLinks.map((link, i) => (
-                                <a
-                                  key={i}
-                                  href={link}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="block text-xs font-mono text-primary hover:underline truncate"
-                                  title={link}
-                                >
-                                  {link}
-                                </a>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
                         </TableCell>
                         <TableCell>
                           <DropdownMenu>

@@ -42,7 +42,7 @@ export async function GET(
         softwareType: true,
         notes: true,
         geo: true,
-        trackingLinks: true,
+
         createdAt: true,
         updatedAt: true,
       },
@@ -121,7 +121,6 @@ export async function POST(
         softwareType: data.softwareType,
         notes: data.notes,
         geo: data.geo || null,
-        trackingLinks: data.trackingLinks ?? [],
       },
       select: {
         credentialId: true,
@@ -134,7 +133,7 @@ export async function POST(
         softwareType: true,
         notes: true,
         geo: true,
-        trackingLinks: true,
+
         createdAt: true,
         updatedAt: true,
       },

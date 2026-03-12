@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { COUNTRIES } from "@/lib/countries";
-import { Plus, X } from "lucide-react";
 
 interface Credential {
   id: string;
@@ -32,7 +31,6 @@ interface Credential {
   softwareType?: string;
   notes?: string;
   geo?: string | null;
-  trackingLinks?: string[];
 }
 
 interface CredentialDialogProps {
@@ -60,8 +58,6 @@ export function CredentialDialog({
   const [softwareType, setSoftwareType] = useState("");
   const [notes, setNotes] = useState("");
   const [geo, setGeo] = useState<string>("__global");
-  const [trackingLinks, setTrackingLinks] = useState<string[]>([]);
-  const [newTrackingLink, setNewTrackingLink] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -74,7 +70,6 @@ export function CredentialDialog({
       setSoftwareType(credential.softwareType ?? "");
       setNotes(credential.notes ?? "");
       setGeo(credential.geo ?? "__global");
-      setTrackingLinks(credential.trackingLinks ?? []);
     } else {
       setLabel("");
       setLoginUrl("");
@@ -84,25 +79,8 @@ export function CredentialDialog({
       setSoftwareType("");
       setNotes("");
       setGeo("__global");
-      setTrackingLinks([]);
     }
-    setNewTrackingLink("");
   }, [credential, open]);
-
-  function handleAddTrackingLink() {
-    const url = newTrackingLink.trim();
-    if (!url) return;
-    if (trackingLinks.includes(url)) {
-      toast.error("This tracking link already exists.");
-      return;
-    }
-    setTrackingLinks([...trackingLinks, url]);
-    setNewTrackingLink("");
-  }
-
-  function handleRemoveTrackingLink(index: number) {
-    setTrackingLinks(trackingLinks.filter((_, i) => i !== index));
-  }
 
   async function handleSubmit() {
     if (!label.trim()) {
@@ -128,7 +106,6 @@ export function CredentialDialog({
       softwareType: softwareType || undefined,
       notes: notes.trim() || undefined,
       geo: geo === "__global" ? null : geo,
-      trackingLinks,
     };
 
     // Only include password if provided (for edit, it's optional)
@@ -273,53 +250,6 @@ export function CredentialDialog({
               onChange={(e) => setSoftwareType(e.target.value)}
               placeholder="e.g. Income Access, NetRefer, MyAffiliates"
             />
-          </div>
-
-          {/* Tracking Links */}
-          <div className="grid gap-2">
-            <Label>Tracking Links</Label>
-            {trackingLinks.length > 0 && (
-              <div className="space-y-1.5">
-                {trackingLinks.map((link, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <span className="flex-1 truncate text-sm font-mono bg-muted px-2 py-1 rounded">
-                      {link}
-                    </span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="size-7 shrink-0"
-                      onClick={() => handleRemoveTrackingLink(i)}
-                    >
-                      <X className="size-3.5" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="flex items-center gap-2">
-              <Input
-                value={newTrackingLink}
-                onChange={(e) => setNewTrackingLink(e.target.value)}
-                placeholder="https://tracking-link..."
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleAddTrackingLink();
-                  }
-                }}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleAddTrackingLink}
-                disabled={!newTrackingLink.trim()}
-              >
-                <Plus className="size-4" />
-              </Button>
-            </div>
           </div>
 
           {/* Notes */}

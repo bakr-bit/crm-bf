@@ -28,7 +28,7 @@ export async function GET(
         softwareType: true,
         notes: true,
         geo: true,
-        trackingLinks: true,
+
         createdAt: true,
         updatedAt: true,
       },
@@ -114,7 +114,7 @@ export async function PUT(
         softwareType: true,
         notes: true,
         geo: true,
-        trackingLinks: true,
+
         createdAt: true,
         updatedAt: true,
       },
