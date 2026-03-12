@@ -41,6 +41,8 @@ export async function GET(
             username: true,
             softwareType: true,
             notes: true,
+            geo: true,
+            trackingLinks: true,
             createdAt: true,
             updatedAt: true,
           },

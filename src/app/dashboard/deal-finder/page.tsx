@@ -20,8 +20,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { GeoFlag } from "@/components/dashboard/GeoFlag";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import { COUNTRIES, COUNTRY_MAP } from "@/lib/countries";
 import { LICENSE_MAP } from "@/lib/licenses";
 
@@ -48,6 +49,7 @@ interface BrandResult {
 
 export default function DealFinderPage() {
   const [geoFilter, setGeoFilter] = useState("");
+  const [search, setSearch] = useState("");
   const [brands, setBrands] = useState<BrandResult[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -71,6 +73,17 @@ export default function DealFinderPage() {
     fetchBrands();
   }, [fetchBrands]);
 
+  const filteredBrands = brands.filter((b) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      b.name.toLowerCase().includes(q) ||
+      b.partner.name.toLowerCase().includes(q) ||
+      (b.brandDomain ?? "").toLowerCase().includes(q) ||
+      (b.affiliateSoftware ?? "").toLowerCase().includes(q)
+    );
+  });
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -83,6 +96,15 @@ export default function DealFinderPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
+        <div className="relative w-64">
+          <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+          <Input
+            placeholder="Search brands, partners..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
         <Select
           value={geoFilter || "__all"}
           onValueChange={(v) => setGeoFilter(v === "__all" ? "" : v)}
@@ -107,7 +129,7 @@ export default function DealFinderPage() {
         )}
 
         <span className="text-sm text-muted-foreground">
-          {brands.length} brand{brands.length !== 1 ? "s" : ""}
+          {filteredBrands.length} brand{filteredBrands.length !== 1 ? "s" : ""}
         </span>
       </div>
 
@@ -116,11 +138,13 @@ export default function DealFinderPage() {
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
         </div>
-      ) : brands.length === 0 ? (
+      ) : filteredBrands.length === 0 ? (
         <div className="rounded-lg border p-8 text-center text-muted-foreground">
-          {geoFilter
-            ? `No brands targeting ${geoFilter}`
-            : "No active brands found"}
+          {search
+            ? `No brands matching "${search}"`
+            : geoFilter
+              ? `No brands targeting ${geoFilter}`
+              : "No active brands found"}
         </div>
       ) : (
         <div className="rounded-lg border">
@@ -138,7 +162,7 @@ export default function DealFinderPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {brands.map((brand) => (
+              {filteredBrands.map((brand) => (
                 <TableRow key={brand.brandId}>
                   <TableCell className="font-medium">
                     <Link
