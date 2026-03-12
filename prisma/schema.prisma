@@ -199,6 +199,8 @@ model Credential {
   password     String
   softwareType String?
   notes        String?
+  geo          String?
+  trackingLinks String[] @default([])
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   partner      Partner  @relation(fields: [partnerId], references: [partnerId], onDelete: Cascade)

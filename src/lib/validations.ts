@@ -156,6 +156,8 @@ export const credentialCreateSchema = z.object({
   password: z.string().min(1, "Password is required"),
   softwareType: z.string().optional(),
   notes: z.string().optional(),
+  geo: z.string().optional().nullable(),
+  trackingLinks: z.array(z.string()).default([]),
 });
 
 export const credentialUpdateSchema = credentialCreateSchema.partial();

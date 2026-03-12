@@ -97,6 +97,8 @@ interface Credential {
   email: string | null;
   softwareType: string | null;
   notes: string | null;
+  geo: string | null;
+  trackingLinks: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -375,6 +377,8 @@ export default function PartnerDetailPage() {
       email: c.email ?? undefined,
       softwareType: c.softwareType ?? undefined,
       notes: c.notes ?? undefined,
+      geo: c.geo,
+      trackingLinks: c.trackingLinks,
     };
   }
 
@@ -885,12 +889,14 @@ export default function PartnerDetailPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Geo</TableHead>
                     <TableHead>Label</TableHead>
                     <TableHead>Software Type</TableHead>
                     <TableHead>Login URL</TableHead>
                     <TableHead>Username</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Password</TableHead>
+                    <TableHead>Tracking Links</TableHead>
                     <TableHead className="w-12">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -898,7 +904,7 @@ export default function PartnerDetailPage() {
                   {partner.credentials.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={7}
+                        colSpan={9}
                         className="text-center text-muted-foreground"
                       >
                         No credentials yet.
@@ -907,6 +913,13 @@ export default function PartnerDetailPage() {
                   ) : (
                     partner.credentials.map((cred) => (
                       <TableRow key={cred.credentialId}>
+                        <TableCell>
+                          {cred.geo ? (
+                            <GeoFlag geo={cred.geo} showLabel />
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Global</span>
+                          )}
+                        </TableCell>
                         <TableCell className="font-medium">
                           {cred.label}
                         </TableCell>
@@ -965,6 +978,26 @@ export default function PartnerDetailPage() {
                               <Copy className="size-3.5" />
                             </Button>
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          {cred.trackingLinks.length > 0 ? (
+                            <div className="space-y-1 max-w-xs">
+                              {cred.trackingLinks.map((link, i) => (
+                                <a
+                                  key={i}
+                                  href={link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block text-xs font-mono text-primary hover:underline truncate"
+                                  title={link}
+                                >
+                                  {link}
+                                </a>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           <DropdownMenu>
