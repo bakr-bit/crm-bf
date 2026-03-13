@@ -26,6 +26,9 @@ export async function GET(
         asset: true,
         page: true,
         position: true,
+        affiliateLinkRef: {
+          select: { affiliateLinkId: true, label: true, url: true, geo: true },
+        },
         createdBy: {
           select: { id: true, name: true, email: true },
         },
@@ -114,6 +117,22 @@ export async function PUT(
       updatedById: userId,
     };
 
+    // Validate affiliate link if provided
+    if (parsed.data.affiliateLinkId) {
+      const affLink = await prisma.affiliateLink.findUnique({
+        where: { affiliateLinkId: parsed.data.affiliateLinkId },
+      });
+      if (!affLink || affLink.brandId !== existing.brandId) {
+        return NextResponse.json(
+          { error: "Affiliate link not found or does not belong to this brand" },
+          { status: 400 }
+        );
+      }
+      updateData.affiliateLink = affLink.url;
+    } else if (parsed.data.affiliateLinkId === null) {
+      updateData.affiliateLinkId = null;
+    }
+
     // If status changed to "Inactive", set endDate to now
     if (parsed.data.status === "Inactive" && existing.status !== "Inactive") {
       updateData.endDate = new Date();
@@ -128,6 +147,9 @@ export async function PUT(
         asset: true,
         page: true,
         position: true,
+        affiliateLinkRef: {
+          select: { affiliateLinkId: true, label: true, url: true, geo: true },
+        },
       },
     });
 

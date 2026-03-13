@@ -52,6 +52,13 @@ interface DealDetail {
   pageId: string;
   positionId: string;
   affiliateLink: string | null;
+  affiliateLinkId: string | null;
+  affiliateLinkRef: {
+    affiliateLinkId: string;
+    label: string;
+    url: string;
+    geo: string;
+  } | null;
   status: string;
   adminOnly: boolean;
   isDirect: boolean;
@@ -387,8 +394,25 @@ export default function DealDetailPage() {
                   <dt className="text-sm font-medium text-muted-foreground">
                     Affiliate Link
                   </dt>
-                  <dd className="truncate font-mono text-xs">
-                    {deal.affiliateLink ?? "-"}
+                  <dd className="text-sm">
+                    {deal.affiliateLinkRef ? (
+                      <span className="inline-flex items-center gap-2">
+                        <GeoFlag geo={deal.affiliateLinkRef.geo} size="sm" />
+                        <span className="font-medium">{deal.affiliateLinkRef.label}</span>
+                        <a
+                          href={deal.affiliateLinkRef.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="truncate font-mono text-xs text-primary hover:underline"
+                        >
+                          {deal.affiliateLinkRef.url}
+                        </a>
+                      </span>
+                    ) : deal.affiliateLink ? (
+                      <span className="truncate font-mono text-xs">{deal.affiliateLink}</span>
+                    ) : (
+                      "-"
+                    )}
                   </dd>
                 </div>
                 <div>

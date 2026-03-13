@@ -16,7 +16,16 @@ import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { GeoFlag } from "@/components/dashboard/GeoFlag";
 import { COUNTRY_MAP } from "@/lib/countries";
 import { LICENSE_MAP } from "@/lib/licenses";
-import { Plus } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
+import { Plus, Pencil, Trash2, X, Check } from "lucide-react";
 
 interface Brand {
   brandId: string;
@@ -32,6 +41,14 @@ interface Brand {
   targetGeos: string[];
   createdAt: string;
   updatedAt: string;
+}
+
+interface AffiliateLink {
+  affiliateLinkId: string;
+  brandId: string;
+  label: string;
+  url: string;
+  geo: string;
 }
 
 interface BrandDeal {
@@ -74,9 +91,107 @@ export function BrandDetailDialog({
   const [deals, setDeals] = useState<BrandDeal[]>([]);
   const [loadingDeals, setLoadingDeals] = useState(false);
 
+  // Affiliate links state
+  const [affiliateLinks, setAffiliateLinks] = useState<AffiliateLink[]>([]);
+  const [loadingAffLinks, setLoadingAffLinks] = useState(false);
+  const [showAddAffLink, setShowAddAffLink] = useState(false);
+  const [newAffLabel, setNewAffLabel] = useState("");
+  const [newAffUrl, setNewAffUrl] = useState("");
+  const [newAffGeo, setNewAffGeo] = useState("__global");
+  const [savingAffLink, setSavingAffLink] = useState(false);
+  const [editingAffLinkId, setEditingAffLinkId] = useState<string | null>(null);
+  const [editAffLabel, setEditAffLabel] = useState("");
+  const [editAffUrl, setEditAffUrl] = useState("");
+  const [editAffGeo, setEditAffGeo] = useState("__global");
+
+  const COUNTRIES_LIST = [{ code: "__global", name: "Global" }, ...Object.entries(COUNTRY_MAP).map(([code, name]) => ({ code, name }))];
+
+  async function fetchAffiliateLinks(brandId: string) {
+    setLoadingAffLinks(true);
+    try {
+      const res = await fetch(`/api/brands/${brandId}/affiliate-links`);
+      if (!res.ok) throw new Error("Failed to fetch affiliate links");
+      const json: AffiliateLink[] = await res.json();
+      setAffiliateLinks(json);
+    } catch {
+      setAffiliateLinks([]);
+    } finally {
+      setLoadingAffLinks(false);
+    }
+  }
+
+  async function handleAddAffiliateLink() {
+    if (!brand || !newAffLabel.trim() || !newAffUrl.trim()) return;
+    setSavingAffLink(true);
+    try {
+      const res = await fetch(`/api/brands/${brand.brandId}/affiliate-links`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ label: newAffLabel.trim(), url: newAffUrl.trim(), geo: newAffGeo }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Failed to create affiliate link");
+      }
+      toast.success("Affiliate link added.");
+      setNewAffLabel("");
+      setNewAffUrl("");
+      setNewAffGeo("__global");
+      setShowAddAffLink(false);
+      fetchAffiliateLinks(brand.brandId);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to add affiliate link");
+    } finally {
+      setSavingAffLink(false);
+    }
+  }
+
+  async function handleUpdateAffiliateLink(affiliateLinkId: string) {
+    if (!brand || !editAffLabel.trim() || !editAffUrl.trim()) return;
+    setSavingAffLink(true);
+    try {
+      const res = await fetch(`/api/brands/${brand.brandId}/affiliate-links/${affiliateLinkId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ label: editAffLabel.trim(), url: editAffUrl.trim(), geo: editAffGeo }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Failed to update affiliate link");
+      }
+      toast.success("Affiliate link updated.");
+      setEditingAffLinkId(null);
+      fetchAffiliateLinks(brand.brandId);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update affiliate link");
+    } finally {
+      setSavingAffLink(false);
+    }
+  }
+
+  async function handleDeleteAffiliateLink(affiliateLinkId: string) {
+    if (!brand) return;
+    try {
+      const res = await fetch(`/api/brands/${brand.brandId}/affiliate-links/${affiliateLinkId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Failed to delete affiliate link");
+      }
+      toast.success("Affiliate link deleted.");
+      fetchAffiliateLinks(brand.brandId);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete affiliate link");
+    }
+  }
+
   useEffect(() => {
     if (!open || !brand) {
       setDeals([]);
+      setAffiliateLinks([]);
+      setShowAddAffLink(false);
+      setEditingAffLinkId(null);
       return;
     }
 
@@ -97,6 +212,8 @@ export function BrandDetailDialog({
         if (!cancelled) setLoadingDeals(false);
       }
     })();
+
+    fetchAffiliateLinks(brand.brandId);
 
     return () => {
       cancelled = true;
@@ -240,6 +357,144 @@ export function BrandDetailDialog({
             </dd>
           </div>
         </dl>
+
+        {/* Affiliate Links section */}
+        <div className="border-t pt-4 mt-2">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold">
+              Affiliate Links
+              {!loadingAffLinks && (
+                <span className="ml-1.5 font-normal text-muted-foreground">
+                  ({affiliateLinks.length})
+                </span>
+              )}
+            </h3>
+            <Button size="sm" variant="outline" onClick={() => setShowAddAffLink(!showAddAffLink)}>
+              <Plus className="mr-2 size-4" />
+              Add
+            </Button>
+          </div>
+
+          {showAddAffLink && (
+            <div className="mb-3 space-y-2 rounded-md border p-3">
+              <Input
+                placeholder="Label"
+                value={newAffLabel}
+                onChange={(e) => setNewAffLabel(e.target.value)}
+              />
+              <Input
+                placeholder="URL"
+                value={newAffUrl}
+                onChange={(e) => setNewAffUrl(e.target.value)}
+              />
+              <Select value={newAffGeo} onValueChange={setNewAffGeo}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {COUNTRIES_LIST.map((c) => (
+                    <SelectItem key={c.code} value={c.code}>
+                      <span className="inline-flex items-center gap-2">
+                        <GeoFlag geo={c.code} size="sm" showLabel={false} />
+                        {c.name}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="flex justify-end gap-2">
+                <Button size="sm" variant="outline" onClick={() => setShowAddAffLink(false)}>
+                  Cancel
+                </Button>
+                <Button size="sm" onClick={handleAddAffiliateLink} disabled={savingAffLink || !newAffLabel.trim() || !newAffUrl.trim()}>
+                  {savingAffLink ? "Saving..." : "Save"}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {loadingAffLinks ? (
+            <div className="h-16 animate-pulse rounded bg-muted" />
+          ) : affiliateLinks.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No affiliate links for this brand yet.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {affiliateLinks.map((link) =>
+                editingAffLinkId === link.affiliateLinkId ? (
+                  <div key={link.affiliateLinkId} className="space-y-2 rounded-md border p-3">
+                    <Input
+                      placeholder="Label"
+                      value={editAffLabel}
+                      onChange={(e) => setEditAffLabel(e.target.value)}
+                    />
+                    <Input
+                      placeholder="URL"
+                      value={editAffUrl}
+                      onChange={(e) => setEditAffUrl(e.target.value)}
+                    />
+                    <Select value={editAffGeo} onValueChange={setEditAffGeo}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COUNTRIES_LIST.map((c) => (
+                          <SelectItem key={c.code} value={c.code}>
+                            <span className="inline-flex items-center gap-2">
+                              <GeoFlag geo={c.code} size="sm" showLabel={false} />
+                              {c.name}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="flex justify-end gap-2">
+                      <Button size="sm" variant="outline" onClick={() => setEditingAffLinkId(null)}>
+                        <X className="size-4" />
+                      </Button>
+                      <Button size="sm" onClick={() => handleUpdateAffiliateLink(link.affiliateLinkId)} disabled={savingAffLink}>
+                        <Check className="size-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    key={link.affiliateLinkId}
+                    className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <GeoFlag geo={link.geo} size="sm" />
+                      <span className="font-medium">{link.label}</span>
+                      <span className="truncate text-muted-foreground text-xs">{link.url}</span>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setEditingAffLinkId(link.affiliateLinkId);
+                          setEditAffLabel(link.label);
+                          setEditAffUrl(link.url);
+                          setEditAffGeo(link.geo);
+                        }}
+                      >
+                        <Pencil className="size-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDeleteAffiliateLink(link.affiliateLinkId)}
+                      >
+                        <Trash2 className="size-3" />
+                      </Button>
+                    </div>
+                  </div>
+                )
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Deals section */}
         <div className="border-t pt-4 mt-2">

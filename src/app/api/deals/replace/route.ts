@@ -82,6 +82,21 @@ export async function POST(request: Request) {
         dealStatus = "Approved";
       }
 
+      // Validate affiliate link if provided
+      let resolvedAffiliateLink = data.affiliateLink;
+      if (data.affiliateLinkId) {
+        const affLink = await tx.affiliateLink.findUnique({
+          where: { affiliateLinkId: data.affiliateLinkId },
+        });
+        if (!affLink) {
+          throw new Error("AFFILIATE_LINK_NOT_FOUND");
+        }
+        if (affLink.brandId !== data.brandId) {
+          throw new Error("AFFILIATE_LINK_BRAND_MISMATCH");
+        }
+        resolvedAffiliateLink = affLink.url;
+      }
+
       // Create new deal on same asset/page/position with new partner/brand
       const newDeal = await tx.deal.create({
         data: {
@@ -91,7 +106,8 @@ export async function POST(request: Request) {
           pageId: existingDeal.pageId,
           positionId: existingDeal.positionId,
           geo: data.geo ?? existingDeal.geo,
-          affiliateLink: data.affiliateLink,
+          affiliateLink: resolvedAffiliateLink,
+          affiliateLinkId: data.affiliateLinkId || null,
           startDate: new Date(),
           notes: data.notes,
           replacementReason: data.replacementReason,
@@ -193,6 +209,16 @@ export async function POST(request: Request) {
         case "DEAL_NOT_ACTIVE":
           return NextResponse.json(
             { error: "Existing deal is not active" },
+            { status: 400 }
+          );
+        case "AFFILIATE_LINK_NOT_FOUND":
+          return NextResponse.json(
+            { error: "Affiliate link not found" },
+            { status: 404 }
+          );
+        case "AFFILIATE_LINK_BRAND_MISMATCH":
+          return NextResponse.json(
+            { error: "Affiliate link does not belong to the specified brand" },
             { status: 400 }
           );
         case "BRAND_NOT_FOUND":

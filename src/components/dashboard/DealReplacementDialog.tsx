@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { GeoFlag } from "@/components/dashboard/GeoFlag";
 
 // ---------- types ----------
 
@@ -30,6 +31,13 @@ interface Partner {
 interface Brand {
   brandId: string;
   name: string;
+}
+
+interface AffiliateLinkOption {
+  affiliateLinkId: string;
+  label: string;
+  url: string;
+  geo: string;
 }
 
 interface DealInfo {
@@ -62,6 +70,11 @@ export function DealReplacementDialog({
   const [brandId, setBrandId] = useState("");
   const [loadingBrands, setLoadingBrands] = useState(false);
 
+  // Affiliate links
+  const [affiliateLinks, setAffiliateLinks] = useState<AffiliateLinkOption[]>([]);
+  const [affiliateLinkId, setAffiliateLinkId] = useState("");
+  const [loadingAffiliateLinks, setLoadingAffiliateLinks] = useState(false);
+
   // Other fields
   const [replacementReason, setReplacementReason] = useState("");
   const [affiliateLink, setAffiliateLink] = useState("");
@@ -90,6 +103,8 @@ export function DealReplacementDialog({
       setBrands([]);
       setReplacementReason("");
       setAffiliateLink("");
+      setAffiliateLinkId("");
+      setAffiliateLinks([]);
       setNotes("");
     }
   }, [open, fetchPartners]);
@@ -124,6 +139,36 @@ export function DealReplacementDialog({
     };
   }, [partnerId]);
 
+  // ---------- fetch affiliate links when brand changes ----------
+  useEffect(() => {
+    if (!brandId) {
+      setAffiliateLinks([]);
+      setAffiliateLinkId("");
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingAffiliateLinks(true);
+    setAffiliateLinkId("");
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/brands/${brandId}/affiliate-links`);
+        if (!res.ok) throw new Error("Failed to fetch affiliate links");
+        const json: AffiliateLinkOption[] = await res.json();
+        if (!cancelled) setAffiliateLinks(json);
+      } catch {
+        if (!cancelled) setAffiliateLinks([]);
+      } finally {
+        if (!cancelled) setLoadingAffiliateLinks(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [brandId]);
+
   // ---------- submit ----------
   async function handleSubmit() {
     if (!deal) return;
@@ -149,6 +194,7 @@ export function DealReplacementDialog({
       brandId,
       replacementReason: replacementReason.trim(),
       affiliateLink: affiliateLink.trim() || undefined,
+      affiliateLinkId: affiliateLinkId && affiliateLinkId !== "__none" ? affiliateLinkId : undefined,
       notes: notes.trim() || undefined,
     };
 
@@ -247,13 +293,39 @@ export function DealReplacementDialog({
 
           {/* Affiliate Link */}
           <div className="grid gap-2">
-            <Label htmlFor="replace-affiliate-link">Affiliate Link</Label>
-            <Input
-              id="replace-affiliate-link"
-              value={affiliateLink}
-              onChange={(e) => setAffiliateLink(e.target.value)}
-              placeholder="https://..."
-            />
+            <Label>Affiliate Link</Label>
+            {!brandId ? (
+              <p className="text-sm text-muted-foreground">Select a brand first</p>
+            ) : loadingAffiliateLinks ? (
+              <p className="text-sm text-muted-foreground">Loading affiliate links...</p>
+            ) : affiliateLinks.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No affiliate links for this brand.</p>
+            ) : (
+              <Select value={affiliateLinkId || "__none"} onValueChange={(val) => {
+                setAffiliateLinkId(val);
+                if (val && val !== "__none") {
+                  const link = affiliateLinks.find((l) => l.affiliateLinkId === val);
+                  if (link) setAffiliateLink(link.url);
+                } else {
+                  setAffiliateLink("");
+                }
+              }}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select an affiliate link" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">No affiliate link</SelectItem>
+                  {affiliateLinks.map((link) => (
+                    <SelectItem key={link.affiliateLinkId} value={link.affiliateLinkId}>
+                      <span className="inline-flex items-center gap-2">
+                        <GeoFlag geo={link.geo} size="sm" showLabel={false} />
+                        {link.label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           {/* Replacement Reason (required) */}

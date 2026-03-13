@@ -67,6 +67,7 @@ model Brand {
   partner           Partner     @relation(fields: [partnerId], references: [partnerId], onDelete: Cascade)
   contacts          Contact[]
   deals             Deal[]
+  affiliateLinks    AffiliateLink[]
 }
 
 model Contact {
@@ -140,6 +141,7 @@ model Deal {
   assetId           String
   positionId        String
   affiliateLink     String?
+  affiliateLinkId   String?
   startDate         DateTime   @default(now())
   endDate           DateTime?
   status            DealStatus @default(Live)
@@ -162,6 +164,7 @@ model Deal {
   payoutValue       String?
   replacementReason String?
   pageId            String
+  affiliateLinkRef  AffiliateLink? @relation(fields: [affiliateLinkId], references: [affiliateLinkId])
   asset             Asset      @relation(fields: [assetId], references: [assetId])
   brand             Brand      @relation(fields: [brandId], references: [brandId])
   createdBy         User       @relation("DealCreatedBy", fields: [createdById], references: [id])
@@ -171,6 +174,21 @@ model Deal {
   replacedDeal      Deal?      @relation("DealReplacement", fields: [replacedDealId], references: [dealId])
   replacedBy        Deal?      @relation("DealReplacement")
   updatedBy         User?      @relation("DealUpdatedBy", fields: [updatedById], references: [id])
+}
+
+model AffiliateLink {
+  affiliateLinkId  String   @id @default(cuid())
+  brandId          String
+  label            String
+  url              String
+  geo              String   @default("__global")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  brand  Brand  @relation(fields: [brandId], references: [brandId], onDelete: Cascade)
+  deals  Deal[]
+
+  @@unique([brandId, label])
 }
 
 model Notification {

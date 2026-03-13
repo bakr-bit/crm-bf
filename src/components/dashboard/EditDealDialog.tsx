@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { GeoFlag } from "@/components/dashboard/GeoFlag";
 import { COUNTRIES } from "@/lib/countries";
 import { DEAL_STATUSES, DEAL_STATUS_LABELS } from "@/lib/deal-status";
 import type { DealStatusType } from "@/lib/deal-status";
@@ -30,9 +31,18 @@ interface EditDealDialogProps {
   dealId: string;
 }
 
+interface AffiliateLink {
+  affiliateLinkId: string;
+  label: string;
+  url: string;
+  geo: string;
+}
+
 interface DealData {
   dealId: string;
+  brandId: string;
   affiliateLink: string | null;
+  affiliateLinkId: string | null;
   geo: string;
   status: string;
   startDate: string;
@@ -61,6 +71,11 @@ export function EditDealDialog({
 }: EditDealDialogProps) {
   const [deal, setDeal] = useState<DealData | null>(null);
   const [loadingDeal, setLoadingDeal] = useState(false);
+
+  // Affiliate links
+  const [affiliateLinks, setAffiliateLinks] = useState<AffiliateLink[]>([]);
+  const [affiliateLinkId, setAffiliateLinkId] = useState("");
+  const [loadingAffiliateLinks, setLoadingAffiliateLinks] = useState(false);
 
   // Editable fields
   const [affiliateLink, setAffiliateLink] = useState("");
@@ -95,7 +110,28 @@ export function EditDealDialog({
 
         setDeal(data);
         setAffiliateLink(data.affiliateLink ?? "");
+        setAffiliateLinkId(data.affiliateLinkId ?? "");
         setGeo(data.geo ?? "");
+
+        // Fetch affiliate links for the brand
+        if (data.brandId) {
+          setLoadingAffiliateLinks(true);
+          try {
+            const affRes = await fetch(`/api/brands/${data.brandId}/affiliate-links`);
+            if (affRes.ok) {
+              const affJson: AffiliateLink[] = await affRes.json();
+              if (!cancelled) {
+                setAffiliateLinks(affJson);
+                if (data.affiliateLinkId) {
+                  setAffiliateLinkId(data.affiliateLinkId);
+                }
+              }
+            }
+          } catch { /* ignore */ }
+          finally {
+            if (!cancelled) setLoadingAffiliateLinks(false);
+          }
+        }
         setStatus(data.status ?? "");
         setEndDate(data.endDate ? data.endDate.slice(0, 10) : "");
         setNotes(data.notes ?? "");
@@ -125,6 +161,7 @@ export function EditDealDialog({
 
     const body: Record<string, unknown> = {
       affiliateLink: affiliateLink.trim() || undefined,
+      affiliateLinkId: affiliateLinkId && affiliateLinkId !== "__none" ? affiliateLinkId : null,
       geo: geo || undefined,
       status: status || undefined,
       endDate: endDate || undefined,
@@ -223,13 +260,44 @@ export function EditDealDialog({
 
               {/* Affiliate Link */}
               <div className="grid gap-2">
-                <Label htmlFor="edit-deal-affiliate-link">Affiliate Link</Label>
-                <Input
-                  id="edit-deal-affiliate-link"
-                  value={affiliateLink}
-                  onChange={(e) => setAffiliateLink(e.target.value)}
-                  placeholder="https://..."
-                />
+                <Label>Affiliate Link</Label>
+                {loadingAffiliateLinks ? (
+                  <p className="text-sm text-muted-foreground">Loading affiliate links...</p>
+                ) : affiliateLinks.length === 0 ? (
+                  <div>
+                    {deal.affiliateLink && !deal.affiliateLinkId && (
+                      <p className="text-sm text-muted-foreground mb-1">
+                        Legacy: <span className="font-mono text-xs">{deal.affiliateLink}</span>
+                      </p>
+                    )}
+                    <p className="text-sm text-muted-foreground">No affiliate links for this brand.</p>
+                  </div>
+                ) : (
+                  <Select value={affiliateLinkId || "__none"} onValueChange={(val) => {
+                    setAffiliateLinkId(val);
+                    if (val && val !== "__none") {
+                      const link = affiliateLinks.find((l) => l.affiliateLinkId === val);
+                      if (link) setAffiliateLink(link.url);
+                    } else {
+                      setAffiliateLink("");
+                    }
+                  }}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select an affiliate link" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none">No affiliate link</SelectItem>
+                      {affiliateLinks.map((link) => (
+                        <SelectItem key={link.affiliateLinkId} value={link.affiliateLinkId}>
+                          <span className="inline-flex items-center gap-2">
+                            <GeoFlag geo={link.geo} size="sm" showLabel={false} />
+                            {link.label}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
 
               {/* End Date */}

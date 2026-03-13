@@ -92,6 +92,9 @@ export async function GET(request: Request) {
         asset: true,
         page: true,
         position: true,
+        affiliateLinkRef: {
+          select: { affiliateLinkId: true, label: true, url: true, geo: true },
+        },
       },
     });
 
@@ -140,7 +143,22 @@ export async function POST(request: Request) {
         throw new Error("BRAND_PARTNER_MISMATCH");
       }
 
-      // 2. Check if this is an N/A position
+      // 2. Validate affiliate link if provided
+      let resolvedAffiliateLink = data.affiliateLink;
+      if (data.affiliateLinkId) {
+        const affLink = await tx.affiliateLink.findUnique({
+          where: { affiliateLinkId: data.affiliateLinkId },
+        });
+        if (!affLink) {
+          throw new Error("AFFILIATE_LINK_NOT_FOUND");
+        }
+        if (affLink.brandId !== data.brandId) {
+          throw new Error("AFFILIATE_LINK_BRAND_MISMATCH");
+        }
+        resolvedAffiliateLink = affLink.url;
+      }
+
+      // 3. Check if this is an N/A position
       const position = await tx.position.findUnique({
         where: { positionId: data.positionId },
       });
@@ -191,7 +209,8 @@ export async function POST(request: Request) {
           pageId: data.pageId,
           positionId: data.positionId,
           geo: data.geo,
-          affiliateLink: data.affiliateLink,
+          affiliateLink: resolvedAffiliateLink,
+          affiliateLinkId: data.affiliateLinkId || null,
           startDate: data.startDate,
           endDate: data.endDate,
           notes: data.notes,
@@ -213,6 +232,9 @@ export async function POST(request: Request) {
           asset: true,
           page: true,
           position: true,
+          affiliateLinkRef: {
+            select: { affiliateLinkId: true, label: true, url: true, geo: true },
+          },
         },
       });
 
@@ -261,6 +283,16 @@ export async function POST(request: Request) {
         case "BRAND_PARTNER_MISMATCH":
           return NextResponse.json(
             { error: "Brand does not belong to the specified partner" },
+            { status: 400 }
+          );
+        case "AFFILIATE_LINK_NOT_FOUND":
+          return NextResponse.json(
+            { error: "Affiliate link not found" },
+            { status: 404 }
+          );
+        case "AFFILIATE_LINK_BRAND_MISMATCH":
+          return NextResponse.json(
+            { error: "Affiliate link does not belong to the specified brand" },
             { status: 400 }
           );
         case "POSITION_OCCUPIED":
