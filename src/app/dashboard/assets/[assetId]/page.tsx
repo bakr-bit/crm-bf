@@ -74,7 +74,7 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 interface DealBrand {
   brandId: string;
   name: string;
-  postbacks: string | null;
+  postbacks: string[];
 }
 
 interface DealPartner {
@@ -187,11 +187,6 @@ function PositionsTable({
   activePage,
   assetId,
   getActiveDeal,
-  editingPostbackBrandId,
-  editingPostbackValue,
-  setEditingPostbackBrandId,
-  setEditingPostbackValue,
-  handleSavePostback,
   setEditingPosition,
   setPositionDialogOpen,
   handleDeletePosition,
@@ -203,11 +198,6 @@ function PositionsTable({
   activePage: Page;
   assetId: string;
   getActiveDeal: (position: Position) => PositionDeal | undefined;
-  editingPostbackBrandId: string | null;
-  editingPostbackValue: string;
-  setEditingPostbackBrandId: (id: string | null) => void;
-  setEditingPostbackValue: (v: string) => void;
-  handleSavePostback: (brandId: string) => void;
   setEditingPosition: (p: Position | undefined) => void;
   setPositionDialogOpen: (open: boolean) => void;
   handleDeletePosition: (pageId: string, positionId: string) => void;
@@ -325,39 +315,16 @@ function PositionsTable({
                         )}
                       </TableCell>
                       <TableCell className="text-sm">
-                        {activeDeal && editingPostbackBrandId === activeDeal.brand.brandId ? (
-                          <div className="flex items-center gap-1">
-                            <Input
-                              value={editingPostbackValue}
-                              onChange={(e) => setEditingPostbackValue(e.target.value)}
-                              className="h-7 text-sm"
-                              autoFocus
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") handleSavePostback(activeDeal.brand.brandId);
-                                if (e.key === "Escape") setEditingPostbackBrandId(null);
-                              }}
-                            />
-                            <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => handleSavePostback(activeDeal.brand.brandId)}>
-                              Save
-                            </Button>
-                            <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setEditingPostbackBrandId(null)}>
-                              Cancel
-                            </Button>
+                        {activeDeal?.brand.postbacks && activeDeal.brand.postbacks.length > 0 ? (
+                          <div className="space-y-0.5">
+                            {activeDeal.brand.postbacks.map((pb, i) => (
+                              <div key={i} className="text-muted-foreground text-xs truncate max-w-[200px]" title={pb}>
+                                {pb}
+                              </div>
+                            ))}
                           </div>
                         ) : (
-                          <button
-                            type="button"
-                            className="text-muted-foreground hover:text-foreground hover:underline cursor-pointer text-left"
-                            onClick={() => {
-                              if (activeDeal) {
-                                setEditingPostbackBrandId(activeDeal.brand.brandId);
-                                setEditingPostbackValue(activeDeal.brand.postbacks ?? "");
-                              }
-                            }}
-                            disabled={!activeDeal}
-                          >
-                            {activeDeal?.brand.postbacks || "-"}
-                          </button>
+                          <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
                       <TableCell>
@@ -476,9 +443,6 @@ export default function AssetDetailPage() {
   const [editingGeos, setEditingGeos] = useState(false);
   const [editingGeosValue, setEditingGeosValue] = useState<string[]>([]);
 
-  // Inline postback editing
-  const [editingPostbackBrandId, setEditingPostbackBrandId] = useState<string | null>(null);
-  const [editingPostbackValue, setEditingPostbackValue] = useState("");
 
   // Wishlist state
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
@@ -767,25 +731,6 @@ export default function AssetDetailPage() {
     }
   }
 
-  async function handleSavePostback(brandId: string) {
-    try {
-      const res = await fetch(`/api/brands/${brandId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postbacks: editingPostbackValue }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.error ?? "Failed to update postback.");
-      }
-      toast.success("Postback updated.");
-      setEditingPostbackBrandId(null);
-      fetchAsset();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "An unexpected error occurred.";
-      toast.error(message);
-    }
-  }
 
   async function handleToggleAdminOnly(value: boolean) {
     try {
@@ -1150,11 +1095,6 @@ export default function AssetDetailPage() {
                     activePage={activePage}
                     assetId={assetId}
                     getActiveDeal={getActiveDeal}
-                    editingPostbackBrandId={editingPostbackBrandId}
-                    editingPostbackValue={editingPostbackValue}
-                    setEditingPostbackBrandId={setEditingPostbackBrandId}
-                    setEditingPostbackValue={setEditingPostbackValue}
-                    handleSavePostback={handleSavePostback}
                     setEditingPosition={setEditingPosition}
                     setPositionDialogOpen={setPositionDialogOpen}
                     handleDeletePosition={handleDeletePosition}

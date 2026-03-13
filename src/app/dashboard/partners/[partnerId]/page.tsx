@@ -63,7 +63,7 @@ interface Brand {
   name: string;
   brandDomain: string | null;
   brandIdentifiers: unknown;
-  postbacks: string | null;
+  postbacks: string[];
   licenses: string[];
   extraInfo: string | null;
   affiliateSoftware: string | null;
@@ -344,7 +344,7 @@ export default function PartnerDetailPage() {
       id: b.brandId,
       name: b.name,
       brandDomain: b.brandDomain ?? undefined,
-      postbacks: b.postbacks ?? undefined,
+      postbacks: b.postbacks ?? [],
       licenses: b.licenses ?? [],
       extraInfo: b.extraInfo ?? undefined,
       affiliateSoftware: b.affiliateSoftware ?? undefined,

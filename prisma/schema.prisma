@@ -62,7 +62,7 @@ model Brand {
   targetGeos        String[]    @default([])
   affiliateSoftware String?
   extraInfo         String?
-  postbacks         String?
+  postbacks         String[]    @default([])
   licenses          String[]    @default([])
   partner           Partner     @relation(fields: [partnerId], references: [partnerId], onDelete: Cascade)
   contacts          Contact[]

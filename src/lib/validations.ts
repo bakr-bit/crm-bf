@@ -30,7 +30,7 @@ export const brandCreateSchema = z.object({
   name: z.string().min(1, "Name is required"),
   brandDomain: domainTransform,
   brandIdentifiers: z.any().optional(),
-  postbacks: z.string().optional(),
+  postbacks: z.array(z.string()).default([]),
   licenses: z.array(z.string()).default([]),
   extraInfo: z.string().optional(),
   affiliateSoftware: z.string().optional(),

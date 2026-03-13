@@ -33,7 +33,7 @@ interface Brand {
   name: string;
   brandDomain: string | null;
   brandIdentifiers: unknown;
-  postbacks: string | null;
+  postbacks: string[];
   licenses: string[];
   extraInfo: string | null;
   affiliateSoftware: string | null;
@@ -325,8 +325,30 @@ export function BrandDetailDialog({
             <dt className="text-sm font-medium text-muted-foreground">
               Postbacks
             </dt>
-            <dd className="text-sm whitespace-pre-wrap">
-              {brand.postbacks ?? "None"}
+            <dd className="mt-1">
+              {(brand.postbacks?.length ?? 0) === 0 ? (
+                <span className="text-sm text-muted-foreground">None</span>
+              ) : (
+                <div className="space-y-1">
+                  {brand.postbacks.map((pb, i) => (
+                    <div key={i} className="flex items-center gap-1">
+                      <button
+                        className="text-sm text-muted-foreground hover:text-foreground truncate transition-colors cursor-pointer"
+                        title="Click to copy"
+                        onClick={() => {
+                          navigator.clipboard.writeText(pb);
+                          toast.success("Postback URL copied.");
+                        }}
+                      >
+                        <span className="inline-flex items-center gap-1">
+                          {pb}
+                          <Copy className="size-3 shrink-0" />
+                        </span>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </dd>
           </div>
 
