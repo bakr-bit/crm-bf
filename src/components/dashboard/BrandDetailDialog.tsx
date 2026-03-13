@@ -25,7 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, X, Check } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Check, Copy } from "lucide-react";
 
 interface Brand {
   brandId: string;
@@ -466,7 +466,19 @@ export function BrandDetailDialog({
                     <div className="flex items-center gap-3 min-w-0">
                       <GeoFlag geo={link.geo} size="sm" />
                       <span className="font-medium">{link.label}</span>
-                      <span className="truncate text-muted-foreground text-xs">{link.url}</span>
+                      <button
+                        className="truncate text-muted-foreground text-xs hover:text-foreground transition-colors cursor-pointer"
+                        title="Click to copy URL"
+                        onClick={() => {
+                          navigator.clipboard.writeText(link.url);
+                          toast.success("URL copied to clipboard.");
+                        }}
+                      >
+                        <span className="inline-flex items-center gap-1">
+                          {link.url}
+                          <Copy className="size-3 shrink-0" />
+                        </span>
+                      </button>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <Button

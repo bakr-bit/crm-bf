@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/table";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { DealReplacementDialog } from "@/components/dashboard/DealReplacementDialog";
-import { ArrowLeft, ArrowRight, Lock } from "lucide-react";
+import { ArrowLeft, ArrowRight, Lock, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { GeoFlag } from "@/components/dashboard/GeoFlag";
 import { AdminOnlyBanner } from "@/components/dashboard/AdminOnlyBanner";
@@ -407,9 +407,31 @@ export default function DealDetailPage() {
                         >
                           {deal.affiliateLinkRef.url}
                         </a>
+                        <button
+                          className="text-muted-foreground hover:text-foreground transition-colors"
+                          title="Copy URL"
+                          onClick={() => {
+                            navigator.clipboard.writeText(deal.affiliateLinkRef!.url);
+                            toast.success("URL copied to clipboard.");
+                          }}
+                        >
+                          <Copy className="size-3.5" />
+                        </button>
                       </span>
                     ) : deal.affiliateLink ? (
-                      <span className="truncate font-mono text-xs">{deal.affiliateLink}</span>
+                      <span className="inline-flex items-center gap-2">
+                        <span className="truncate font-mono text-xs">{deal.affiliateLink}</span>
+                        <button
+                          className="text-muted-foreground hover:text-foreground transition-colors"
+                          title="Copy URL"
+                          onClick={() => {
+                            navigator.clipboard.writeText(deal.affiliateLink!);
+                            toast.success("URL copied to clipboard.");
+                          }}
+                        >
+                          <Copy className="size-3.5" />
+                        </button>
+                      </span>
                     ) : (
                       "-"
                     )}
