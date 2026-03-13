@@ -18,6 +18,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { Plus, Trash2 } from "lucide-react";
+import { GeoFlag } from "@/components/dashboard/GeoFlag";
+import { COUNTRY_MAP } from "@/lib/countries";
 import { GeoMultiSelect } from "./GeoMultiSelect";
 import { LicenseMultiSelect } from "./LicenseMultiSelect";
 
@@ -32,6 +35,16 @@ interface Brand {
   targetGeos?: string[];
 }
 
+interface AffiliateLinkDraft {
+  label: string;
+  url: string;
+  geo: string;
+}
+
+interface AffiliateLinkExisting extends AffiliateLinkDraft {
+  affiliateLinkId: string;
+}
+
 interface BrandDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -39,6 +52,11 @@ interface BrandDialogProps {
   brand?: Brand;
   onSuccess: () => void;
 }
+
+const COUNTRIES_LIST = [
+  { code: "__global", name: "Global" },
+  ...Object.entries(COUNTRY_MAP).map(([code, name]) => ({ code, name })),
+];
 
 export function BrandDialog({
   open,
@@ -58,6 +76,11 @@ export function BrandDialog({
   const [targetGeos, setTargetGeos] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Affiliate links
+  const [existingLinks, setExistingLinks] = useState<AffiliateLinkExisting[]>([]);
+  const [removedLinkIds, setRemovedLinkIds] = useState<string[]>([]);
+  const [newLinks, setNewLinks] = useState<AffiliateLinkDraft[]>([]);
+
   useEffect(() => {
     if (brand) {
       setName(brand.name ?? "");
@@ -67,6 +90,8 @@ export function BrandDialog({
       setAffiliateSoftware(brand.affiliateSoftware ?? "");
       setStatus(brand.status ?? "Active");
       setTargetGeos(brand.targetGeos ?? []);
+      // Fetch existing affiliate links
+      fetchAffiliateLinks(brand.id);
     } else {
       setName("");
       setBrandDomain("");
@@ -75,8 +100,22 @@ export function BrandDialog({
       setAffiliateSoftware("");
       setStatus("Active");
       setTargetGeos([]);
+      setExistingLinks([]);
     }
+    setRemovedLinkIds([]);
+    setNewLinks([]);
   }, [brand, open]);
+
+  async function fetchAffiliateLinks(brandId: string) {
+    try {
+      const res = await fetch(`/api/brands/${brandId}/affiliate-links`);
+      if (!res.ok) return;
+      const json: AffiliateLinkExisting[] = await res.json();
+      setExistingLinks(json);
+    } catch {
+      setExistingLinks([]);
+    }
+  }
 
   async function handleSubmit() {
     if (!name.trim()) {
@@ -113,6 +152,30 @@ export function BrandDialog({
         throw new Error(data?.error ?? "Failed to save brand.");
       }
 
+      const savedBrand = await res.json();
+      const brandId = isEdit ? brand!.id : savedBrand.brandId;
+
+      // Delete removed affiliate links
+      for (const linkId of removedLinkIds) {
+        await fetch(`/api/brands/${brandId}/affiliate-links/${linkId}`, {
+          method: "DELETE",
+        });
+      }
+
+      // Create new affiliate links
+      const validNewLinks = newLinks.filter((l) => l.label.trim() && l.url.trim());
+      for (const link of validNewLinks) {
+        await fetch(`/api/brands/${brandId}/affiliate-links`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            label: link.label.trim(),
+            url: link.url.trim(),
+            geo: link.geo,
+          }),
+        });
+      }
+
       toast.success(isEdit ? "Brand updated." : "Brand created.");
       onOpenChange(false);
       onSuccess();
@@ -125,9 +188,13 @@ export function BrandDialog({
     }
   }
 
+  const visibleExisting = existingLinks.filter(
+    (l) => !removedLinkIds.includes(l.affiliateLinkId)
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Brand" : "Create Brand"}</DialogTitle>
         </DialogHeader>
@@ -187,6 +254,108 @@ export function BrandDialog({
               onChange={(e) => setExtraInfo(e.target.value)}
               placeholder="Any additional notes"
             />
+          </div>
+
+          {/* Affiliate Links */}
+          <div className="grid gap-2">
+            <div className="flex items-center justify-between">
+              <Label>Affiliate Links</Label>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  setNewLinks([...newLinks, { label: "", url: "", geo: "__global" }])
+                }
+              >
+                <Plus className="mr-1 size-3" />
+                Add
+              </Button>
+            </div>
+
+            {visibleExisting.length === 0 && newLinks.length === 0 && (
+              <p className="text-sm text-muted-foreground">No affiliate links.</p>
+            )}
+
+            {/* Existing links */}
+            {visibleExisting.map((link) => (
+              <div
+                key={link.affiliateLinkId}
+                className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
+              >
+                <GeoFlag geo={link.geo} size="sm" />
+                <span className="font-medium truncate">{link.label}</span>
+                <span className="text-muted-foreground text-xs truncate flex-1">
+                  {link.url}
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() =>
+                    setRemovedLinkIds([...removedLinkIds, link.affiliateLinkId])
+                  }
+                >
+                  <Trash2 className="size-3 text-muted-foreground" />
+                </Button>
+              </div>
+            ))}
+
+            {/* New link drafts */}
+            {newLinks.map((link, i) => (
+              <div key={`new-${i}`} className="space-y-2 rounded-md border p-3">
+                <Input
+                  value={link.label}
+                  onChange={(e) => {
+                    const updated = [...newLinks];
+                    updated[i] = { ...updated[i], label: e.target.value };
+                    setNewLinks(updated);
+                  }}
+                  placeholder="Label"
+                />
+                <Input
+                  value={link.url}
+                  onChange={(e) => {
+                    const updated = [...newLinks];
+                    updated[i] = { ...updated[i], url: e.target.value };
+                    setNewLinks(updated);
+                  }}
+                  placeholder="URL"
+                />
+                <div className="flex items-center gap-2">
+                  <Select
+                    value={link.geo}
+                    onValueChange={(val) => {
+                      const updated = [...newLinks];
+                      updated[i] = { ...updated[i], geo: val };
+                      setNewLinks(updated);
+                    }}
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COUNTRIES_LIST.map((c) => (
+                        <SelectItem key={c.code} value={c.code}>
+                          <span className="inline-flex items-center gap-2">
+                            <GeoFlag geo={c.code} size="sm" showLabel={false} />
+                            {c.name}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setNewLinks(newLinks.filter((_, j) => j !== i))}
+                  >
+                    <Trash2 className="size-3 text-muted-foreground" />
+                  </Button>
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Status */}
