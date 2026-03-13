@@ -91,6 +91,12 @@ export function BrandDetailDialog({
   const [deals, setDeals] = useState<BrandDeal[]>([]);
   const [loadingDeals, setLoadingDeals] = useState(false);
 
+  // Postbacks state
+  const [postbacks, setPostbacks] = useState<string[]>([]);
+  const [editingPostbacks, setEditingPostbacks] = useState(false);
+  const [postbackDraft, setPostbackDraft] = useState<string[]>([]);
+  const [savingPostbacks, setSavingPostbacks] = useState(false);
+
   // Affiliate links state
   const [affiliateLinks, setAffiliateLinks] = useState<AffiliateLink[]>([]);
   const [loadingAffLinks, setLoadingAffLinks] = useState(false);
@@ -105,6 +111,30 @@ export function BrandDetailDialog({
   const [editAffGeo, setEditAffGeo] = useState("__global");
 
   const COUNTRIES_LIST = [{ code: "__global", name: "Global" }, ...Object.entries(COUNTRY_MAP).map(([code, name]) => ({ code, name }))];
+
+  async function handleSavePostbacks() {
+    if (!brand) return;
+    setSavingPostbacks(true);
+    try {
+      const filtered = postbackDraft.filter((p) => p.trim());
+      const res = await fetch(`/api/brands/${brand.brandId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postbacks: filtered }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Failed to update postbacks");
+      }
+      setPostbacks(filtered);
+      setEditingPostbacks(false);
+      toast.success("Postbacks updated.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save postbacks");
+    } finally {
+      setSavingPostbacks(false);
+    }
+  }
 
   async function fetchAffiliateLinks(brandId: string) {
     setLoadingAffLinks(true);
@@ -192,8 +222,12 @@ export function BrandDetailDialog({
       setAffiliateLinks([]);
       setShowAddAffLink(false);
       setEditingAffLinkId(null);
+      setPostbacks([]);
+      setEditingPostbacks(false);
       return;
     }
+
+    setPostbacks(brand.postbacks ?? []);
 
     let cancelled = false;
     setLoadingDeals(true);
@@ -322,15 +356,71 @@ export function BrandDetailDialog({
           </div>
 
           <div className="sm:col-span-2">
-            <dt className="text-sm font-medium text-muted-foreground">
-              Postbacks
-            </dt>
+            <div className="flex items-center justify-between">
+              <dt className="text-sm font-medium text-muted-foreground">
+                Postbacks
+              </dt>
+              {!editingPostbacks && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setPostbackDraft([...postbacks]);
+                    setEditingPostbacks(true);
+                  }}
+                >
+                  <Pencil className="size-3" />
+                </Button>
+              )}
+            </div>
             <dd className="mt-1">
-              {(brand.postbacks?.length ?? 0) === 0 ? (
+              {editingPostbacks ? (
+                <div className="space-y-2">
+                  {postbackDraft.map((pb, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <Input
+                        value={pb}
+                        onChange={(e) => {
+                          const updated = [...postbackDraft];
+                          updated[i] = e.target.value;
+                          setPostbackDraft(updated);
+                        }}
+                        placeholder="Postback URL"
+                        className="text-sm"
+                      />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setPostbackDraft(postbackDraft.filter((_, j) => j !== i))}
+                      >
+                        <Trash2 className="size-3" />
+                      </Button>
+                    </div>
+                  ))}
+                  <div className="flex items-center justify-between">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setPostbackDraft([...postbackDraft, ""])}
+                    >
+                      <Plus className="mr-1 size-3" />
+                      Add
+                    </Button>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => setEditingPostbacks(false)}>
+                        Cancel
+                      </Button>
+                      <Button size="sm" onClick={handleSavePostbacks} disabled={savingPostbacks}>
+                        {savingPostbacks ? "Saving..." : "Save"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : postbacks.length === 0 ? (
                 <span className="text-sm text-muted-foreground">None</span>
               ) : (
                 <div className="space-y-1">
-                  {brand.postbacks.map((pb, i) => (
+                  {postbacks.map((pb, i) => (
                     <div key={i} className="flex items-center gap-1">
                       <button
                         className="text-sm text-muted-foreground hover:text-foreground truncate transition-colors cursor-pointer"

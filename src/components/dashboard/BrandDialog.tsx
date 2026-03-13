@@ -18,7 +18,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Trash2 } from "lucide-react";
 import { GeoMultiSelect } from "./GeoMultiSelect";
 import { LicenseMultiSelect } from "./LicenseMultiSelect";
 
@@ -26,7 +25,6 @@ interface Brand {
   id: string;
   name: string;
   brandDomain?: string;
-  postbacks?: string[];
   licenses?: string[];
   extraInfo?: string;
   affiliateSoftware?: string;
@@ -53,7 +51,6 @@ export function BrandDialog({
 
   const [name, setName] = useState("");
   const [brandDomain, setBrandDomain] = useState("");
-  const [postbacks, setPostbacks] = useState<string[]>([]);
   const [licenses, setLicenses] = useState<string[]>([]);
   const [extraInfo, setExtraInfo] = useState("");
   const [affiliateSoftware, setAffiliateSoftware] = useState("");
@@ -65,7 +62,6 @@ export function BrandDialog({
     if (brand) {
       setName(brand.name ?? "");
       setBrandDomain(brand.brandDomain ?? "");
-      setPostbacks(brand.postbacks ?? []);
       setLicenses(brand.licenses ?? []);
       setExtraInfo(brand.extraInfo ?? "");
       setAffiliateSoftware(brand.affiliateSoftware ?? "");
@@ -74,7 +70,6 @@ export function BrandDialog({
     } else {
       setName("");
       setBrandDomain("");
-      setPostbacks([]);
       setLicenses([]);
       setExtraInfo("");
       setAffiliateSoftware("");
@@ -94,7 +89,6 @@ export function BrandDialog({
     const body = {
       name: name.trim(),
       brandDomain: brandDomain.trim() || undefined,
-      postbacks: postbacks.filter((p) => p.trim()),
       licenses,
       extraInfo: extraInfo.trim() || undefined,
       affiliateSoftware: affiliateSoftware.trim() || undefined,
@@ -165,46 +159,6 @@ export function BrandDialog({
           <div className="grid gap-2">
             <Label>Target Geos</Label>
             <GeoMultiSelect value={targetGeos} onChange={setTargetGeos} />
-          </div>
-
-          {/* Postbacks */}
-          <div className="grid gap-2">
-            <div className="flex items-center justify-between">
-              <Label>Postbacks</Label>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => setPostbacks([...postbacks, ""])}
-              >
-                <Plus className="mr-1 size-3" />
-                Add
-              </Button>
-            </div>
-            {postbacks.length === 0 && (
-              <p className="text-sm text-muted-foreground">No postbacks added.</p>
-            )}
-            {postbacks.map((pb, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <Input
-                  value={pb}
-                  onChange={(e) => {
-                    const updated = [...postbacks];
-                    updated[i] = e.target.value;
-                    setPostbacks(updated);
-                  }}
-                  placeholder="Postback URL"
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setPostbacks(postbacks.filter((_, j) => j !== i))}
-                >
-                  <Trash2 className="size-4 text-muted-foreground" />
-                </Button>
-              </div>
-            ))}
           </div>
 
           {/* Licenses */}
