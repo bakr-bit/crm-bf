@@ -7,7 +7,7 @@ interface GeoFlagProps {
 }
 
 export function GeoFlag({ geo, size = "sm", showLabel = true }: GeoFlagProps) {
-  if (!geo) return <span className="text-muted-foreground">-</span>;
+  if (!geo || geo === "__global") return <span className="text-muted-foreground">Global</span>;
 
   const name = COUNTRY_MAP[geo] ?? geo;
 

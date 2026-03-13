@@ -260,8 +260,9 @@ model IntakeSubmission {
 
 model WishlistItem {
   wishlistItemId    String    @id @default(cuid())
-  assetId           String
+  assetId           String?
   name              String
+  geo               String    @default("__global")
   description       String?
   notes             String?
   contacted         Boolean   @default(false)
@@ -271,9 +272,9 @@ model WishlistItem {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  asset       Asset @relation(fields: [assetId], references: [assetId], onDelete: Cascade)
-  contactedBy User? @relation("WishlistContacted", fields: [contactedByUserId], references: [id])
-  assignedTo  User? @relation("WishlistAssigned", fields: [assignedToUserId], references: [id])
+  asset       Asset? @relation(fields: [assetId], references: [assetId], onDelete: Cascade)
+  contactedBy User?  @relation("WishlistContacted", fields: [contactedByUserId], references: [id])
+  assignedTo  User?  @relation("WishlistAssigned", fields: [assignedToUserId], references: [id])
 
   @@unique([assetId, name])
 }

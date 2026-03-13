@@ -131,6 +131,8 @@ export const dealReplaceSchema = z.object({
 // Wishlist schemas
 export const wishlistItemCreateSchema = z.object({
   name: z.string().min(1, "Name is required"),
+  geo: z.string().min(1, "Geo is required"),
+  assetId: z.string().optional().nullable(),
   description: z.string().optional(),
   notes: z.string().optional(),
   assignedToUserId: z.string().optional().nullable(),

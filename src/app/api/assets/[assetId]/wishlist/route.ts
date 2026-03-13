@@ -79,6 +79,7 @@ export async function POST(
       data: {
         assetId,
         name: parsed.data.name,
+        geo: parsed.data.geo || "__global",
         description: parsed.data.description,
         notes: parsed.data.notes,
         assignedToUserId: parsed.data.assignedToUserId,

@@ -53,6 +53,7 @@ export async function PUT(request: Request, { params }: Params) {
     // Build update data
     const updateData: Record<string, unknown> = {};
     if (parsed.data.name !== undefined) updateData.name = parsed.data.name;
+    if (parsed.data.geo !== undefined) updateData.geo = parsed.data.geo;
     if (parsed.data.description !== undefined) updateData.description = parsed.data.description;
 
     if (parsed.data.notes !== undefined) updateData.notes = parsed.data.notes;

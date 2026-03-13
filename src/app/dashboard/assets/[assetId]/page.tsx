@@ -47,6 +47,7 @@ import { ArrowLeft, Pencil, Plus, MoreHorizontal, Download, Trash2, Search, Star
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { OCCUPYING_STATUSES } from "@/lib/deal-status";
+import { COUNTRIES } from "@/lib/countries";
 import type { DealStatusType } from "@/lib/deal-status";
 import {
   DndContext,
@@ -132,8 +133,9 @@ interface UserOption {
 
 interface WishlistItem {
   wishlistItemId: string;
-  assetId: string;
+  assetId: string | null;
   name: string;
+  geo: string;
   description: string | null;
   notes: string | null;
   contacted: boolean;
@@ -481,12 +483,14 @@ export default function AssetDetailPage() {
   // Wishlist state
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
   const [wishlistName, setWishlistName] = useState("");
+  const [wishlistGeo, setWishlistGeo] = useState("__global");
   const [wishlistDesc, setWishlistDesc] = useState("");
   const [wishlistNotes, setWishlistNotes] = useState("");
   const [wishlistAssignee, setWishlistAssignee] = useState<string>("__none");
   const [wishlistAdding, setWishlistAdding] = useState(false);
   const [editingWishlistId, setEditingWishlistId] = useState<string | null>(null);
   const [editingWishlistName, setEditingWishlistName] = useState("");
+  const [editingWishlistGeo, setEditingWishlistGeo] = useState("__global");
   const [editingWishlistDesc, setEditingWishlistDesc] = useState("");
   const [editingWishlistNotes, setEditingWishlistNotes] = useState("");
   const [editingWishlistAssignee, setEditingWishlistAssignee] = useState<string>("");
@@ -639,6 +643,7 @@ export default function AssetDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: wishlistName.trim(),
+          geo: wishlistGeo,
           description: wishlistDesc.trim() || undefined,
           notes: wishlistNotes.trim() || undefined,
           assignedToUserId: (wishlistAssignee && wishlistAssignee !== "__none") ? wishlistAssignee : undefined,
@@ -650,6 +655,7 @@ export default function AssetDetailPage() {
       }
       toast.success("Added to wishlist.");
       setWishlistName("");
+      setWishlistGeo("__global");
       setWishlistDesc("");
       setWishlistNotes("");
       setWishlistAssignee("__none");
@@ -696,6 +702,7 @@ export default function AssetDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: editingWishlistName.trim(),
+          geo: editingWishlistGeo,
           description: editingWishlistDesc.trim() || undefined,
           notes: editingWishlistNotes.trim() || undefined,
           assignedToUserId: (editingWishlistAssignee && editingWishlistAssignee !== "__none") ? editingWishlistAssignee : null,
@@ -1194,6 +1201,25 @@ export default function AssetDetailPage() {
               }}
             />
           </div>
+          <div className="w-40">
+            <label className="text-sm font-medium mb-1 block">Geo *</label>
+            <Select value={wishlistGeo} onValueChange={setWishlistGeo}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Global" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__global">Global</SelectItem>
+                {COUNTRIES.map((c) => (
+                  <SelectItem key={c.code} value={c.code}>
+                    <span className="inline-flex items-center gap-2">
+                      <span className={`fflag fflag-${c.code} ff-sm`} />
+                      {c.name}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="flex-1 max-w-xs">
             <label className="text-sm font-medium mb-1 block">Description</label>
             <Input
@@ -1241,6 +1267,7 @@ export default function AssetDetailPage() {
               <TableRow>
                 <TableHead className="w-10">Contacted</TableHead>
                 <TableHead>Name</TableHead>
+                <TableHead>Geo</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>Notes</TableHead>
                 <TableHead>Assigned To</TableHead>
@@ -1251,7 +1278,7 @@ export default function AssetDetailPage() {
             <TableBody>
               {wishlistItems.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground">
                     No wishlist items yet. Add brands you want to work with.
                   </TableCell>
                 </TableRow>
@@ -1273,6 +1300,28 @@ export default function AssetDetailPage() {
                         />
                       ) : (
                         <span className={item.contacted ? "line-through" : ""}>{item.name}</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {editingWishlistId === item.wishlistItemId ? (
+                        <Select value={editingWishlistGeo} onValueChange={setEditingWishlistGeo}>
+                          <SelectTrigger className="h-8 w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__global">Global</SelectItem>
+                            {COUNTRIES.map((c) => (
+                              <SelectItem key={c.code} value={c.code}>
+                                <span className="inline-flex items-center gap-2">
+                                  <span className={`fflag fflag-${c.code} ff-sm`} />
+                                  {c.name}
+                                </span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <GeoFlag geo={item.geo} />
                       )}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
@@ -1358,6 +1407,7 @@ export default function AssetDetailPage() {
                               onClick={() => {
                                 setEditingWishlistId(item.wishlistItemId);
                                 setEditingWishlistName(item.name);
+                                setEditingWishlistGeo(item.geo ?? "__global");
                                 setEditingWishlistDesc(item.description ?? "");
                                 setEditingWishlistNotes(item.notes ?? "");
                                 setEditingWishlistAssignee(item.assignedToUserId ?? "__none");
