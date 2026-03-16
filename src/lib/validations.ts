@@ -98,7 +98,7 @@ export const dealCreateSchema = z.object({
   brandId: z.string().min(1, "Brand is required"),
   assetId: z.string().min(1, "Asset is required"),
   pageId: z.string().min(1, "Page is required"),
-  positionId: z.string().min(1, "Position is required"),
+  positionId: z.string().optional().nullable(),
   geo: z.string().length(2).toUpperCase(),
   affiliateLink: z.string().optional(),
   affiliateLinkId: z.string().optional().nullable(),

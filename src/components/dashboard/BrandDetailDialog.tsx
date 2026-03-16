@@ -56,7 +56,7 @@ interface BrandDeal {
   status: string;
   geo: string;
   asset: { name: string };
-  position: { name: string };
+  position: { name: string } | null;
   startDate: string;
   endDate: string | null;
 }
@@ -656,7 +656,7 @@ export function BrandDetailDialog({
                   <div className="flex items-center gap-3">
                     <StatusBadge status={deal.status} variant="deal" />
                     <span>{deal.asset.name}</span>
-                    <span className="text-muted-foreground">{deal.position.name}</span>
+                    <span className="text-muted-foreground">{deal.position?.name ?? "\u2014"}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <GeoFlag geo={deal.geo} size="sm" />

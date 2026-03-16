@@ -381,10 +381,6 @@ export function DealDialog({
       toast.error("Please select a page.");
       return;
     }
-    if (!positionId) {
-      toast.error("Please select a position.");
-      return;
-    }
     if (!startDate) {
       toast.error("Please enter a start date.");
       return;
@@ -398,7 +394,7 @@ export function DealDialog({
       geo,
       assetId,
       pageId,
-      positionId,
+      positionId: positionId || null,
       affiliateLink: affiliateLink.trim() || undefined,
       affiliateLinkId: affiliateLinkId && affiliateLinkId !== "__none" ? affiliateLinkId : undefined,
       startDate,
@@ -580,7 +576,7 @@ export function DealDialog({
 
           {/* Position */}
           <div className="grid gap-2">
-            <Label>Position *</Label>
+            <Label>Position</Label>
             <Select
               value={positionId}
               onValueChange={setPositionId}

@@ -158,24 +158,26 @@ export async function POST(request: Request) {
         resolvedAffiliateLink = affLink.url;
       }
 
-      // 3. Check if this is an N/A position
-      const position = await tx.position.findUnique({
-        where: { positionId: data.positionId },
-      });
-
-      const isNAPosition = position?.name === "N/A";
-
-      // 3. Check position not occupied by an occupying deal (skip for N/A positions)
-      if (!isNAPosition) {
-        const existingActiveDeal = await tx.deal.findFirst({
-          where: {
-            positionId: data.positionId,
-            status: { in: OCCUPYING_STATUSES },
-          },
+      // 3. Check position not occupied (skip if no position or N/A)
+      let isNAPosition = false;
+      if (data.positionId) {
+        const position = await tx.position.findUnique({
+          where: { positionId: data.positionId },
         });
 
-        if (existingActiveDeal) {
-          throw new Error("POSITION_OCCUPIED");
+        isNAPosition = position?.name === "N/A";
+
+        if (!isNAPosition) {
+          const existingActiveDeal = await tx.deal.findFirst({
+            where: {
+              positionId: data.positionId,
+              status: { in: OCCUPYING_STATUSES },
+            },
+          });
+
+          if (existingActiveDeal) {
+            throw new Error("POSITION_OCCUPIED");
+          }
         }
       }
 
@@ -207,7 +209,7 @@ export async function POST(request: Request) {
           brandId: data.brandId,
           assetId: data.assetId,
           pageId: data.pageId,
-          positionId: data.positionId,
+          positionId: data.positionId || null,
           geo: data.geo,
           affiliateLink: resolvedAffiliateLink,
           affiliateLinkId: data.affiliateLinkId || null,
@@ -264,7 +266,7 @@ export async function POST(request: Request) {
     createNotificationForAllUsers({
       type: "DEAL_CREATED",
       title: "New Deal Created",
-      message: `Deal created for ${deal.brand.name} on ${deal.asset.name} — ${deal.position.name}`,
+      message: `Deal created for ${deal.brand.name} on ${deal.asset.name}${deal.position ? ` — ${deal.position.name}` : ""}`,
       entityType: "Deal",
       entityId: deal.dealId,
     }).catch(() => {});

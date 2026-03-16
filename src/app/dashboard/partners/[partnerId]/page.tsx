@@ -126,8 +126,8 @@ interface Deal {
   brand: DealBrand;
   assetId: string;
   asset: DealAsset;
-  positionId: string;
-  position: DealPosition;
+  positionId: string | null;
+  position: DealPosition | null;
   affiliateLink: string | null;
   startDate: string;
   endDate: string | null;
@@ -1058,7 +1058,7 @@ export default function PartnerDetailPage() {
                           </Link>
                         </TableCell>
                         <TableCell>{deal.asset.name}</TableCell>
-                        <TableCell>{deal.position.name}</TableCell>
+                        <TableCell>{deal.position?.name ?? "\u2014"}</TableCell>
                         <TableCell><GeoFlag geo={deal.geo} /></TableCell>
                         <TableCell>
                           <StatusBadge status={deal.status} variant="deal" />

@@ -80,7 +80,7 @@ interface DealDetail {
   brand: { brandId: string; name: string };
   asset: { assetId: string; name: string };
   page: { pageId: string; name: string };
-  position: { positionId: string; name: string };
+  position: { positionId: string; name: string } | null;
   createdBy: DealUser | null;
   updatedBy: DealUser | null;
   replacedDeal: LinkedDeal | null;
@@ -214,9 +214,9 @@ export default function DealDetailPage() {
     setReplacementDeal({
       dealId: deal.dealId,
       assetId: deal.assetId,
-      positionId: deal.positionId,
+      positionId: deal.positionId ?? undefined,
       assetName: deal.asset.name,
-      positionName: deal.position.name,
+      positionName: deal.position?.name ?? "N/A",
     });
     setReplacementDialogOpen(true);
   }
@@ -388,7 +388,7 @@ export default function DealDetailPage() {
                   <dt className="text-sm font-medium text-muted-foreground">
                     Position
                   </dt>
-                  <dd className="text-sm">{deal.position.name}</dd>
+                  <dd className="text-sm">{deal.position?.name ?? "—"}</dd>
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-muted-foreground">

@@ -139,7 +139,7 @@ model Deal {
   partnerId         String
   brandId           String
   assetId           String
-  positionId        String
+  positionId        String?
   affiliateLink     String?
   affiliateLinkId   String?
   startDate         DateTime   @default(now())
@@ -170,7 +170,7 @@ model Deal {
   createdBy         User       @relation("DealCreatedBy", fields: [createdById], references: [id])
   page              Page       @relation(fields: [pageId], references: [pageId])
   partner           Partner    @relation(fields: [partnerId], references: [partnerId], onDelete: Cascade)
-  position          Position   @relation(fields: [positionId], references: [positionId])
+  position          Position?  @relation(fields: [positionId], references: [positionId])
   replacedDeal      Deal?      @relation("DealReplacement", fields: [replacedDealId], references: [dealId])
   replacedBy        Deal?      @relation("DealReplacement")
   updatedBy         User?      @relation("DealUpdatedBy", fields: [updatedById], references: [id])

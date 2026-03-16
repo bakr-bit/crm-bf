@@ -60,7 +60,7 @@ interface DealData {
   brand: { name: string };
   asset: { name: string };
   page: { name: string };
-  position: { name: string };
+  position: { name: string } | null;
 }
 
 export function EditDealDialog({
@@ -217,7 +217,7 @@ export function EditDealDialog({
             <div className="rounded-md border bg-muted/50 p-3 text-sm space-y-1">
               <div><span className="text-muted-foreground">Partner:</span> {deal.partner.name}</div>
               <div><span className="text-muted-foreground">Brand:</span> {deal.brand.name}</div>
-              <div><span className="text-muted-foreground">Asset:</span> {deal.asset.name} &rarr; {deal.page.name} &rarr; Pos {deal.position.name}</div>
+              <div><span className="text-muted-foreground">Asset:</span> {deal.asset.name} &rarr; {deal.page.name} &rarr; Pos {deal.position?.name ?? "\u2014"}</div>
             </div>
 
             <div className="grid gap-4 py-2">

@@ -46,7 +46,7 @@ interface Deal {
   partnerId: string;
   brandId: string;
   assetId: string;
-  positionId: string;
+  positionId: string | null;
   affiliateLink: string | null;
   status: string;
   adminOnly: boolean;
@@ -68,7 +68,7 @@ interface Deal {
   };
   position: {
     name: string;
-  };
+  } | null;
 }
 
 interface Partner {
@@ -90,7 +90,7 @@ interface UserOption {
 interface ReplacementDealInfo {
   dealId: string;
   assetId: string;
-  positionId: string;
+  positionId: string | null;
   assetName: string;
   positionName: string;
 }
@@ -223,7 +223,7 @@ export default function DealsPage() {
       assetId: deal.assetId,
       positionId: deal.positionId,
       assetName: deal.asset.name,
-      positionName: deal.position.name,
+      positionName: deal.position?.name ?? "\u2014",
     });
     setReplacementDialogOpen(true);
   }
@@ -463,7 +463,7 @@ export default function DealsPage() {
                     </Link>
                   </TableCell>
                   <TableCell>{deal.asset.name}</TableCell>
-                  <TableCell>{deal.position.name}</TableCell>
+                  <TableCell>{deal.position?.name ?? "\u2014"}</TableCell>
                   <TableCell><GeoFlag geo={deal.geo} /></TableCell>
                   <TableCell>
                     <StatusBadge status={deal.status} variant="deal" />

@@ -104,7 +104,7 @@ export async function POST(request: Request) {
           brandId: data.brandId,
           assetId: existingDeal.assetId,
           pageId: existingDeal.pageId,
-          positionId: existingDeal.positionId,
+          positionId: existingDeal.positionId ?? undefined,
           geo: data.geo ?? existingDeal.geo,
           affiliateLink: resolvedAffiliateLink,
           affiliateLinkId: data.affiliateLinkId || null,
@@ -170,7 +170,7 @@ export async function POST(request: Request) {
 
     // Notify the old partner's account manager (the one losing the position)
     const oldPartnerAccountManagerUserId = result.endedDeal.partner.accountManagerUserId;
-    const notificationMessage = `Deal on ${result.newDeal.asset.name} — ${result.newDeal.position.name} replaced with ${result.newDeal.brand.name}. Reason: ${data.replacementReason}`;
+    const notificationMessage = `Deal on ${result.newDeal.asset.name} — ${result.newDeal.position?.name ?? "No position"} replaced with ${result.newDeal.brand.name}. Reason: ${data.replacementReason}`;
 
     if (oldPartnerAccountManagerUserId) {
       createNotification({

@@ -170,7 +170,7 @@ export async function PUT(
       createNotificationForAllUsers({
         type: "POSITION_AVAILABLE",
         title: "Position Available",
-        message: `${deal.position.name} on ${deal.asset.name} is now available (deal with ${deal.brand.name} ended)`,
+        message: `${deal.position?.name ?? "No position"} on ${deal.asset.name} is now available (deal with ${deal.brand.name} ended)`,
         entityType: "Deal",
         entityId: deal.dealId,
       }).catch(() => {});

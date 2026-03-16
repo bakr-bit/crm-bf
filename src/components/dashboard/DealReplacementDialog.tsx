@@ -43,7 +43,7 @@ interface AffiliateLinkOption {
 interface DealInfo {
   dealId: string;
   assetId: string;
-  positionId: string;
+  positionId: string | null;
   assetName: string;
   positionName: string;
 }
