@@ -51,6 +51,22 @@ export async function GET(
       );
     }
 
+    // Fetch deals without a position for this asset
+    const unpositionedDeals = await prisma.deal.findMany({
+      where: {
+        assetId,
+        positionId: null,
+        status: { in: OCCUPYING_STATUSES },
+      },
+      include: {
+        partner: true,
+        brand: true,
+        page: true,
+      },
+    });
+
+    const result = { ...asset, unpositionedDeals };
+
     const isAdmin = session?.user?.isAdmin ?? false;
     if (!isAdmin && asset.adminOnly) {
       return NextResponse.json(
@@ -59,7 +75,7 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(asset);
+    return NextResponse.json(result);
   } catch (error) {
     console.error("Asset get error:", error);
     return NextResponse.json(

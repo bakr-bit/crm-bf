@@ -114,6 +114,19 @@ interface Page {
   positions: Position[];
 }
 
+interface UnpositionedDeal {
+  dealId: string;
+  partnerId: string;
+  partner: DealPartner;
+  brandId: string;
+  brand: DealBrand;
+  page: { pageId: string; name: string } | null;
+  geo: string;
+  status: string;
+  startDate: string;
+  endDate: string | null;
+}
+
 interface AssetDetail {
   assetId: string;
   name: string;
@@ -124,6 +137,7 @@ interface AssetDetail {
   createdAt: string;
   updatedAt: string;
   pages: Page[];
+  unpositionedDeals: UnpositionedDeal[];
 }
 
 interface UserOption {
@@ -1115,6 +1129,48 @@ export default function AssetDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Unpositioned Deals */}
+      {asset && asset.unpositionedDeals.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">
+            Deals without position
+            <span className="ml-1.5 text-sm font-normal text-muted-foreground">
+              ({asset.unpositionedDeals.length})
+            </span>
+          </h2>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Brand</TableHead>
+                <TableHead>Partner</TableHead>
+                <TableHead>Page</TableHead>
+                <TableHead>Geo</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Start</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {asset.unpositionedDeals.map((deal) => (
+                <TableRow
+                  key={deal.dealId}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => window.open(`/dashboard/deals/${deal.dealId}`, '_blank')}
+                >
+                  <TableCell className="font-medium">{deal.brand.name}</TableCell>
+                  <TableCell>{deal.partner.name}</TableCell>
+                  <TableCell>{deal.page?.name ?? "—"}</TableCell>
+                  <TableCell><GeoFlag geo={deal.geo} /></TableCell>
+                  <TableCell><StatusBadge status={deal.status} variant="deal" /></TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {new Date(deal.startDate).toLocaleDateString()}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
       {/* Wishlist Section */}
       <div className="space-y-4">
