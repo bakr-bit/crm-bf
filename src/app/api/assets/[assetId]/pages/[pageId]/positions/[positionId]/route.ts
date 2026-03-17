@@ -90,6 +90,14 @@ export async function PUT(
       );
     }
 
+    // Protect N/A positions from being renamed
+    if (existing.name === "N/A" && parsed.data.name && parsed.data.name !== "N/A") {
+      return NextResponse.json(
+        { error: "Cannot rename the N/A position" },
+        { status: 400 }
+      );
+    }
+
     // If name is being changed, check uniqueness within the page
     if (parsed.data.name && parsed.data.name !== existing.name) {
       const duplicate = await prisma.position.findUnique({
@@ -156,6 +164,13 @@ export async function DELETE(
       return NextResponse.json(
         { error: "Position not found" },
         { status: 404 }
+      );
+    }
+
+    if (existing.name === "N/A") {
+      return NextResponse.json(
+        { error: "Cannot archive the N/A position" },
+        { status: 400 }
       );
     }
 
