@@ -154,14 +154,7 @@ model Deal {
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
   geo               String     @default("")
-  baseline          String?
-  cap               String?
-  conversionFlow    String?
-  currency          String?
-  hasLocalLicense   Boolean    @default(false)
-  holdPeriod        String?
-  payoutModel       String?
-  payoutValue       String?
+  dealTerms         String?
   replacementReason String?
   pageId            String
   affiliateLinkRef  AffiliateLink? @relation(fields: [affiliateLinkId], references: [affiliateLinkId])

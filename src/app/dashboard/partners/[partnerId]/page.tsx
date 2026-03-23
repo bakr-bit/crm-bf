@@ -796,73 +796,88 @@ export default function PartnerDetailPage() {
               </Button>
             </div>
 
-            <div className="rounded-lg border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>WhatsApp</TableHead>
-                    <TableHead>Preferred</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Geo</TableHead>
-                    <TableHead className="w-12">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {partner.contacts.length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={8}
-                        className="text-center text-muted-foreground"
-                      >
-                        No contacts yet.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    partner.contacts.map((contact) => (
-                      <TableRow key={contact.contactId}>
-                        <TableCell className="font-medium">
-                          {contact.name}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {contact.email ?? "-"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {contact.phone ?? "-"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {contact.whatsapp ?? "-"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {contact.preferredContact ?? "-"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {contact.role ?? "-"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {contact.geo ?? "-"}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-8"
-                            onClick={() => {
-                              setEditingContact(contact);
-                              setContactDialogOpen(true);
-                            }}
-                          >
-                            <Pencil className="size-4" />
-                          </Button>
-                        </TableCell>
+            {(() => {
+              // Build dynamic contact method columns based on which fields have data
+              const contactMethodFields = [
+                { key: "email", label: "Email" },
+                { key: "phone", label: "Phone" },
+                { key: "telegram", label: "Telegram" },
+                { key: "whatsapp", label: "WhatsApp" },
+              ] as const;
+
+              const visibleMethods = contactMethodFields.filter((field) =>
+                partner.contacts.some((c) => (c as unknown as Record<string, unknown>)[field.key])
+              );
+
+              // Fixed columns: Name + dynamic methods + Preferred + Role + Geo + Actions
+              const totalCols = 1 + visibleMethods.length + 3 + 1;
+
+              return (
+                <div className="rounded-lg border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        {visibleMethods.map((field) => (
+                          <TableHead key={field.key}>{field.label}</TableHead>
+                        ))}
+                        <TableHead>Preferred</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Geo</TableHead>
+                        <TableHead className="w-12">Actions</TableHead>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                    </TableHeader>
+                    <TableBody>
+                      {partner.contacts.length === 0 ? (
+                        <TableRow>
+                          <TableCell
+                            colSpan={totalCols}
+                            className="text-center text-muted-foreground"
+                          >
+                            No contacts yet.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        partner.contacts.map((contact) => (
+                          <TableRow key={contact.contactId}>
+                            <TableCell className="font-medium">
+                              {contact.name}
+                            </TableCell>
+                            {visibleMethods.map((field) => (
+                              <TableCell key={field.key} className="text-muted-foreground">
+                                {(contact as unknown as Record<string, unknown>)[field.key] as string ?? "-"}
+                              </TableCell>
+                            ))}
+                            <TableCell className="text-muted-foreground">
+                              {contact.preferredContact ?? "-"}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {contact.role ?? "-"}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {contact.geo ?? "-"}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-8"
+                                onClick={() => {
+                                  setEditingContact(contact);
+                                  setContactDialogOpen(true);
+                                }}
+                              >
+                                <Pencil className="size-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              );
+            })()}
           </div>
         </TabsContent>
 

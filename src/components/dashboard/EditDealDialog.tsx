@@ -48,14 +48,7 @@ interface DealData {
   startDate: string;
   endDate: string | null;
   notes: string | null;
-  payoutModel: string | null;
-  payoutValue: string | null;
-  currency: string | null;
-  baseline: string | null;
-  conversionFlow: string | null;
-  cap: string | null;
-  holdPeriod: string | null;
-  hasLocalLicense: boolean;
+  dealTerms: string | null;
   partner: { name: string };
   brand: { name: string };
   asset: { name: string };
@@ -83,14 +76,7 @@ export function EditDealDialog({
   const [status, setStatus] = useState("");
   const [endDate, setEndDate] = useState("");
   const [notes, setNotes] = useState("");
-  const [payoutModel, setPayoutModel] = useState("");
-  const [payoutValue, setPayoutValue] = useState("");
-  const [currency, setCurrency] = useState("");
-  const [baseline, setBaseline] = useState("");
-  const [conversionFlow, setConversionFlow] = useState("");
-  const [cap, setCap] = useState("");
-  const [holdPeriod, setHoldPeriod] = useState("");
-  const [hasLocalLicense, setHasLocalLicense] = useState(false);
+  const [dealTerms, setDealTerms] = useState("");
 
   const [saving, setSaving] = useState(false);
 
@@ -135,14 +121,7 @@ export function EditDealDialog({
         setStatus(data.status ?? "");
         setEndDate(data.endDate ? data.endDate.slice(0, 10) : "");
         setNotes(data.notes ?? "");
-        setPayoutModel(data.payoutModel ?? "");
-        setPayoutValue(data.payoutValue ?? "");
-        setCurrency(data.currency ?? "");
-        setBaseline(data.baseline ?? "");
-        setConversionFlow(data.conversionFlow ?? "");
-        setCap(data.cap ?? "");
-        setHoldPeriod(data.holdPeriod ?? "");
-        setHasLocalLicense(data.hasLocalLicense ?? false);
+        setDealTerms(data.dealTerms ?? "");
       } catch {
         toast.error("Failed to load deal details.");
         onOpenChange(false);
@@ -166,14 +145,7 @@ export function EditDealDialog({
       status: status || undefined,
       endDate: endDate || undefined,
       notes: notes.trim() || undefined,
-      payoutModel: payoutModel.trim() || undefined,
-      payoutValue: payoutValue.trim() || undefined,
-      currency: currency.trim() || undefined,
-      baseline: baseline.trim() || undefined,
-      conversionFlow: conversionFlow.trim() || undefined,
-      cap: cap.trim() || undefined,
-      holdPeriod: holdPeriod.trim() || undefined,
-      hasLocalLicense,
+      dealTerms: dealTerms.trim() || undefined,
     };
 
     try {
@@ -313,92 +285,15 @@ export function EditDealDialog({
 
               {/* Deal Terms */}
               <div className="border-t pt-4 mt-2">
-                <h3 className="text-sm font-semibold mb-3">Deal Terms</h3>
-                <div className="grid gap-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label>Payout Model</Label>
-                      <Select value={payoutModel} onValueChange={setPayoutModel}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select model" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="CPA">CPA</SelectItem>
-                          <SelectItem value="RevShare">RevShare</SelectItem>
-                          <SelectItem value="Hybrid">Hybrid</SelectItem>
-                          <SelectItem value="Flat Fee">Flat Fee</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="edit-deal-payout-value">Payout Value</Label>
-                      <Input
-                        id="edit-deal-payout-value"
-                        value={payoutValue}
-                        onChange={(e) => setPayoutValue(e.target.value)}
-                        placeholder="e.g. $50 or 30%"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="edit-deal-currency">Currency</Label>
-                      <Input
-                        id="edit-deal-currency"
-                        value={currency}
-                        onChange={(e) => setCurrency(e.target.value)}
-                        placeholder="e.g. USD, EUR"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="edit-deal-baseline">Baseline</Label>
-                      <Input
-                        id="edit-deal-baseline"
-                        value={baseline}
-                        onChange={(e) => setBaseline(e.target.value)}
-                        placeholder="e.g. $20 min deposit"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="edit-deal-conversion-flow">Conversion Flow</Label>
-                    <Input
-                      id="edit-deal-conversion-flow"
-                      value={conversionFlow}
-                      onChange={(e) => setConversionFlow(e.target.value)}
-                      placeholder="e.g. Registration + FTD"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="edit-deal-cap">Cap</Label>
-                      <Input
-                        id="edit-deal-cap"
-                        value={cap}
-                        onChange={(e) => setCap(e.target.value)}
-                        placeholder="e.g. 100/month"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="edit-deal-hold-period">Hold Period</Label>
-                      <Input
-                        id="edit-deal-hold-period"
-                        value={holdPeriod}
-                        onChange={(e) => setHoldPeriod(e.target.value)}
-                        placeholder="e.g. 30 days"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="edit-deal-local-license"
-                      checked={hasLocalLicense}
-                      onChange={(e) => setHasLocalLicense(e.target.checked)}
-                      className="h-4 w-4 rounded border-gray-300"
-                    />
-                    <Label htmlFor="edit-deal-local-license">Has Local License</Label>
-                  </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-deal-terms">Deal Terms</Label>
+                  <Textarea
+                    id="edit-deal-terms"
+                    value={dealTerms}
+                    onChange={(e) => setDealTerms(e.target.value)}
+                    placeholder="e.g. CPA $50 USD, 30-day hold, 100/month cap, Registration + FTD"
+                    rows={3}
+                  />
                 </div>
               </div>
 

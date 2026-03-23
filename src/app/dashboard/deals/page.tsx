@@ -54,6 +54,7 @@ interface Deal {
   endDate: string | null;
   geo: string;
   notes: string | null;
+  dealTerms: string | null;
   createdAt: string;
   updatedAt: string;
   partner: {
@@ -415,6 +416,7 @@ export default function DealsPage() {
               <TableHead>Asset</TableHead>
               <TableHead>Position</TableHead>
               <TableHead>Geo</TableHead>
+              <TableHead>Deal Terms</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Assignee</TableHead>
               <TableHead>Start Date</TableHead>
@@ -426,7 +428,7 @@ export default function DealsPage() {
             {deals.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={10}
+                  colSpan={11}
                   className="text-center text-muted-foreground"
                 >
                   No deals found.
@@ -465,6 +467,9 @@ export default function DealsPage() {
                   <TableCell>{deal.asset.name}</TableCell>
                   <TableCell>{deal.position?.name ?? "\u2014"}</TableCell>
                   <TableCell><GeoFlag geo={deal.geo} /></TableCell>
+                  <TableCell className="text-muted-foreground max-w-[200px] truncate">
+                    {deal.dealTerms ?? "-"}
+                  </TableCell>
                   <TableCell>
                     <StatusBadge status={deal.status} variant="deal" />
                   </TableCell>

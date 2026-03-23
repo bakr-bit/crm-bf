@@ -81,16 +81,9 @@ export const positionCreateSchema = z.object({
 
 export const positionUpdateSchema = positionCreateSchema.partial();
 
-// Deal financial fields shared shape
-const dealFinancialFields = {
-  payoutModel: z.string().optional(),
-  payoutValue: z.string().optional(),
-  currency: z.string().optional(),
-  baseline: z.string().optional(),
-  conversionFlow: z.string().optional(),
-  cap: z.string().optional(),
-  holdPeriod: z.string().optional(),
-  hasLocalLicense: z.boolean().default(false),
+// Deal terms shared shape
+const dealTermsField = {
+  dealTerms: z.string().optional(),
 };
 
 export const dealCreateSchema = z.object({
@@ -105,7 +98,7 @@ export const dealCreateSchema = z.object({
   startDate: z.string().optional().transform((val) => val ? new Date(val) : new Date()),
   endDate: z.string().optional().transform((val) => val ? new Date(val) : undefined),
   notes: z.string().optional(),
-  ...dealFinancialFields,
+  ...dealTermsField,
 });
 
 export const dealUpdateSchema = z.object({
@@ -116,7 +109,7 @@ export const dealUpdateSchema = z.object({
   status: z.enum(DEAL_STATUSES).optional(),
   notes: z.string().optional(),
   adminOnly: z.boolean().optional(),
-  ...dealFinancialFields,
+  ...dealTermsField,
 });
 
 export const dealReplaceSchema = z.object({
@@ -128,7 +121,7 @@ export const dealReplaceSchema = z.object({
   affiliateLinkId: z.string().optional().nullable(),
   replacementReason: z.string().min(1, "Replacement reason is required"),
   notes: z.string().optional(),
-  ...dealFinancialFields,
+  ...dealTermsField,
 });
 
 // Affiliate link schemas

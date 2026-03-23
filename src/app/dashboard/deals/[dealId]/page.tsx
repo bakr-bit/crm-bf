@@ -66,14 +66,7 @@ interface DealDetail {
   startDate: string;
   endDate: string | null;
   notes: string | null;
-  payoutModel: string | null;
-  payoutValue: string | null;
-  currency: string | null;
-  baseline: string | null;
-  conversionFlow: string | null;
-  cap: string | null;
-  holdPeriod: string | null;
-  hasLocalLicense: boolean;
+  dealTerms: string | null;
   createdAt: string;
   updatedAt: string;
   partner: { partnerId: string; name: string };
@@ -501,59 +494,14 @@ export default function DealDetailPage() {
 
               {/* Deal Terms */}
               <div className="mt-6 border-t pt-4">
-                <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+                <h3 className="mb-2 text-sm font-medium text-muted-foreground">
                   Deal Terms
                 </h3>
-                <dl className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground">
-                      Payout Model
-                    </dt>
-                    <dd className="text-sm">{deal.payoutModel ?? "-"}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground">
-                      Payout Value
-                    </dt>
-                    <dd className="text-sm">{deal.payoutValue ?? "-"}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground">
-                      Currency
-                    </dt>
-                    <dd className="text-sm">{deal.currency ?? "-"}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground">
-                      Baseline
-                    </dt>
-                    <dd className="text-sm">{deal.baseline ?? "-"}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground">
-                      Conversion Flow
-                    </dt>
-                    <dd className="text-sm">{deal.conversionFlow ?? "-"}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground">
-                      Cap
-                    </dt>
-                    <dd className="text-sm">{deal.cap ?? "-"}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground">
-                      Hold Period
-                    </dt>
-                    <dd className="text-sm">{deal.holdPeriod ?? "-"}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground">
-                      Local License
-                    </dt>
-                    <dd className="text-sm">{deal.hasLocalLicense ? "Yes" : "No"}</dd>
-                  </div>
-                </dl>
+                {deal.dealTerms ? (
+                  <p className="whitespace-pre-wrap text-sm">{deal.dealTerms}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No deal terms</p>
+                )}
               </div>
 
               {/* Notes */}

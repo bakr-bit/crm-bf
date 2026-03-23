@@ -92,6 +92,7 @@ interface PositionDeal {
   status: string;
   startDate: string;
   endDate: string | null;
+  dealTerms: string | null;
 }
 
 interface Position {
@@ -125,6 +126,7 @@ interface UnpositionedDeal {
   status: string;
   startDate: string;
   endDate: string | null;
+  dealTerms: string | null;
 }
 
 interface AssetDetail {
@@ -275,6 +277,7 @@ function PositionsTable({
             <TableHead>Name</TableHead>
             <TableHead>Details</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Deal Terms</TableHead>
             <TableHead>Postback</TableHead>
             <TableHead className="w-12">Actions</TableHead>
           </TableRow>
@@ -283,7 +286,7 @@ function PositionsTable({
           {positions.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={6}
+                colSpan={7}
                 className="text-center text-muted-foreground"
               >
                 No positions yet.
@@ -327,6 +330,9 @@ function PositionsTable({
                             Available
                           </span>
                         )}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-sm max-w-[200px] truncate">
+                        {activeDeal?.dealTerms ?? "-"}
                       </TableCell>
                       <TableCell className="text-sm">
                         {activeDeal?.brand.postbacks && activeDeal.brand.postbacks.length > 0 ? (
@@ -1147,6 +1153,7 @@ export default function AssetDetailPage() {
                 <TableHead>Page</TableHead>
                 <TableHead>Geo</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Deal Terms</TableHead>
                 <TableHead>Start</TableHead>
               </TableRow>
             </TableHeader>
@@ -1162,6 +1169,9 @@ export default function AssetDetailPage() {
                   <TableCell>{deal.page?.name ?? "—"}</TableCell>
                   <TableCell><GeoFlag geo={deal.geo} /></TableCell>
                   <TableCell><StatusBadge status={deal.status} variant="deal" /></TableCell>
+                  <TableCell className="text-muted-foreground text-sm max-w-[200px] truncate">
+                    {deal.dealTerms ?? "-"}
+                  </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {new Date(deal.startDate).toLocaleDateString()}
                   </TableCell>
