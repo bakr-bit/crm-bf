@@ -56,24 +56,15 @@ export async function PUT(
       );
     }
 
-    // Use a transaction to rename in two passes to avoid unique constraint violations
-    await prisma.$transaction(async (tx) => {
-      // Pass 1: rename all to temp names
-      for (let i = 0; i < orderedIds.length; i++) {
-        await tx.position.update({
-          where: { positionId: orderedIds[i] },
-          data: { name: `__tmp_${i}`, sortOrder: i },
-        });
-      }
-
-      // Pass 2: set final 1-based names
-      for (let i = 0; i < orderedIds.length; i++) {
-        await tx.position.update({
-          where: { positionId: orderedIds[i] },
-          data: { name: String(i + 1) },
-        });
-      }
-    });
+    // Update sortOrder only — names are not touched
+    await prisma.$transaction(
+      orderedIds.map((id, i) =>
+        prisma.position.update({
+          where: { positionId: id },
+          data: { sortOrder: i },
+        })
+      )
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {

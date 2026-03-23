@@ -130,8 +130,6 @@ model Position {
   sortOrder  Int            @default(0)
   deals      Deal[]
   page       Page           @relation(fields: [pageId], references: [pageId], onDelete: Cascade)
-
-  @@unique([pageId, name])
 }
 
 model Deal {

@@ -98,25 +98,6 @@ export async function PUT(
       );
     }
 
-    // If name is being changed, check uniqueness within the page
-    if (parsed.data.name && parsed.data.name !== existing.name) {
-      const duplicate = await prisma.position.findUnique({
-        where: {
-          pageId_name: {
-            pageId,
-            name: parsed.data.name,
-          },
-        },
-      });
-
-      if (duplicate) {
-        return NextResponse.json(
-          { error: "A position with this name already exists for this page" },
-          { status: 409 }
-        );
-      }
-    }
-
     const position = await prisma.position.update({
       where: { positionId },
       data: parsed.data,

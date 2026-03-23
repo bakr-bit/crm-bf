@@ -91,23 +91,6 @@ export async function POST(
 
     const data = parsed.data;
 
-    // Check unique name per page
-    const existingPosition = await prisma.position.findUnique({
-      where: {
-        pageId_name: {
-          pageId,
-          name: data.name,
-        },
-      },
-    });
-
-    if (existingPosition) {
-      return NextResponse.json(
-        { error: "A position with this name already exists for this page" },
-        { status: 409 }
-      );
-    }
-
     // Auto-assign next sortOrder
     const maxSort = await prisma.position.aggregate({
       where: { pageId },
