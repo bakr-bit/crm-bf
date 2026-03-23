@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { DEAL_STATUSES, DEAL_STATUS_LABELS } from "@/lib/deal-status";
 import { COUNTRIES } from "@/lib/countries";
 import { GeoFlag } from "@/components/dashboard/GeoFlag";
 
@@ -108,8 +109,8 @@ export function DealDialog({
   // Geo
   const [geo, setGeo] = useState("");
 
-  // Status override for N/A positions
-  const [forceInactive, setForceInactive] = useState(false);
+  // Status
+  const [status, setStatus] = useState("Inactive");
 
   // Affiliate links
   const [affiliateLinks, setAffiliateLinks] = useState<AffiliateLink[]>([]);
@@ -183,6 +184,7 @@ export function DealDialog({
       setEndDateNA(false);
       setNotes("");
       setDealTerms("");
+      setStatus("Inactive");
     }
   }, [open, prefill]);
 
@@ -338,7 +340,7 @@ export function DealDialog({
   const isNAPosition = selectedPosition?.name === "N/A";
 
   useEffect(() => {
-    setForceInactive(isNAPosition);
+    if (isNAPosition) setStatus("Inactive");
   }, [isNAPosition]);
 
   // ---------- SOP warning ----------
@@ -387,7 +389,7 @@ export function DealDialog({
       endDate: endDate || undefined,
       notes: notes.trim() || undefined,
       dealTerms: dealTerms.trim() || undefined,
-      forceInactive,
+      status,
     };
 
     try {
@@ -425,15 +427,14 @@ export function DealDialog({
           {/* SOP Warning */}
           {showSopWarning && (
             <div className="rounded-md border border-yellow-300 bg-yellow-50 p-3 text-sm text-yellow-800">
-              This partner has incomplete SOP. Deal will be set to Approved
-              status (pending full implementation).
+              This partner has incomplete SOP (missing contract, license, or banking).
             </div>
           )}
 
           {/* N/A Position Info */}
-          {forceInactive && (
+          {isNAPosition && (
             <div className="rounded-md border border-blue-300 bg-blue-50 p-3 text-sm text-blue-800">
-              N/A position selected — this deal will be created with Inactive status.
+              N/A position selected — deal should typically be Inactive.
             </div>
           )}
 
@@ -629,6 +630,23 @@ export function DealDialog({
                 </SelectContent>
               </Select>
             )}
+          </div>
+
+          {/* Status */}
+          <div className="grid gap-2">
+            <Label>Status</Label>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                {DEAL_STATUSES.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {DEAL_STATUS_LABELS[s]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Dates */}

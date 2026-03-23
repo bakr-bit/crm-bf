@@ -127,7 +127,7 @@ export async function POST(request: Request) {
     }
 
     const data = parsed.data;
-    const forceInactive = body.forceInactive === true;
+    // forceInactive is legacy — status is now user-chosen via data.status
 
     const deal = await prisma.$transaction(async (tx) => {
       // 1. Verify brand belongs to partner
@@ -158,16 +158,16 @@ export async function POST(request: Request) {
         resolvedAffiliateLink = affLink.url;
       }
 
-      // 3. Check position not occupied (skip if no position or N/A)
-      let isNAPosition = false;
+      // 3. Check position not occupied (skip for N/A positions or Inactive deals)
       if (data.positionId) {
         const position = await tx.position.findUnique({
           where: { positionId: data.positionId },
         });
 
-        isNAPosition = position?.name === "N/A";
+        const isNAPosition = position?.name === "N/A";
+        const isOccupyingStatus = OCCUPYING_STATUSES.includes(data.status as typeof OCCUPYING_STATUSES[number]);
 
-        if (!isNAPosition) {
+        if (!isNAPosition && isOccupyingStatus) {
           const existingActiveDeal = await tx.deal.findFirst({
             where: {
               positionId: data.positionId,
@@ -190,17 +190,8 @@ export async function POST(request: Request) {
         throw new Error("PARTNER_NOT_FOUND");
       }
 
-      let dealStatus: "Live" | "Approved" | "Inactive" = "Live";
-
-      // Force Inactive for N/A positions
-      if (isNAPosition || forceInactive) {
-        dealStatus = "Inactive";
-      } else if (
-        partner.isDirect &&
-        !(partner.hasContract && partner.hasLicense && partner.hasBanking)
-      ) {
-        dealStatus = "Approved";
-      }
+      // Use user-chosen status (defaults to Inactive via schema)
+      const dealStatus = data.status;
 
       // 5. Create deal
       const newDeal = await tx.deal.create({

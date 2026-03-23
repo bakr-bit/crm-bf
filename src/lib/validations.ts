@@ -98,6 +98,7 @@ export const dealCreateSchema = z.object({
   startDate: z.string().optional().transform((val) => val ? new Date(val) : new Date()),
   endDate: z.string().optional().transform((val) => val ? new Date(val) : undefined),
   notes: z.string().optional(),
+  status: z.enum(DEAL_STATUSES).default("Inactive"),
   ...dealTermsField,
 });
 

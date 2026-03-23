@@ -138,6 +138,11 @@ export async function PUT(
       updateData.endDate = new Date();
     }
 
+    // If reactivating from Inactive, clear the auto-set endDate
+    if (parsed.data.status && parsed.data.status !== "Inactive" && existing.status === "Inactive") {
+      updateData.endDate = null;
+    }
+
     const deal = await prisma.deal.update({
       where: { dealId },
       data: updateData,
