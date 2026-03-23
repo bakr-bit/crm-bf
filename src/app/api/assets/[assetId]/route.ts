@@ -35,6 +35,9 @@ export async function GET(
                   include: {
                     partner: true,
                     brand: true,
+                    affiliateLinkRef: {
+                      select: { affiliateLinkId: true, label: true, url: true, geo: true },
+                    },
                   },
                 },
               },

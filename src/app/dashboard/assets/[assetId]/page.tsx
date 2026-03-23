@@ -74,7 +74,13 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 interface DealBrand {
   brandId: string;
   name: string;
-  postbacks: string[];
+}
+
+interface DealAffiliateLink {
+  affiliateLinkId: string;
+  label: string;
+  url: string;
+  geo: string;
 }
 
 interface DealPartner {
@@ -93,6 +99,8 @@ interface PositionDeal {
   startDate: string;
   endDate: string | null;
   dealTerms: string | null;
+  affiliateLink: string | null;
+  affiliateLinkRef: DealAffiliateLink | null;
 }
 
 interface Position {
@@ -278,7 +286,7 @@ function PositionsTable({
             <TableHead>Details</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Deal Terms</TableHead>
-            <TableHead>Postback</TableHead>
+            <TableHead>Affiliate Link</TableHead>
             <TableHead className="w-12">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -335,13 +343,13 @@ function PositionsTable({
                         {activeDeal?.dealTerms ?? "-"}
                       </TableCell>
                       <TableCell className="text-sm">
-                        {activeDeal?.brand.postbacks && activeDeal.brand.postbacks.length > 0 ? (
-                          <div className="space-y-0.5">
-                            {activeDeal.brand.postbacks.map((pb, i) => (
-                              <div key={i} className="text-muted-foreground text-xs truncate max-w-[200px]" title={pb}>
-                                {pb}
-                              </div>
-                            ))}
+                        {activeDeal?.affiliateLinkRef ? (
+                          <div className="text-muted-foreground text-xs truncate max-w-[200px]" title={activeDeal.affiliateLinkRef.url}>
+                            {activeDeal.affiliateLinkRef.label}
+                          </div>
+                        ) : activeDeal?.affiliateLink ? (
+                          <div className="text-muted-foreground text-xs truncate max-w-[200px]" title={activeDeal.affiliateLink}>
+                            {activeDeal.affiliateLink}
                           </div>
                         ) : (
                           <span className="text-muted-foreground">-</span>
