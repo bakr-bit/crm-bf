@@ -24,6 +24,7 @@ import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { AssetDialog } from "@/components/dashboard/AssetDialog";
 import { PageDialog } from "@/components/dashboard/PageDialog";
 import { PositionDialog } from "@/components/dashboard/PositionDialog";
+import { DealDialog } from "@/components/dashboard/DealDialog";
 import { EditDealDialog } from "@/components/dashboard/EditDealDialog";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -217,6 +218,7 @@ function PositionsTable({
   handleEndDeal,
   fetchAsset,
   onEditDeal,
+  onCreateDeal,
 }: {
   positions: Position[];
   activePage: Page;
@@ -228,6 +230,7 @@ function PositionsTable({
   handleEndDeal: (dealId: string) => void;
   fetchAsset: () => void;
   onEditDeal: (dealId: string) => void;
+  onCreateDeal: (pageId: string, positionId: string) => void;
 }) {
   const [positions, setPositions] = useState<Position[]>(initialPositions);
 
@@ -418,12 +421,10 @@ function PositionsTable({
                                 </DropdownMenuItem>
                               </>
                             ) : (
-                              <DropdownMenuItem asChild>
-                                <Link
-                                  href={`/dashboard/deals?assetId=${assetId}&pageId=${activePage.pageId}&positionId=${position.positionId}`}
-                                >
-                                  Create Deal
-                                </Link>
+                              <DropdownMenuItem
+                                onClick={() => onCreateDeal(activePage.pageId, position.positionId)}
+                              >
+                                Create Deal
                               </DropdownMenuItem>
                             )}
                           </DropdownMenuContent>
@@ -464,6 +465,12 @@ export default function AssetDetailPage() {
   );
   const [activePageId, setActivePageId] = useState<string>("");
   const [pageSearch, setPageSearch] = useState("");
+  const [createDealDialogOpen, setCreateDealDialogOpen] = useState(false);
+  const [createDealPrefill, setCreateDealPrefill] = useState<{
+    assetId?: string;
+    pageId?: string;
+    positionId?: string;
+  } | undefined>(undefined);
   const [editDealDialogOpen, setEditDealDialogOpen] = useState(false);
   const [editingDealId, setEditingDealId] = useState<string>("");
 
@@ -1132,6 +1139,10 @@ export default function AssetDetailPage() {
                       setEditingDealId(dealId);
                       setEditDealDialogOpen(true);
                     }}
+                    onCreateDeal={(pageId, positionId) => {
+                      setCreateDealPrefill({ assetId, pageId, positionId });
+                      setCreateDealDialogOpen(true);
+                    }}
                   />
                 </>
               ) : (
@@ -1472,6 +1483,13 @@ export default function AssetDetailPage() {
           editingPosition ? toPositionDialogShape(editingPosition) : undefined
         }
         onSuccess={fetchAsset}
+      />
+
+      <DealDialog
+        open={createDealDialogOpen}
+        onOpenChange={setCreateDealDialogOpen}
+        onSuccess={fetchAsset}
+        prefill={createDealPrefill}
       />
 
       <EditDealDialog
