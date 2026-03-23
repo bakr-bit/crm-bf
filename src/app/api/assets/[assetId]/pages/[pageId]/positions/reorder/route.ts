@@ -56,15 +56,27 @@ export async function PUT(
       );
     }
 
-    // Update sortOrder only — names are not touched
-    await prisma.$transaction(
-      orderedIds.map((id, i) =>
-        prisma.position.update({
-          where: { positionId: id },
-          data: { sortOrder: i },
-        })
-      )
-    );
+    // Fetch current names to determine which are numeric
+    const currentPositions = await prisma.position.findMany({
+      where: { positionId: { in: orderedIds } },
+      select: { positionId: true, name: true },
+    });
+    const nameMap = new Map(currentPositions.map((p) => [p.positionId, p.name]));
+
+    // Assign sequential numbers to numeric-named positions only
+    let counter = 1;
+    const updates = orderedIds.map((id, i) => {
+      const currentName = nameMap.get(id) ?? "";
+      const isNumeric = /^\d+$/.test(currentName);
+      const data: { sortOrder: number; name?: string } = { sortOrder: i };
+      if (isNumeric) {
+        data.name = String(counter);
+      }
+      counter++;
+      return prisma.position.update({ where: { positionId: id }, data });
+    });
+
+    await prisma.$transaction(updates);
 
     return NextResponse.json({ success: true });
   } catch (error) {
