@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { DealDialog } from "@/components/dashboard/DealDialog";
+import { EditDealDialog } from "@/components/dashboard/EditDealDialog";
 import { DealReplacementDialog } from "@/components/dashboard/DealReplacementDialog";
 import { Input } from "@/components/ui/input";
 import { MoreHorizontal, Plus, Search, Lock } from "lucide-react";
@@ -128,6 +129,8 @@ export default function DealsPage() {
 
   // Dialog state
   const [dealDialogOpen, setDealDialogOpen] = useState(false);
+  const [editDealDialogOpen, setEditDealDialogOpen] = useState(false);
+  const [editingDealId, setEditingDealId] = useState("");
   const [replacementDialogOpen, setReplacementDialogOpen] = useState(false);
   const [replacementDeal, setReplacementDeal] = useState<ReplacementDealInfo | null>(null);
 
@@ -491,6 +494,14 @@ export default function DealsPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setEditingDealId(deal.dealId);
+                            setEditDealDialogOpen(true);
+                          }}
+                        >
+                          Edit Deal
+                        </DropdownMenuItem>
                         {OCCUPYING_STATUSES.includes(deal.status as DealStatusType) && (
                           <>
                             <DropdownMenuItem
@@ -521,6 +532,13 @@ export default function DealsPage() {
         onOpenChange={setDealDialogOpen}
         onSuccess={handleDialogSuccess}
         prefill={prefill}
+      />
+
+      <EditDealDialog
+        open={editDealDialogOpen}
+        onOpenChange={setEditDealDialogOpen}
+        dealId={editingDealId}
+        onSuccess={handleDialogSuccess}
       />
 
       <DealReplacementDialog
