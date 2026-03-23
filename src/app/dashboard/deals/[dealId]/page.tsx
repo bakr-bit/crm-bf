@@ -389,19 +389,19 @@ export default function DealDetailPage() {
                   </dt>
                   <dd className="text-sm">
                     {deal.affiliateLinkRef ? (
-                      <span className="inline-flex items-center gap-2">
+                      <span className="flex items-center gap-2 min-w-0">
                         <GeoFlag geo={deal.affiliateLinkRef.geo} size="sm" />
-                        <span className="font-medium">{deal.affiliateLinkRef.label}</span>
+                        <span className="font-medium shrink-0">{deal.affiliateLinkRef.label}</span>
                         <a
                           href={deal.affiliateLinkRef.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="truncate font-mono text-xs text-primary hover:underline"
+                          className="truncate font-mono text-xs text-primary hover:underline min-w-0"
                         >
                           {deal.affiliateLinkRef.url}
                         </a>
                         <button
-                          className="text-muted-foreground hover:text-foreground transition-colors"
+                          className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
                           title="Copy URL"
                           onClick={() => {
                             navigator.clipboard.writeText(deal.affiliateLinkRef!.url);
@@ -412,8 +412,8 @@ export default function DealDetailPage() {
                         </button>
                       </span>
                     ) : deal.affiliateLink ? (
-                      <span className="inline-flex items-center gap-2">
-                        <span className="truncate font-mono text-xs">{deal.affiliateLink}</span>
+                      <span className="flex items-center gap-2 min-w-0">
+                        <span className="truncate font-mono text-xs min-w-0">{deal.affiliateLink}</span>
                         <button
                           className="text-muted-foreground hover:text-foreground transition-colors"
                           title="Copy URL"
