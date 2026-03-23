@@ -493,7 +493,7 @@ export default function DealsPage() {
                           <MoreHorizontal className="size-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenuItem
                           onClick={() => {
                             setEditingDealId(deal.dealId);
