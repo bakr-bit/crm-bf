@@ -44,7 +44,7 @@ import {
 } from "@/components/ui/dialog";
 import { GeoFlag } from "@/components/dashboard/GeoFlag";
 import { GeoMultiSelect } from "@/components/dashboard/GeoMultiSelect";
-import { ArrowLeft, Pencil, Plus, MoreHorizontal, Download, Trash2, Search, Star, Lock, GripVertical } from "lucide-react";
+import { ArrowLeft, Pencil, Plus, MoreHorizontal, Download, Trash2, Search, Star, Lock, GripVertical, Copy } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { OCCUPYING_STATUSES } from "@/lib/deal-status";
@@ -347,12 +347,38 @@ function PositionsTable({
                       </TableCell>
                       <TableCell className="text-sm">
                         {activeDeal?.affiliateLinkRef ? (
-                          <div className="text-muted-foreground text-xs truncate max-w-[200px]" title={activeDeal.affiliateLinkRef.url}>
-                            {activeDeal.affiliateLinkRef.label}
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-muted-foreground text-xs truncate" title={activeDeal.affiliateLinkRef.url}>
+                              {activeDeal.affiliateLinkRef.label}
+                            </span>
+                            <button
+                              className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                              title="Copy affiliate link"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigator.clipboard.writeText(activeDeal.affiliateLinkRef!.url);
+                                toast.success("Affiliate link copied.");
+                              }}
+                            >
+                              <Copy className="size-3.5" />
+                            </button>
                           </div>
                         ) : activeDeal?.affiliateLink ? (
-                          <div className="text-muted-foreground text-xs truncate max-w-[200px]" title={activeDeal.affiliateLink}>
-                            {activeDeal.affiliateLink}
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-muted-foreground text-xs truncate" title={activeDeal.affiliateLink}>
+                              {activeDeal.affiliateLink}
+                            </span>
+                            <button
+                              className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                              title="Copy affiliate link"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigator.clipboard.writeText(activeDeal.affiliateLink!);
+                                toast.success("Affiliate link copied.");
+                              }}
+                            >
+                              <Copy className="size-3.5" />
+                            </button>
                           </div>
                         ) : (
                           <span className="text-muted-foreground">-</span>
