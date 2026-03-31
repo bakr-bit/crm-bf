@@ -23,7 +23,14 @@ export async function GET(
       where: { partnerId },
       include: {
         accountManager: { select: { id: true, name: true } },
-        brands: true,
+        brands: {
+          include: {
+            affiliateLinks: {
+              select: { affiliateLinkId: true, label: true, url: true, geo: true },
+              orderBy: { createdAt: "asc" },
+            },
+          },
+        },
         contacts: true,
         deals: {
           include: {

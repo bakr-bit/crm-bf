@@ -21,7 +21,8 @@ import {
 } from "@/components/ui/table";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { DealReplacementDialog } from "@/components/dashboard/DealReplacementDialog";
-import { ArrowLeft, ArrowRight, Lock, Copy } from "lucide-react";
+import { EditDealDialog } from "@/components/dashboard/EditDealDialog";
+import { ArrowLeft, ArrowRight, Lock, Copy, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { GeoFlag } from "@/components/dashboard/GeoFlag";
 import { AdminOnlyBanner } from "@/components/dashboard/AdminOnlyBanner";
@@ -121,6 +122,9 @@ export default function DealDetailPage() {
   const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
   const [auditLoading, setAuditLoading] = useState(false);
   const [ending, setEnding] = useState(false);
+
+  // Edit dialog
+  const [editDealDialogOpen, setEditDealDialogOpen] = useState(false);
 
   // Replacement dialog
   const [replacementDialogOpen, setReplacementDialogOpen] = useState(false);
@@ -307,18 +311,27 @@ export default function DealDetailPage() {
             </Button>
           )}
         </div>
-        {OCCUPYING_STATUSES.includes(deal.status as DealStatusType) && (
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={handleEndDeal}
-              disabled={ending}
-            >
-              {ending ? "Ending..." : "End Deal"}
-            </Button>
-            <Button onClick={handleReplaceDeal}>Replace Deal</Button>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setEditDealDialogOpen(true)}
+          >
+            <Pencil className="mr-2 size-3.5" />
+            Edit Deal
+          </Button>
+          {OCCUPYING_STATUSES.includes(deal.status as DealStatusType) && (
+            <>
+              <Button
+                variant="outline"
+                onClick={handleEndDeal}
+                disabled={ending}
+              >
+                {ending ? "Ending..." : "End Deal"}
+              </Button>
+              <Button onClick={handleReplaceDeal}>Replace Deal</Button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}
@@ -680,6 +693,14 @@ export default function DealDetailPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Edit Dialog */}
+      <EditDealDialog
+        open={editDealDialogOpen}
+        onOpenChange={setEditDealDialogOpen}
+        dealId={dealId}
+        onSuccess={fetchDeal}
+      />
 
       {/* Replacement Dialog */}
       <DealReplacementDialog

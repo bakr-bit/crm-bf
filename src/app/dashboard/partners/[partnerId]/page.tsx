@@ -57,6 +57,13 @@ import { COUNTRY_MAP } from "@/lib/countries";
 
 // ---------- types ----------
 
+interface AffiliateLink {
+  affiliateLinkId: string;
+  label: string;
+  url: string;
+  geo: string;
+}
+
 interface Brand {
   brandId: string;
   partnerId: string;
@@ -69,6 +76,7 @@ interface Brand {
   affiliateSoftware: string | null;
   status: string;
   targetGeos: string[];
+  affiliateLinks: AffiliateLink[];
   createdAt: string;
   updatedAt: string;
 }
@@ -670,6 +678,7 @@ export default function PartnerDetailPage() {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Domain</TableHead>
+                    <TableHead>Affiliate Link</TableHead>
                     <TableHead>Licenses</TableHead>
                     <TableHead>Target Geos</TableHead>
                     <TableHead>Status</TableHead>
@@ -680,7 +689,7 @@ export default function PartnerDetailPage() {
                   {partner.brands.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={6}
+                        colSpan={7}
                         className="text-center text-muted-foreground"
                       >
                         No brands yet.
@@ -700,6 +709,32 @@ export default function PartnerDetailPage() {
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {brand.brandDomain ?? "-"}
+                        </TableCell>
+                        <TableCell>
+                          {brand.affiliateLinks.length === 0 ? (
+                            <span className="text-muted-foreground">-</span>
+                          ) : brand.affiliateLinks.length === 1 ? (
+                            <span className="flex items-center gap-1.5 min-w-0">
+                              <GeoFlag geo={brand.affiliateLinks[0].geo} size="sm" showLabel={false} />
+                              <span className="truncate font-mono text-xs max-w-[180px]">
+                                {brand.affiliateLinks[0].url}
+                              </span>
+                              <button
+                                className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                                title="Copy URL"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(brand.affiliateLinks[0].url);
+                                  toast.success("Copied to clipboard.");
+                                }}
+                              >
+                                <Copy className="size-3.5" />
+                              </button>
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">
+                              {brand.affiliateLinks.length} links
+                            </span>
+                          )}
                         </TableCell>
                         <TableCell>
                           {(brand.licenses?.length ?? 0) === 0 ? (

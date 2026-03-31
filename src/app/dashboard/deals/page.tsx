@@ -37,8 +37,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { DEAL_STATUSES, DEAL_STATUS_LABELS, OCCUPYING_STATUSES } from "@/lib/deal-status";
 import type { DealStatusType } from "@/lib/deal-status";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 
 // ---------- types ----------
 
@@ -114,7 +112,7 @@ export default function DealsPage() {
   const [geoFilter, setGeoFilter] = useState("All");
   const [accountManagerFilter, setAccountManagerFilter] = useState("All");
   const [directFilter, setDirectFilter] = useState("All");
-  const [includeInactive, setIncludeInactive] = useState(false);
+  const includeInactive = statusFilter === "All";
 
   // Debounce search
   useEffect(() => {
@@ -397,16 +395,6 @@ export default function DealsPage() {
           </Select>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="include-inactive"
-            checked={includeInactive}
-            onCheckedChange={(checked) => setIncludeInactive(checked === true)}
-          />
-          <Label htmlFor="include-inactive" className="text-sm cursor-pointer">
-            Include Inactive
-          </Label>
-        </div>
       </div>
 
       {/* Table */}
