@@ -26,6 +26,7 @@ import { PageDialog } from "@/components/dashboard/PageDialog";
 import { PositionDialog } from "@/components/dashboard/PositionDialog";
 import { DealDialog } from "@/components/dashboard/DealDialog";
 import { EditDealDialog } from "@/components/dashboard/EditDealDialog";
+import { DealReplacementDialog } from "@/components/dashboard/DealReplacementDialog";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -234,6 +235,7 @@ function PositionsTable({
   fetchAsset,
   onEditDeal,
   onCreateDeal,
+  onReplaceDeal,
 }: {
   positions: Position[];
   activePage: Page;
@@ -246,6 +248,7 @@ function PositionsTable({
   fetchAsset: () => void;
   onEditDeal: (dealId: string) => void;
   onCreateDeal: (pageId: string, positionId: string) => void;
+  onReplaceDeal: (deal: PositionDeal, position: Position) => void;
 }) {
   const [positions, setPositions] = useState<Position[]>(initialPositions);
 
@@ -453,12 +456,10 @@ function PositionsTable({
                                 >
                                   End Deal
                                 </DropdownMenuItem>
-                                <DropdownMenuItem asChild>
-                                  <Link
-                                    href={`/dashboard/deals?replace=${activeDeal!.dealId}`}
-                                  >
-                                    Replace Deal
-                                  </Link>
+                                <DropdownMenuItem
+                                  onClick={() => onReplaceDeal(activeDeal!, position)}
+                                >
+                                  Replace Deal
                                 </DropdownMenuItem>
                               </>
                             ) : (
@@ -514,6 +515,14 @@ export default function AssetDetailPage() {
   } | undefined>(undefined);
   const [editDealDialogOpen, setEditDealDialogOpen] = useState(false);
   const [editingDealId, setEditingDealId] = useState<string>("");
+  const [replacementDialogOpen, setReplacementDialogOpen] = useState(false);
+  const [replacementDeal, setReplacementDeal] = useState<{
+    dealId: string;
+    assetId: string;
+    positionId: string | null;
+    assetName: string;
+    positionName: string;
+  } | null>(null);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [historyEntries, setHistoryEntries] = useState<PositionHistoryEntry[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -1225,6 +1234,16 @@ export default function AssetDetailPage() {
                       setCreateDealPrefill({ assetId, pageId, positionId });
                       setCreateDealDialogOpen(true);
                     }}
+                    onReplaceDeal={(deal, position) => {
+                      setReplacementDeal({
+                        dealId: deal.dealId,
+                        assetId,
+                        positionId: position.positionId,
+                        assetName: asset!.name,
+                        positionName: position.name,
+                      });
+                      setReplacementDialogOpen(true);
+                    }}
                   />
                 </>
               ) : (
@@ -1578,6 +1597,13 @@ export default function AssetDetailPage() {
         open={editDealDialogOpen}
         onOpenChange={setEditDealDialogOpen}
         dealId={editingDealId}
+        onSuccess={fetchAsset}
+      />
+
+      <DealReplacementDialog
+        open={replacementDialogOpen}
+        onOpenChange={setReplacementDialogOpen}
+        deal={replacementDeal}
         onSuccess={fetchAsset}
       />
 
