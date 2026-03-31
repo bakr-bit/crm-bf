@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions, isValidApiKey } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { logAudit } from "@/lib/audit";
+import { OCCUPYING_STATUSES } from "@/lib/deal-status";
 import { z } from "zod";
 
 const reorderSchema = z.object({
@@ -16,6 +18,8 @@ export async function PUT(
   if (!session && !isValidApiKey(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const userId = session?.user?.id;
 
   try {
     const { assetId, pageId } = await params;
@@ -34,6 +38,7 @@ export async function PUT(
     // Verify page belongs to asset
     const page = await prisma.page.findFirst({
       where: { pageId, assetId },
+      include: { asset: { select: { name: true } } },
     });
 
     if (!page) {
@@ -56,27 +61,88 @@ export async function PUT(
       );
     }
 
-    // Fetch current names to determine which are numeric
+    // Fetch current positions with their names, sortOrder, and active deals
     const currentPositions = await prisma.position.findMany({
       where: { positionId: { in: orderedIds } },
-      select: { positionId: true, name: true },
+      select: {
+        positionId: true,
+        name: true,
+        sortOrder: true,
+        deals: {
+          where: { status: { in: OCCUPYING_STATUSES } },
+          select: {
+            dealId: true,
+            brand: { select: { brandId: true, name: true } },
+          },
+          take: 1,
+        },
+      },
     });
-    const nameMap = new Map(currentPositions.map((p) => [p.positionId, p.name]));
+    const posMap = new Map(currentPositions.map((p) => [p.positionId, p]));
+
+    // Build before-state for audit
+    const beforeState = orderedIds.map((id) => {
+      const p = posMap.get(id);
+      return {
+        positionId: id,
+        name: p?.name ?? "",
+        sortOrder: p?.sortOrder ?? 0,
+        brandName: p?.deals[0]?.brand.name ?? null,
+        brandId: p?.deals[0]?.brand.brandId ?? null,
+      };
+    });
 
     // Assign sequential numbers to numeric-named positions only
     let counter = 1;
+    const afterState: { positionId: string; name: string; sortOrder: number }[] = [];
     const updates = orderedIds.map((id, i) => {
-      const currentName = nameMap.get(id) ?? "";
+      const currentName = posMap.get(id)?.name ?? "";
       const isNumeric = /^\d+$/.test(currentName);
+      const newName = isNumeric ? String(counter) : currentName;
       const data: { sortOrder: number; name?: string } = { sortOrder: i };
       if (isNumeric) {
         data.name = String(counter);
       }
+      afterState.push({ positionId: id, name: newName, sortOrder: i });
       counter++;
       return prisma.position.update({ where: { positionId: id }, data });
     });
 
     await prisma.$transaction(updates);
+
+    // Log audit entries for positions that actually changed
+    if (userId) {
+      const changes = beforeState
+        .map((before) => {
+          const after = afterState.find((a) => a.positionId === before.positionId);
+          if (!after || (before.name === after.name && before.sortOrder === after.sortOrder)) {
+            return null;
+          }
+          return {
+            positionId: before.positionId,
+            fromPosition: before.name,
+            toPosition: after.name,
+            brandName: before.brandName,
+            brandId: before.brandId,
+          };
+        })
+        .filter(Boolean);
+
+      if (changes.length > 0) {
+        await logAudit({
+          userId,
+          entity: "Page",
+          entityId: pageId,
+          action: "REORDER",
+          details: {
+            assetId,
+            assetName: page.asset.name,
+            pageName: page.name,
+            changes,
+          },
+        });
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

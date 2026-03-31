@@ -45,6 +45,7 @@ export async function GET(request: Request) {
           "ENDED_BY_SCAN",
           "CREATE_FROM_SCAN",
           "CREDENTIAL_ACCESS",
+          "REORDER",
         ],
       };
     }

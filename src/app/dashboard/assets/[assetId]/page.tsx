@@ -44,7 +44,7 @@ import {
 } from "@/components/ui/dialog";
 import { GeoFlag } from "@/components/dashboard/GeoFlag";
 import { GeoMultiSelect } from "@/components/dashboard/GeoMultiSelect";
-import { ArrowLeft, Pencil, Plus, MoreHorizontal, Download, Trash2, Search, Star, Lock, GripVertical, Copy } from "lucide-react";
+import { ArrowLeft, Pencil, Plus, MoreHorizontal, Download, Trash2, Search, Star, Lock, GripVertical, Copy, History } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { OCCUPYING_STATUSES } from "@/lib/deal-status";
@@ -169,6 +169,21 @@ interface WishlistItem {
   assignedToUserId: string | null;
   assignedTo: { id: string; name: string } | null;
   createdAt: string;
+}
+
+interface PositionHistoryChange {
+  positionId: string;
+  fromPosition: string;
+  toPosition: string;
+  brandName: string | null;
+  brandId: string | null;
+}
+
+interface PositionHistoryEntry {
+  id: string;
+  timestamp: string;
+  user: { name: string | null; email: string };
+  changes: PositionHistoryChange[];
 }
 
 // ---------- sortable row ----------
@@ -499,6 +514,10 @@ export default function AssetDetailPage() {
   } | undefined>(undefined);
   const [editDealDialogOpen, setEditDealDialogOpen] = useState(false);
   const [editingDealId, setEditingDealId] = useState<string>("");
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [historyEntries, setHistoryEntries] = useState<PositionHistoryEntry[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyBrandFilter, setHistoryBrandFilter] = useState("All");
 
   // Inline geos editing
   const [editingGeos, setEditingGeos] = useState(false);
@@ -558,6 +577,32 @@ export default function AssetDetailPage() {
     fetchWishlist();
     fetch("/api/users").then((r) => r.ok ? r.json() : []).then(setUsers).catch(() => {});
   }, [fetchAsset, fetchWishlist]);
+
+  async function fetchPositionHistory(pageId: string) {
+    setHistoryLoading(true);
+    setHistoryBrandFilter("All");
+    try {
+      const res = await fetch(
+        `/api/audit-log?entity=Page&entityId=${pageId}&action=REORDER&limit=100&businessOnly=false`
+      );
+      if (!res.ok) throw new Error("Failed to fetch history");
+      const json = await res.json();
+      const entries: PositionHistoryEntry[] = json.data.map(
+        (entry: { logId: string; timestamp: string; user: { name: string | null; email: string }; details: { changes?: PositionHistoryChange[] } | null }) => ({
+          id: entry.logId,
+          timestamp: entry.timestamp,
+          user: entry.user,
+          changes: entry.details?.changes ?? [],
+        })
+      );
+      setHistoryEntries(entries);
+    } catch {
+      toast.error("Failed to load position history.");
+      setHistoryEntries([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
 
   // Delete (archive) a position
   async function handleDeletePosition(pageId: string, positionId: string) {
@@ -1122,6 +1167,17 @@ export default function AssetDetailPage() {
                         size="sm"
                         variant="outline"
                         onClick={() => {
+                          fetchPositionHistory(activePage.pageId);
+                          setHistoryDialogOpen(true);
+                        }}
+                      >
+                        <History className="mr-2 size-4" />
+                        View History
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
                           setEditingPage(activePage);
                           setPageDialogOpen(true);
                         }}
@@ -1550,6 +1606,85 @@ export default function AssetDetailPage() {
                 Delete
               </Button>
             ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Position History Dialog */}
+      <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Position History</DialogTitle>
+            <DialogDescription>
+              History of position changes on {activePage?.name ?? "this page"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mb-3">
+            <Select value={historyBrandFilter} onValueChange={setHistoryBrandFilter}>
+              <SelectTrigger className="w-56">
+                <SelectValue placeholder="Filter by brand" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Brands</SelectItem>
+                {(() => {
+                  const brands = new Map<string, string>();
+                  historyEntries.forEach((e) =>
+                    e.changes.forEach((c) => {
+                      if (c.brandId && c.brandName) brands.set(c.brandId, c.brandName);
+                    })
+                  );
+                  return Array.from(brands.entries()).map(([id, name]) => (
+                    <SelectItem key={id} value={id}>{name}</SelectItem>
+                  ));
+                })()}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="overflow-y-auto flex-1 -mx-6 px-6">
+            {historyLoading ? (
+              <div className="h-32 animate-pulse rounded-lg bg-muted" />
+            ) : historyEntries.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                No position changes recorded yet.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {historyEntries.map((entry) => {
+                  const filtered = historyBrandFilter === "All"
+                    ? entry.changes
+                    : entry.changes.filter((c) => c.brandId === historyBrandFilter);
+                  if (filtered.length === 0) return null;
+                  return (
+                    <div key={entry.id} className="border rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium">
+                          {entry.user.name ?? entry.user.email}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(entry.timestamp).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="space-y-1">
+                        {filtered.map((change, i) => (
+                          <div key={i} className="text-sm flex items-center gap-2">
+                            <span className="font-medium min-w-[120px]">
+                              {change.brandName ?? "Empty position"}
+                            </span>
+                            <span className="text-muted-foreground">
+                              Pos {change.fromPosition}
+                            </span>
+                            <span className="text-muted-foreground">→</span>
+                            <span className="font-medium">
+                              Pos {change.toPosition}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
