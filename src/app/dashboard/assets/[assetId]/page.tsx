@@ -1111,7 +1111,8 @@ export default function AssetDetailPage() {
                   }
                   return filtered.map((page) => {
                     const isActive = page.pageId === activePageId;
-                    const occupiedCount = page.positions.filter((p) =>
+                    const numberedPositions = page.positions.filter((p) => p.name !== "N/A");
+                    const occupiedCount = numberedPositions.filter((p) =>
                       p.deals.some((d) =>
                         OCCUPYING_STATUSES.includes(d.status as DealStatusType)
                       )
@@ -1131,7 +1132,7 @@ export default function AssetDetailPage() {
                             {page.name}
                           </span>
                           <span className="ml-2 shrink-0 text-xs text-muted-foreground">
-                            {page.positions.length} pos
+                            {numberedPositions.length} pos
                           </span>
                         </div>
                         {page.path && (
@@ -1139,10 +1140,10 @@ export default function AssetDetailPage() {
                             {page.path}
                           </div>
                         )}
-                        {page.positions.length > 0 && (
+                        {numberedPositions.length > 0 && (
                           <div className="mt-1 flex gap-2 text-xs text-muted-foreground">
                             <span className="text-green-600">
-                              {page.positions.length - occupiedCount} open
+                              {numberedPositions.length - occupiedCount} open
                             </span>
                             {occupiedCount > 0 && (
                               <span>{occupiedCount} filled</span>

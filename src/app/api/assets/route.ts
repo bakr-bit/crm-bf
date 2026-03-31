@@ -51,6 +51,7 @@ export async function GET(request: Request) {
               where: { status: "Active" },
               select: {
                 positionId: true,
+                name: true,
                 deals: {
                   where: { status: { in: OCCUPYING_STATUSES } },
                   select: { dealId: true },
@@ -64,8 +65,9 @@ export async function GET(request: Request) {
 
     const result = assets.map((asset) => {
       const allPositions = asset.pages.flatMap((p) => p.positions);
-      const totalPositionCount = allPositions.length;
-      const activePositionCount = allPositions.filter(
+      const numberedPositions = allPositions.filter((p) => p.name !== "N/A");
+      const totalPositionCount = numberedPositions.length;
+      const activePositionCount = numberedPositions.filter(
         (p) => p.deals.length > 0
       ).length;
 
