@@ -496,6 +496,16 @@ export default function AssetDetailPage() {
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [activeDealCount, setActiveDealCount] = useState<number | null>(null);
+  const [activeDealsForDelete, setActiveDealsForDelete] = useState<{
+    dealId: string;
+    brandName: string;
+    partnerName: string;
+    positionName: string;
+    pageName: string;
+    status: string;
+  }[]>([]);
+  const [selectedDealIds, setSelectedDealIds] = useState<Set<string>>(new Set());
+  const [bulkEndingDeals, setBulkEndingDeals] = useState(false);
 
   // Dialogs
   const [assetDialogOpen, setAssetDialogOpen] = useState(false);
@@ -802,11 +812,40 @@ export default function AssetDetailPage() {
 
   async function handleOpenDeleteDialog() {
     if (!asset) return;
-    // Count active deals across all pages/positions
-    const count = asset.pages.reduce((sum, page) =>
-      sum + page.positions.reduce((pSum, pos) =>
-        pSum + pos.deals.filter((d) => OCCUPYING_STATUSES.includes(d.status as DealStatusType)).length, 0), 0);
-    setActiveDealCount(count);
+    // Collect all active deals across all pages/positions
+    const deals: typeof activeDealsForDelete = [];
+    for (const page of asset.pages) {
+      for (const pos of page.positions) {
+        for (const deal of pos.deals) {
+          if (OCCUPYING_STATUSES.includes(deal.status as DealStatusType)) {
+            deals.push({
+              dealId: deal.dealId,
+              brandName: deal.brand.name,
+              partnerName: deal.partner.name,
+              positionName: pos.name,
+              pageName: page.name,
+              status: deal.status,
+            });
+          }
+        }
+      }
+    }
+    // Also check unpositioned deals
+    for (const deal of asset.unpositionedDeals ?? []) {
+      if (OCCUPYING_STATUSES.includes(deal.status as DealStatusType)) {
+        deals.push({
+          dealId: deal.dealId,
+          brandName: deal.brand.name,
+          partnerName: deal.partner.name,
+          positionName: "Unpositioned",
+          pageName: deal.page?.name ?? "—",
+          status: deal.status,
+        });
+      }
+    }
+    setActiveDealsForDelete(deals);
+    setActiveDealCount(deals.length);
+    setSelectedDealIds(new Set());
     setDeleteDialogOpen(true);
   }
 
@@ -823,6 +862,37 @@ export default function AssetDetailPage() {
       const message = err instanceof Error ? err.message : "An unexpected error occurred.";
       toast.error(message);
       setDeleteDialogOpen(false);
+    }
+  }
+
+  async function handleBulkEndDeals(dealIds: string[]) {
+    if (dealIds.length === 0) return;
+    setBulkEndingDeals(true);
+    try {
+      const res = await fetch(`/api/assets/${assetId}/bulk-end-deals`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dealIds }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Failed to end deals.");
+      }
+      const result = await res.json();
+      toast.success(`${result.endedCount} deal${result.endedCount === 1 ? "" : "s"} ended.`);
+      // Remove ended deals from the list
+      const endedSet = new Set(dealIds);
+      const remaining = activeDealsForDelete.filter((d) => !endedSet.has(d.dealId));
+      setActiveDealsForDelete(remaining);
+      setActiveDealCount(remaining.length);
+      setSelectedDealIds(new Set());
+      // Refresh asset data
+      await fetchAsset();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "An unexpected error occurred.";
+      toast.error(message);
+    } finally {
+      setBulkEndingDeals(false);
     }
   }
 
@@ -1605,18 +1675,28 @@ export default function AssetDetailPage() {
         open={replacementDialogOpen}
         onOpenChange={setReplacementDialogOpen}
         deal={replacementDeal}
-        onSuccess={fetchAsset}
+        onSuccess={async () => {
+          await fetchAsset();
+          // If the delete dialog is open, remove the replaced deal from the list
+          if (deleteDialogOpen && replacementDeal) {
+            setActiveDealsForDelete((prev) => {
+              const remaining = prev.filter((d) => d.dealId !== replacementDeal.dealId);
+              setActiveDealCount(remaining.length);
+              return remaining;
+            });
+          }
+        }}
       />
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Delete Asset</DialogTitle>
             {activeDealCount && activeDealCount > 0 ? (
               <DialogDescription>
-                <strong>{asset.name}</strong> cannot be deleted because it has{" "}
+                <strong>{asset.name}</strong> has{" "}
                 <strong>{activeDealCount} active {activeDealCount === 1 ? "deal" : "deals"}</strong>.
-                End or replace all active deals on this asset before deleting it.
+                What do you want to do with them?
               </DialogDescription>
             ) : (
               <DialogDescription>
@@ -1624,13 +1704,118 @@ export default function AssetDetailPage() {
               </DialogDescription>
             )}
           </DialogHeader>
+
+          {activeDealCount && activeDealCount > 0 ? (
+            <div className="flex flex-col gap-3 overflow-hidden">
+              {/* Select all / actions bar */}
+              <div className="flex items-center justify-between gap-2">
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <Checkbox
+                    checked={selectedDealIds.size === activeDealsForDelete.length && activeDealsForDelete.length > 0}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedDealIds(new Set(activeDealsForDelete.map((d) => d.dealId)));
+                      } else {
+                        setSelectedDealIds(new Set());
+                      }
+                    }}
+                  />
+                  Select all ({activeDealsForDelete.length})
+                </label>
+                <div className="flex gap-2">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    disabled={selectedDealIds.size === 0 || bulkEndingDeals}
+                    onClick={() => handleBulkEndDeals(Array.from(selectedDealIds))}
+                  >
+                    {bulkEndingDeals ? "Ending..." : `End Selected (${selectedDealIds.size})`}
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    disabled={bulkEndingDeals}
+                    onClick={() => handleBulkEndDeals(activeDealsForDelete.map((d) => d.dealId))}
+                  >
+                    {bulkEndingDeals ? "Ending..." : "End All"}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Deal list */}
+              <div className="overflow-y-auto max-h-[40vh] border rounded-md">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-10"></TableHead>
+                      <TableHead>Brand</TableHead>
+                      <TableHead>Partner</TableHead>
+                      <TableHead>Page</TableHead>
+                      <TableHead>Position</TableHead>
+                      <TableHead className="w-20">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {activeDealsForDelete.map((deal) => (
+                      <TableRow key={deal.dealId}>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedDealIds.has(deal.dealId)}
+                            onCheckedChange={(checked) => {
+                              const next = new Set(selectedDealIds);
+                              if (checked) {
+                                next.add(deal.dealId);
+                              } else {
+                                next.delete(deal.dealId);
+                              }
+                              setSelectedDealIds(next);
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell className="font-medium">{deal.brandName}</TableCell>
+                        <TableCell>{deal.partnerName}</TableCell>
+                        <TableCell>{deal.pageName}</TableCell>
+                        <TableCell>{deal.positionName}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              // Find the full deal info for replacement
+                              const fullDeal = asset.pages
+                                .flatMap((p) => p.positions.flatMap((pos) =>
+                                  pos.deals.filter((d) => d.dealId === deal.dealId).map((d) => ({
+                                    dealId: d.dealId,
+                                    assetId: asset.assetId,
+                                    positionId: pos.positionId,
+                                    assetName: asset.name,
+                                    positionName: pos.name,
+                                  }))
+                                ))[0];
+                              if (fullDeal) {
+                                setReplacementDeal(fullDeal);
+                                setReplacementDialogOpen(true);
+                              }
+                            }}
+                          >
+                            Replace
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          ) : null}
+
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              {activeDealCount && activeDealCount > 0 ? "Close" : "Cancel"}
+              Cancel
             </Button>
             {!activeDealCount || activeDealCount === 0 ? (
               <Button variant="destructive" onClick={handleDeleteAsset}>
-                Delete
+                Delete Asset
               </Button>
             ) : null}
           </div>
