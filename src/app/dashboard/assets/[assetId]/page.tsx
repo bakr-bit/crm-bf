@@ -230,6 +230,7 @@ function PositionsTable({
   getActiveDeal,
   setEditingPosition,
   setPositionDialogOpen,
+  setNaConversionMode,
   handleDeletePosition,
   handleEndDeal,
   fetchAsset,
@@ -243,6 +244,7 @@ function PositionsTable({
   getActiveDeal: (position: Position) => PositionDeal | undefined;
   setEditingPosition: (p: Position | undefined) => void;
   setPositionDialogOpen: (open: boolean) => void;
+  setNaConversionMode: (v: boolean) => void;
   handleDeletePosition: (pageId: string, positionId: string) => void;
   handleEndDeal: (dealId: string) => void;
   fetchAsset: () => void;
@@ -417,10 +419,11 @@ function PositionsTable({
                             <DropdownMenuItem
                               onClick={() => {
                                 setEditingPosition(position);
+                                setNaConversionMode(position.name === "N/A");
                                 setPositionDialogOpen(true);
                               }}
                             >
-                              Edit Position
+                              {position.name === "N/A" ? "Convert to Position" : "Edit Position"}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               variant="destructive"
@@ -515,6 +518,7 @@ export default function AssetDetailPage() {
   const [editingPosition, setEditingPosition] = useState<Position | undefined>(
     undefined
   );
+  const [naConversionMode, setNaConversionMode] = useState(false);
   const [activePageId, setActivePageId] = useState<string>("");
   const [pageSearch, setPageSearch] = useState("");
   const [createDealDialogOpen, setCreateDealDialogOpen] = useState(false);
@@ -1277,6 +1281,7 @@ export default function AssetDetailPage() {
                         size="sm"
                         onClick={() => {
                           setEditingPosition(undefined);
+                          setNaConversionMode(false);
                           setPositionDialogOpen(true);
                         }}
                       >
@@ -1294,6 +1299,7 @@ export default function AssetDetailPage() {
                     getActiveDeal={getActiveDeal}
                     setEditingPosition={setEditingPosition}
                     setPositionDialogOpen={setPositionDialogOpen}
+                    setNaConversionMode={setNaConversionMode}
                     handleDeletePosition={handleDeletePosition}
                     handleEndDeal={handleEndDeal}
                     fetchAsset={fetchAsset}
@@ -1648,12 +1654,16 @@ export default function AssetDetailPage() {
 
       <PositionDialog
         open={positionDialogOpen}
-        onOpenChange={setPositionDialogOpen}
+        onOpenChange={(open) => {
+          setPositionDialogOpen(open);
+          if (!open) setNaConversionMode(false);
+        }}
         assetId={assetId}
         pageId={activePageId}
         position={
           editingPosition ? toPositionDialogShape(editingPosition) : undefined
         }
+        isNAConversion={naConversionMode}
         onSuccess={fetchAsset}
       />
 

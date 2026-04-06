@@ -81,6 +81,12 @@ export const positionCreateSchema = z.object({
 
 export const positionUpdateSchema = positionCreateSchema.partial();
 
+export const positionConvertSchema = z.object({
+  name: z.string().min(1, "Position name is required")
+    .refine((val) => val !== "N/A", "Cannot convert to N/A"),
+  details: z.string().optional(),
+});
+
 // Deal terms shared shape
 const dealTermsField = {
   dealTerms: z.string().optional(),

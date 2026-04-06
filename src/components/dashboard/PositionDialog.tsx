@@ -25,6 +25,7 @@ interface PositionDialogProps {
   assetId: string;
   pageId: string;
   position?: Position;
+  isNAConversion?: boolean;
   onSuccess: () => void;
 }
 
@@ -34,27 +35,36 @@ export function PositionDialog({
   assetId,
   pageId,
   position,
+  isNAConversion,
   onSuccess,
 }: PositionDialogProps) {
-  const isEdit = Boolean(position);
+  const isEdit = Boolean(position) && !isNAConversion;
 
   const [name, setName] = useState("");
   const [details, setDetails] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (position) {
+    if (isNAConversion) {
+      setName("");
+      setDetails(position?.details ?? "");
+    } else if (position) {
       setName(position.name ?? "");
       setDetails(position.details ?? "");
     } else {
       setName("");
       setDetails("");
     }
-  }, [position, open]);
+  }, [position, isNAConversion, open]);
 
   async function handleSubmit() {
     if (!name.trim()) {
       toast.error("Position name is required.");
+      return;
+    }
+
+    if (isNAConversion && name.trim() === "N/A") {
+      toast.error("Cannot convert to N/A.");
       return;
     }
 
@@ -66,10 +76,19 @@ export function PositionDialog({
     };
 
     try {
-      const url = isEdit
-        ? `/api/assets/${assetId}/pages/${pageId}/positions/${position!.id}`
-        : `/api/assets/${assetId}/pages/${pageId}/positions`;
-      const method = isEdit ? "PUT" : "POST";
+      let url: string;
+      let method: string;
+
+      if (isNAConversion && position) {
+        url = `/api/assets/${assetId}/pages/${pageId}/positions/${position.id}/convert`;
+        method = "POST";
+      } else if (isEdit) {
+        url = `/api/assets/${assetId}/pages/${pageId}/positions/${position!.id}`;
+        method = "PUT";
+      } else {
+        url = `/api/assets/${assetId}/pages/${pageId}/positions`;
+        method = "POST";
+      }
 
       const res = await fetch(url, {
         method,
@@ -82,7 +101,13 @@ export function PositionDialog({
         throw new Error(data?.error ?? "Failed to save position.");
       }
 
-      toast.success(isEdit ? "Position updated." : "Position created.");
+      toast.success(
+        isNAConversion
+          ? "Position converted."
+          : isEdit
+            ? "Position updated."
+            : "Position created."
+      );
       onOpenChange(false);
       onSuccess();
     } catch (err: unknown) {
@@ -99,7 +124,7 @@ export function PositionDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {isEdit ? "Edit Position" : "Create Position"}
+            {isNAConversion ? "Convert N/A Position" : isEdit ? "Edit Position" : "Create Position"}
           </DialogTitle>
         </DialogHeader>
 
@@ -137,7 +162,7 @@ export function PositionDialog({
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={loading}>
-            {loading ? "Saving..." : isEdit ? "Update" : "Create"}
+            {loading ? "Saving..." : isNAConversion ? "Convert" : isEdit ? "Update" : "Create"}
           </Button>
         </div>
       </DialogContent>

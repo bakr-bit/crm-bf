@@ -93,7 +93,7 @@ export async function PUT(
     // Protect N/A positions from being renamed
     if (existing.name === "N/A" && parsed.data.name && parsed.data.name !== "N/A") {
       return NextResponse.json(
-        { error: "Cannot rename the N/A position" },
+        { error: "Cannot rename the N/A position. Use Convert to Position instead." },
         { status: 400 }
       );
     }
