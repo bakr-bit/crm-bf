@@ -936,6 +936,30 @@ export default function AssetDetailPage() {
     }
   }
 
+  function handleCopyList() {
+    if (!asset) return;
+
+    const lines: string[] = [];
+    for (const page of asset.pages) {
+      lines.push(`--- ${page.name} ---`);
+      for (const position of page.positions) {
+        const activeDeal = getActiveDeal(position);
+        const brand = activeDeal?.brand.name ?? "(empty)";
+        const link =
+          activeDeal?.affiliateLinkRef?.url ??
+          activeDeal?.affiliateLink ??
+          "";
+        lines.push(
+          `${position.name} | ${brand}${link ? ` | ${link}` : ""}`
+        );
+      }
+      lines.push("");
+    }
+
+    navigator.clipboard.writeText(lines.join("\n").trim());
+    toast.success("Position list copied to clipboard.");
+  }
+
   function handleExportCsv() {
     if (!asset) return;
 
@@ -1050,6 +1074,15 @@ export default function AssetDetailPage() {
             )}
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleCopyList}
+              disabled={asset.pages.flatMap((p) => p.positions).length === 0}
+            >
+              <Copy className="mr-2 size-4" />
+              Copy List
+            </Button>
             <Button
               size="sm"
               variant="outline"

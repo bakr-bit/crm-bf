@@ -4,6 +4,7 @@ import { authOptions, isValidApiKey } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { positionCreateSchema } from "@/lib/validations";
+import { OCCUPYING_STATUSES } from "@/lib/deal-status";
 
 export async function GET(
   request: Request,
@@ -43,10 +44,20 @@ export async function GET(
         _count: {
           select: { deals: true },
         },
+        deals: {
+          where: { status: { in: OCCUPYING_STATUSES } },
+          select: { dealId: true },
+          take: 1,
+        },
       },
     });
 
-    return NextResponse.json(positions);
+    const result = positions.map(({ deals, ...rest }) => ({
+      ...rest,
+      activeDealId: deals[0]?.dealId ?? null,
+    }));
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error("Positions list error:", error);
     return NextResponse.json(

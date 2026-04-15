@@ -31,6 +31,7 @@ import { BrandDialog } from "@/components/dashboard/BrandDialog";
 import { BrandDetailDialog } from "@/components/dashboard/BrandDetailDialog";
 import { ContactDialog } from "@/components/dashboard/ContactDialog";
 import { CredentialDialog } from "@/components/dashboard/CredentialDialog";
+import { DealDialog } from "@/components/dashboard/DealDialog";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft,
@@ -195,6 +196,9 @@ export default function PartnerDetailPage() {
   const [editingCredential, setEditingCredential] = useState<Credential | undefined>(
     undefined
   );
+
+  // Deal dialog state
+  const [dealDialogOpen, setDealDialogOpen] = useState(false);
 
   // Password reveal state
   const [revealedPasswords, setRevealedPasswords] = useState<Record<string, string>>({});
@@ -1071,7 +1075,13 @@ export default function PartnerDetailPage() {
         {/* ---- Deals Tab ---- */}
         <TabsContent value="deals">
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Deals</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Deals</h2>
+              <Button size="sm" onClick={() => setDealDialogOpen(true)}>
+                <Plus className="mr-2 size-4" />
+                Create Deal
+              </Button>
+            </div>
 
             <div className="rounded-lg border">
               <Table>
@@ -1241,6 +1251,13 @@ export default function PartnerDetailPage() {
             : undefined
         }
         onSuccess={fetchPartner}
+      />
+
+      <DealDialog
+        open={dealDialogOpen}
+        onOpenChange={setDealDialogOpen}
+        onSuccess={fetchPartner}
+        prefill={{ partnerId }}
       />
     </div>
   );
