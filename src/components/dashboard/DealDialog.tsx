@@ -22,6 +22,8 @@ import { toast } from "sonner";
 import { DEAL_STATUSES, DEAL_STATUS_LABELS } from "@/lib/deal-status";
 import { COUNTRIES } from "@/lib/countries";
 import { GeoFlag } from "@/components/dashboard/GeoFlag";
+import { PositionDialog } from "@/components/dashboard/PositionDialog";
+import { Plus } from "lucide-react";
 
 // ---------- types ----------
 
@@ -117,6 +119,16 @@ export function DealDialog({
   const [affiliateLinkId, setAffiliateLinkId] = useState("");
   const [loadingAffiliateLinks, setLoadingAffiliateLinks] = useState(false);
 
+  // Position dialog (create inline)
+  const [positionDialogOpen, setPositionDialogOpen] = useState(false);
+
+  // Inline affiliate link creation
+  const [showAddAffiliateLink, setShowAddAffiliateLink] = useState(false);
+  const [newLinkLabel, setNewLinkLabel] = useState("");
+  const [newLinkUrl, setNewLinkUrl] = useState("");
+  const [newLinkGeo, setNewLinkGeo] = useState("");
+  const [savingLink, setSavingLink] = useState(false);
+
   // Other fields
   const [affiliateLink, setAffiliateLink] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -185,6 +197,10 @@ export function DealDialog({
       setNotes("");
       setDealTerms("");
       setStatus("Inactive");
+      setShowAddAffiliateLink(false);
+      setNewLinkLabel("");
+      setNewLinkUrl("");
+      setNewLinkGeo("");
     }
   }, [open, prefill]);
 
@@ -346,6 +362,71 @@ export function DealDialog({
   // ---------- SOP warning ----------
   const selectedPartner = partners.find((p) => p.partnerId === partnerId);
   const showSopWarning = selectedPartner ? isSopIncomplete(selectedPartner) : false;
+
+  // ---------- position created callback ----------
+  async function handlePositionCreated() {
+    if (!assetId || !pageId) return;
+    try {
+      const res = await fetch(`/api/assets/${assetId}/pages/${pageId}/positions`);
+      if (!res.ok) throw new Error("Failed to fetch positions");
+      const json: Position[] = await res.json();
+      setPositions(json);
+      // Auto-select the last position (newly created)
+      if (json.length > 0) {
+        setPositionId(json[json.length - 1].positionId);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  // ---------- inline affiliate link creation ----------
+  async function handleSaveAffiliateLink() {
+    if (!brandId) return;
+    if (!newLinkLabel.trim()) {
+      toast.error("Label is required.");
+      return;
+    }
+    if (!newLinkUrl.trim()) {
+      toast.error("URL is required.");
+      return;
+    }
+    if (!newLinkGeo) {
+      toast.error("Geo is required.");
+      return;
+    }
+
+    setSavingLink(true);
+    try {
+      const res = await fetch(`/api/brands/${brandId}/affiliate-links`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          label: newLinkLabel.trim(),
+          url: newLinkUrl.trim(),
+          geo: newLinkGeo,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Failed to create affiliate link.");
+      }
+      const created: AffiliateLink = await res.json();
+      setAffiliateLinks((prev) => [...prev, created]);
+      setAffiliateLinkId(created.affiliateLinkId);
+      setAffiliateLink(created.url);
+      setShowAddAffiliateLink(false);
+      setNewLinkLabel("");
+      setNewLinkUrl("");
+      setNewLinkGeo("");
+      toast.success("Affiliate link created.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to create affiliate link.";
+      toast.error(message);
+    } finally {
+      setSavingLink(false);
+    }
+  }
 
   // ---------- submit ----------
   async function handleSubmit() {
@@ -557,42 +638,56 @@ export function DealDialog({
           {/* Position */}
           <div className="grid gap-2">
             <Label>Position</Label>
-            <Select
-              value={positionId}
-              onValueChange={setPositionId}
-              disabled={!pageId || loadingPositions || (isAssetPrefilled && Boolean(prefill?.positionId))}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue
-                  placeholder={
-                    !pageId
-                      ? "Select a page first"
-                      : loadingPositions
-                        ? "Loading positions..."
-                        : "Select a position"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {positions.map((p) => (
-                  <SelectItem key={p.positionId} value={p.positionId}>
-                    <span className="flex items-center gap-2">
-                      <span
-                        className={`inline-block h-2 w-2 rounded-full ${
-                          p.activeDealId ? "bg-red-500" : "bg-green-500"
-                        }`}
-                      />
-                      {p.name}
-                      {p.activeDealId && (
-                        <span className="text-xs text-muted-foreground">
-                          (occupied)
-                        </span>
-                      )}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select
+                value={positionId}
+                onValueChange={setPositionId}
+                disabled={!pageId || loadingPositions || (isAssetPrefilled && Boolean(prefill?.positionId))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue
+                    placeholder={
+                      !pageId
+                        ? "Select a page first"
+                        : loadingPositions
+                          ? "Loading positions..."
+                          : "Select a position"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {positions.map((p) => (
+                    <SelectItem key={p.positionId} value={p.positionId}>
+                      <span className="flex items-center gap-2">
+                        <span
+                          className={`inline-block h-2 w-2 rounded-full ${
+                            p.activeDealId ? "bg-red-500" : "bg-green-500"
+                          }`}
+                        />
+                        {p.name}
+                        {p.activeDealId && (
+                          <span className="text-xs text-muted-foreground">
+                            (occupied)
+                          </span>
+                        )}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {pageId && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                  onClick={() => setPositionDialogOpen(true)}
+                  title="Create new position"
+                >
+                  <Plus className="size-4" />
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Affiliate Link */}
@@ -602,33 +697,112 @@ export function DealDialog({
               <p className="text-sm text-muted-foreground">Select a brand first</p>
             ) : loadingAffiliateLinks ? (
               <p className="text-sm text-muted-foreground">Loading affiliate links...</p>
-            ) : affiliateLinks.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No affiliate links for this brand. Add them in the brand detail dialog.</p>
             ) : (
-              <Select value={affiliateLinkId} onValueChange={(val) => {
-                setAffiliateLinkId(val);
-                if (val && val !== "__none") {
-                  const link = affiliateLinks.find((l) => l.affiliateLinkId === val);
-                  if (link) setAffiliateLink(link.url);
-                } else {
-                  setAffiliateLink("");
-                }
-              }}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select an affiliate link" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none">No affiliate link</SelectItem>
-                  {affiliateLinks.map((link) => (
-                    <SelectItem key={link.affiliateLinkId} value={link.affiliateLinkId}>
-                      <span className="inline-flex items-center gap-2">
-                        <GeoFlag geo={link.geo} size="sm" showLabel={false} />
-                        {link.label}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <>
+                {affiliateLinks.length > 0 && (
+                  <Select value={affiliateLinkId} onValueChange={(val) => {
+                    setAffiliateLinkId(val);
+                    if (val && val !== "__none") {
+                      const link = affiliateLinks.find((l) => l.affiliateLinkId === val);
+                      if (link) setAffiliateLink(link.url);
+                    } else {
+                      setAffiliateLink("");
+                    }
+                  }}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select an affiliate link" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none">No affiliate link</SelectItem>
+                      {affiliateLinks.map((link) => (
+                        <SelectItem key={link.affiliateLinkId} value={link.affiliateLinkId}>
+                          <span className="inline-flex items-center gap-2">
+                            <GeoFlag geo={link.geo} size="sm" showLabel={false} />
+                            {link.label}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                {affiliateLinks.length === 0 && !showAddAffiliateLink && (
+                  <p className="text-sm text-muted-foreground">No affiliate links for this brand.</p>
+                )}
+                {!showAddAffiliateLink ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAddAffiliateLink(true)}
+                  >
+                    <Plus className="mr-2 size-3" />
+                    Add Affiliate Link
+                  </Button>
+                ) : (
+                  <div className="rounded-md border p-3 space-y-3">
+                    <div className="grid gap-1.5">
+                      <Label className="text-xs">Label *</Label>
+                      <Input
+                        value={newLinkLabel}
+                        onChange={(e) => setNewLinkLabel(e.target.value)}
+                        placeholder="e.g. Main IT Link"
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div className="grid gap-1.5">
+                      <Label className="text-xs">URL *</Label>
+                      <Input
+                        value={newLinkUrl}
+                        onChange={(e) => setNewLinkUrl(e.target.value)}
+                        placeholder="https://..."
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div className="grid gap-1.5">
+                      <Label className="text-xs">Geo *</Label>
+                      <Select value={newLinkGeo} onValueChange={setNewLinkGeo}>
+                        <SelectTrigger className="h-8 text-sm">
+                          <SelectValue placeholder="Select geo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {COUNTRIES.map((c) => (
+                            <SelectItem key={c.code} value={c.code}>
+                              <span className="inline-flex items-center gap-2">
+                                <span className={`fflag fflag-${c.code} ff-sm`} />
+                                {c.name}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={handleSaveAffiliateLink}
+                        disabled={savingLink}
+                      >
+                        {savingLink ? "Saving..." : "Save"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setShowAddAffiliateLink(false);
+                          setNewLinkLabel("");
+                          setNewLinkUrl("");
+                          setNewLinkGeo("");
+                        }}
+                        disabled={savingLink}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
@@ -727,6 +901,16 @@ export function DealDialog({
           </Button>
         </div>
       </DialogContent>
+
+      {assetId && pageId && (
+        <PositionDialog
+          open={positionDialogOpen}
+          onOpenChange={setPositionDialogOpen}
+          assetId={assetId}
+          pageId={pageId}
+          onSuccess={handlePositionCreated}
+        />
+      )}
     </Dialog>
   );
 }
