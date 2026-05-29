@@ -202,7 +202,19 @@ export function DealDialog({
       setNewLinkUrl("");
       setNewLinkGeo("");
     }
-  }, [open, prefill]);
+    // Depend on the prefill primitive *values*, not the object identity. Call
+    // sites like the partner page pass an inline `{ partnerId }` literal that is
+    // recreated on every render; depending on the object would re-run this reset
+    // on each parent render, wiping the fetched brands (and selection) without
+    // re-triggering the brand fetch, leaving the Brand dropdown empty.
+  }, [
+    open,
+    prefill?.partnerId,
+    prefill?.brandId,
+    prefill?.assetId,
+    prefill?.pageId,
+    prefill?.positionId,
+  ]);
 
   // ---------- fetch brands when partner changes ----------
   useEffect(() => {
