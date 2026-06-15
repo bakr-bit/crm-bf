@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions, isValidApiKey } from "@/lib/auth";
+import { authOptions, isValidApiKey, resolveActorUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { dealCreateSchema } from "@/lib/validations";
@@ -115,7 +115,13 @@ export async function POST(request: Request) {
   }
 
   try {
-    const userId = session!.user.id;
+    const userId = await resolveActorUserId(request, session);
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Actor required: provide a session or an X-Actor-Email header matching a CRM user" },
+        { status: 400 }
+      );
+    }
     const body = await request.json();
     const parsed = dealCreateSchema.safeParse(body);
 

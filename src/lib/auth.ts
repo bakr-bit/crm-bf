@@ -8,6 +8,29 @@ export function isValidApiKey(request: Request): boolean {
   return !!apiKey && apiKey === process.env.SERVICE_API_KEY;
 }
 
+/**
+ * Resolve the acting user id for audit attribution.
+ * - Interactive (next-auth) callers: the logged-in user.
+ * - Service-key callers (e.g. the Hermes CRM bot): the user named by the
+ *   `X-Actor-Email` header, so writes are attributed to the real person who
+ *   issued the request rather than 500-ing on a missing session.
+ * Returns null when no actor can be resolved (caller should reject the write).
+ */
+export async function resolveActorUserId(
+  request: Request,
+  session: { user?: { id?: string } } | null
+): Promise<string | null> {
+  if (session?.user?.id) return session.user.id;
+  if (isValidApiKey(request)) {
+    const email = request.headers.get("X-Actor-Email");
+    if (email) {
+      const user = await prisma.user.findUnique({ where: { email } });
+      if (user) return user.id;
+    }
+  }
+  return null;
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
