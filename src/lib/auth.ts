@@ -4,8 +4,9 @@ import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
 
 export function isValidApiKey(request: Request): boolean {
-  const apiKey = request.headers.get("X-API-Key");
-  return !!apiKey && apiKey === process.env.SERVICE_API_KEY;
+  const apiKey = request.headers.get("X-API-Key")?.trim();
+  const expected = process.env.SERVICE_API_KEY?.trim();
+  return !!apiKey && !!expected && apiKey === expected;
 }
 
 /**
