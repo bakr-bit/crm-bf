@@ -8,8 +8,22 @@ async function resetAdmin(token?: string, email?: string, password?: string) {
   }
 
   const expected = process.env.PREVIEW_ADMIN_RESET_TOKEN?.trim();
-  if (!token?.trim() || !expected || token.trim() !== expected) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const provided = token?.trim();
+
+  if (!provided || !expected || provided !== expected) {
+    return NextResponse.json(
+      {
+        error: "Unauthorized",
+        reason: !expected
+          ? "missing_server_token"
+          : !provided
+            ? "missing_provided_token"
+            : "token_mismatch",
+        expectedLength: expected?.length ?? 0,
+        providedLength: provided?.length ?? 0,
+      },
+      { status: 401 }
+    );
   }
 
   const targetEmail = (email || "admin@bakersfield.com").trim().toLowerCase();
