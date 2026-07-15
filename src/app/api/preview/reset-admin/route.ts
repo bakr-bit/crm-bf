@@ -7,6 +7,29 @@ function buildPreviewUserId() {
   return `c${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`;
 }
 
+function supabaseEnvDiagnostics() {
+  const raw = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "";
+  let host: string | null = null;
+  try {
+    host = raw ? new URL(raw).hostname : null;
+  } catch {
+    host = null;
+  }
+
+  return {
+    hasNextPublicSupabaseUrl: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
+    hasSupabaseUrl: Boolean(process.env.SUPABASE_URL),
+    hasServiceRoleKey: Boolean(
+      process.env.SUPABASE_SERVICE_ROLE_KEY ||
+        process.env.SUPABASE_SERVICE_ROLE ||
+        process.env.SUPABASE_SECRET_KEY
+    ),
+    rawLooksHttp: /^https?:\/\//i.test(raw),
+    rawLooksPostgres: /^postgres(ql)?:\/\//i.test(raw),
+    rawHost: host,
+  };
+}
+
 async function resetAdmin(token?: string, email?: string, password?: string) {
   if (process.env.VERCEL_ENV !== "preview") {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -132,6 +155,7 @@ function previewErrorResponse(error: unknown) {
       code: err?.code || null,
       meta: err?.meta || null,
       db: prismaDbDiagnostics,
+      supabase: supabaseEnvDiagnostics(),
     },
     { status: 500 }
   );
