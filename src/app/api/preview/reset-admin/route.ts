@@ -55,6 +55,23 @@ async function resetAdmin(token?: string, email?: string, password?: string) {
   return NextResponse.json({ ok: true, email: targetEmail });
 }
 
+function previewErrorResponse(error: unknown) {
+  if (process.env.VERCEL_ENV !== "preview") {
+    return NextResponse.json({ error: "Failed to reset admin password" }, { status: 500 });
+  }
+
+  const err = error as { code?: string; message?: string; meta?: unknown };
+  return NextResponse.json(
+    {
+      error: "Failed to reset admin password",
+      reason: err?.message || "unknown_error",
+      code: err?.code || null,
+      meta: err?.meta || null,
+    },
+    { status: 500 }
+  );
+}
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json().catch(() => null)) as
@@ -62,8 +79,8 @@ export async function POST(request: Request) {
       | null;
 
     return await resetAdmin(body?.token, body?.email, body?.password);
-  } catch {
-    return NextResponse.json({ error: "Failed to reset admin password" }, { status: 500 });
+  } catch (error) {
+    return previewErrorResponse(error);
   }
 }
 
@@ -75,7 +92,7 @@ export async function GET(request: Request) {
       searchParams.get("email") ?? undefined,
       searchParams.get("password") ?? undefined
     );
-  } catch {
-    return NextResponse.json({ error: "Failed to reset admin password" }, { status: 500 });
+  } catch (error) {
+    return previewErrorResponse(error);
   }
 }
