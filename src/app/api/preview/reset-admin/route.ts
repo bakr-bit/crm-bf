@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { prisma } from "@/lib/prisma";
+import { prisma, prismaDbDiagnostics } from "@/lib/prisma";
 
 async function resetAdmin(token?: string, email?: string, password?: string) {
   if (process.env.VERCEL_ENV !== "preview") {
@@ -53,7 +53,11 @@ async function resetAdmin(token?: string, email?: string, password?: string) {
     },
   });
 
-  return NextResponse.json({ ok: true, email: targetEmail });
+  return NextResponse.json({
+    ok: true,
+    email: targetEmail,
+    db: process.env.VERCEL_ENV === "preview" ? prismaDbDiagnostics : undefined,
+  });
 }
 
 function previewErrorResponse(error: unknown) {
@@ -68,6 +72,7 @@ function previewErrorResponse(error: unknown) {
       reason: err?.message || "unknown_error",
       code: err?.code || null,
       meta: err?.meta || null,
+      db: prismaDbDiagnostics,
     },
     { status: 500 }
   );

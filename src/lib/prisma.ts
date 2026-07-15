@@ -16,29 +16,44 @@ function getDbUsername(connectionString?: string) {
   }
 }
 
-function resolveConnectionString() {
-  const direct = process.env.DIRECT_DATABASE_URL;
-  const pooled = process.env.DATABASE_URL;
+type DbCandidate = { source: string; value?: string };
 
-  const directUser = getDbUsername(direct)?.toLowerCase();
-  const pooledUser = getDbUsername(pooled)?.toLowerCase();
+function selectConnectionString(candidates: DbCandidate[]) {
+  const withValues = candidates
+    .filter((candidate): candidate is { source: string; value: string } => Boolean(candidate.value))
+    .map((candidate) => ({
+      ...candidate,
+      user: getDbUsername(candidate.value)?.toLowerCase() ?? null,
+    }));
 
-  if (direct && pooled) {
-    // Preview safety: if one URL uses the known-bad `bot` user and the other doesn't,
-    // prefer the non-bot credential to avoid auth hard-fails (P1000/28P01).
-    if (directUser === "bot" && pooledUser && pooledUser !== "bot") {
-      return pooled;
-    }
-    if (pooledUser === "bot" && directUser && directUser !== "bot") {
-      return direct;
-    }
-  }
-
-  return direct || pooled;
+  const nonBot = withValues.find((candidate) => candidate.user && candidate.user !== "bot");
+  return nonBot ?? withValues[0] ?? null;
 }
 
+const dbCandidates: DbCandidate[] = [
+  { source: "DIRECT_DATABASE_URL", value: process.env.DIRECT_DATABASE_URL },
+  { source: "DATABASE_URL", value: process.env.DATABASE_URL },
+  { source: "POSTGRES_PRISMA_URL", value: process.env.POSTGRES_PRISMA_URL },
+  { source: "POSTGRES_URL_NON_POOLING", value: process.env.POSTGRES_URL_NON_POOLING },
+  { source: "POSTGRES_URL", value: process.env.POSTGRES_URL },
+  { source: "SUPABASE_DB_URL", value: process.env.SUPABASE_DB_URL },
+];
+
+const selectedDb = selectConnectionString(dbCandidates);
+
+export const prismaDbDiagnostics = {
+  source: selectedDb?.source ?? null,
+  user: getDbUsername(selectedDb?.value) ?? null,
+  hasDirect: Boolean(process.env.DIRECT_DATABASE_URL),
+  hasDatabase: Boolean(process.env.DATABASE_URL),
+  hasPostgresPrisma: Boolean(process.env.POSTGRES_PRISMA_URL),
+  hasPostgresNonPooling: Boolean(process.env.POSTGRES_URL_NON_POOLING),
+  hasPostgresUrl: Boolean(process.env.POSTGRES_URL),
+  hasSupabaseDbUrl: Boolean(process.env.SUPABASE_DB_URL),
+};
+
 const pool = globalForPrisma.pool ?? new pg.Pool({
-  connectionString: resolveConnectionString(),
+  connectionString: selectedDb?.value,
   ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
 });
 
