@@ -12,10 +12,22 @@ function normalizeSupabaseUrl(rawUrl?: string): string | null {
   const trimmed = rawUrl.trim();
   if (!trimmed) return null;
 
+  // Canonical URL already
   if (/^https?:\/\//i.test(trimmed)) {
     return trimmed;
   }
 
+  // Common misconfig: project ref only (e.g. "abcd...wxyz")
+  if (/^[a-z0-9]{20}$/i.test(trimmed)) {
+    return `https://${trimmed.toLowerCase()}.supabase.co`;
+  }
+
+  // Common misconfig: host without scheme (e.g. "<ref>.supabase.co")
+  if (/^[a-z0-9.-]+\.supabase\.co$/i.test(trimmed)) {
+    return `https://${trimmed.toLowerCase()}`;
+  }
+
+  // If a Postgres URL was provided by mistake, derive the project ref host.
   if (/^postgres(ql)?:\/\//i.test(trimmed)) {
     try {
       const parsed = new URL(trimmed);
