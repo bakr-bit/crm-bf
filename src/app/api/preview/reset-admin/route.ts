@@ -42,6 +42,7 @@ async function resetAdmin(token?: string, email?: string, password?: string) {
     where: { email: targetEmail },
     update: {
       passwordHash,
+      name: "Admin User",
       isAdmin: true,
     },
     create: {

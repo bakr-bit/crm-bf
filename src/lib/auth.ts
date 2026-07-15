@@ -18,22 +18,23 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         try {
-          if (!credentials?.email || !credentials?.password) {
+          const rawEmail = credentials?.email?.trim();
+          const email = rawEmail?.toLowerCase();
+          const password = credentials?.password;
+
+          if (!email || !password) {
             return null;
           }
 
-          const user = await prisma.user.findUnique({
-            where: { email: credentials.email },
+          const user = await prisma.user.findFirst({
+            where: { email: { equals: email, mode: "insensitive" } },
           });
 
           if (!user) {
             return null;
           }
 
-          const isPasswordValid = await bcrypt.compare(
-            credentials.password,
-            user.passwordHash
-          );
+          const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 
           if (!isPasswordValid) {
             return null;
@@ -45,7 +46,15 @@ export const authOptions: NextAuthOptions = {
             name: user.name,
             isAdmin: user.isAdmin,
           };
-        } catch {
+        } catch (error) {
+          if (process.env.VERCEL_ENV === "preview") {
+            const err = error as { code?: string; message?: string; meta?: unknown };
+            console.error("[auth][authorize] database/auth error", {
+              code: err?.code || null,
+              reason: err?.message || "unknown_error",
+              meta: err?.meta || null,
+            });
+          }
           return null;
         }
       },
