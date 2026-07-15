@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma, prismaDbDiagnostics } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
+
+function buildPreviewUserId() {
+  return `c${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`;
+}
 
 async function resetAdmin(token?: string, email?: string, password?: string) {
   if (process.env.VERCEL_ENV !== "preview") {
@@ -38,24 +43,78 @@ async function resetAdmin(token?: string, email?: string, password?: string) {
 
   const passwordHash = await bcrypt.hash(targetPassword, 12);
 
-  await prisma.user.upsert({
-    where: { email: targetEmail },
-    update: {
-      passwordHash,
-      name: "Admin User",
-      isAdmin: true,
-    },
-    create: {
-      email: targetEmail,
-      passwordHash,
-      name: "Admin User",
-      isAdmin: true,
-    },
-  });
+  let resetVia: "prisma" | "supabase-fallback" = "prisma";
+
+  try {
+    await prisma.user.upsert({
+      where: { email: targetEmail },
+      update: {
+        passwordHash,
+        name: "Admin User",
+        isAdmin: true,
+      },
+      create: {
+        email: targetEmail,
+        passwordHash,
+        name: "Admin User",
+        isAdmin: true,
+      },
+    });
+  } catch (error) {
+    const err = error as { code?: string; message?: string; meta?: unknown };
+    const shouldTrySupabaseFallback =
+      process.env.VERCEL_ENV === "preview" &&
+      (err?.code === "P1000" || err?.code === "P1001" || err?.code === "P1017");
+
+    if (!shouldTrySupabaseFallback) {
+      throw error;
+    }
+
+    const { data: existingUser, error: readError } = await supabase
+      .from("User")
+      .select("id")
+      .ilike("email", targetEmail)
+      .limit(1)
+      .maybeSingle();
+
+    if (readError) {
+      throw new Error(`supabase_read_failed:${readError.code || "unknown"}:${readError.message}`);
+    }
+
+    if (existingUser?.id) {
+      const { error: updateError } = await supabase
+        .from("User")
+        .update({
+          passwordHash,
+          name: "Admin User",
+          isAdmin: true,
+        })
+        .eq("id", existingUser.id);
+
+      if (updateError) {
+        throw new Error(`supabase_update_failed:${updateError.code || "unknown"}:${updateError.message}`);
+      }
+    } else {
+      const { error: insertError } = await supabase.from("User").insert({
+        id: buildPreviewUserId(),
+        email: targetEmail,
+        passwordHash,
+        name: "Admin User",
+        isAdmin: true,
+      });
+
+      if (insertError) {
+        throw new Error(`supabase_insert_failed:${insertError.code || "unknown"}:${insertError.message}`);
+      }
+    }
+
+    resetVia = "supabase-fallback";
+  }
 
   return NextResponse.json({
     ok: true,
     email: targetEmail,
+    via: resetVia,
     db: process.env.VERCEL_ENV === "preview" ? prismaDbDiagnostics : undefined,
   });
 }
