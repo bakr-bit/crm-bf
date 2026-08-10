@@ -11,7 +11,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "data:clone-partners-brands": "tsx scripts/clone-partners-brands.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

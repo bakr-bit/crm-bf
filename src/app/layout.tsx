@@ -13,12 +13,29 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const noIndex = process.env.NEXT_PUBLIC_NOINDEX === "true";
+
 export const metadata: Metadata = {
   title: {
     default: "CRM System",
     template: "%s | CRM System",
   },
   description: "Internal CRM for partner and deal management",
+  robots: noIndex
+    ? {
+        index: false,
+        follow: false,
+        nocache: true,
+        googleBot: {
+          index: false,
+          follow: false,
+          noimageindex: true,
+        },
+      }
+    : {
+        index: true,
+        follow: true,
+      },
 };
 
 export default function RootLayout({
